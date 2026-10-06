@@ -17,6 +17,7 @@ import { CookieConsent } from "@/components/site/cookie-consent";
 import { CommandPalette } from "@/components/site/command-palette";
 import { ShortcutsHelp } from "@/components/site/shortcuts-help";
 import { GPrefixShortcuts } from "@/components/site/g-prefix-shortcuts";
+import { RecentlyViewed } from "@/components/site/recently-viewed";
 import {
   getCategories,
   getCountries,
@@ -50,6 +51,9 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* Hero section */}
         <Hero stats={stats} totalCountries={countries.length} />
+
+        {/* Recently viewed strip (client, localStorage — hidden for first-time visitors) */}
+        <RecentlyViewed />
 
         {/* Groups directory table (bulk directory style) */}
         <GroupsDirectoryTable

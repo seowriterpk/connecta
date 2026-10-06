@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createFavList } from "@/lib/fav-lists";
+import { createFavList, gcFavLists } from "@/lib/fav-lists";
 import { checkRateLimit, hitRateLimit, hashValue, getClientIp } from "@/lib/rate-limiter";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,12 @@ export async function POST(req: NextRequest) {
     }
 
     await hitRateLimit(rateKey, "fav_share");
+
+    // Opportunistic GC: ~10% of creates sweep stale lists (viewCount=0, >90d).
+    // Keeps the fav_lists table bounded without a dedicated cron worker.
+    if (Math.random() < 0.1) {
+      gcFavLists().catch(() => {});
+    }
 
     return NextResponse.json(
       {

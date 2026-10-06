@@ -18,7 +18,7 @@ export function StarRating({ groupId }: { groupId: string }) {
     setFetching(true);
     Promise.all([
       fetch(`/api/groups/rate?id=${groupId}&XTransformPort=3000`).then((r) => r.json()),
-      fetch(`/api/groups/rate/user?id=${groupId}&XTransformPort=3000`).then((r) => r.json()).catch(() => null),
+      fetch(`/api/groups/rate?user=1&id=${groupId}&XTransformPort=3000`).then((r) => r.json()).catch(() => null),
     ])
       .then(([stats, user]) => {
         if (cancelled) return;

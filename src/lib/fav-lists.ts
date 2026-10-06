@@ -130,3 +130,38 @@ export async function countFavLists(): Promise<number> {
   );
   return Number(row?.c ?? 0);
 }
+
+/** Delete a single list by id. Returns true if a row was removed. */
+export async function deleteFavList(id: string): Promise<boolean> {
+  if (!ID_RE.test(id)) return false;
+  const result = await exec("DELETE FROM `fav_lists` WHERE `id` = ?", [id]);
+  return result.affectedRows > 0;
+}
+
+/**
+ * Stale list = viewCount = 0 AND created more than STALE_DAYS ago
+ * (shared once — via the creator's own visit — then never opened again).
+ */
+export const STALE_DAYS = 90;
+
+/** Count lists eligible for garbage collection. */
+export async function countStaleFavLists(): Promise<number> {
+  const row = await queryOne<Row & { c: number }>(
+    "SELECT COUNT(*) AS c FROM `fav_lists` WHERE `viewCount` = 0 AND `createdAt` < (NOW() - INTERVAL ? DAY)",
+    [STALE_DAYS]
+  );
+  return Number(row?.c ?? 0);
+}
+
+/**
+ * Garbage-collect stale share lists (viewCount = 0, older than STALE_DAYS).
+ * Safe to call opportunistically — small table, indexed by viewCount scan.
+ * Returns the number of deleted rows.
+ */
+export async function gcFavLists(): Promise<number> {
+  const result = await exec(
+    "DELETE FROM `fav_lists` WHERE `viewCount` = 0 AND `createdAt` < (NOW() - INTERVAL ? DAY)",
+    [STALE_DAYS]
+  );
+  return result.affectedRows;
+}

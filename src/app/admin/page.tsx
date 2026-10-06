@@ -151,6 +151,12 @@ const QUICK_ACTIONS = [
     desc: "Override de metadatos y textos intro.",
     icon: Settings2,
   },
+  {
+    href: "/admin/listas",
+    title: "Listas compartidas",
+    desc: "Gestiona enlaces /lista y limpia obsoletas.",
+    icon: Share2,
+  },
 ] as const;
 
 function formatDateTime(iso: Date | string): string {
@@ -377,13 +383,23 @@ export default async function AdminDashboardPage() {
           {/* Share lists overview */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Share2 className="h-4 w-4 text-teal-600" />
-                Listas de favoritos compartidas
-              </CardTitle>
-              <CardDescription>
-                Enlaces públicos /lista/&lt;código&gt; creados por usuarios (más recientes, máx. 8).
-              </CardDescription>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Share2 className="h-4 w-4 text-teal-600" />
+                    Listas de favoritos compartidas
+                  </CardTitle>
+                  <CardDescription>
+                    Enlaces públicos /lista/&lt;código&gt; creados por usuarios (más recientes, máx. 8).
+                  </CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+                  <Link href="/admin/listas">
+                    <ListChecks className="h-3.5 w-3.5" />
+                    Gestionar listas
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {recentFavLists.length === 0 ? (

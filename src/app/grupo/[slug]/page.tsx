@@ -25,6 +25,7 @@ import { ShareMenu } from "@/components/site/share-menu";
 import { JoinButton, ClickCount } from "@/components/site/join-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
+import { RecentTracker } from "@/components/site/recent-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +166,7 @@ export default async function GroupPage({ params }: PageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RecentTracker group={group} />
       <SiteHeader />
 
       {/* Breadcrumb — single line, truncated on mobile */}
