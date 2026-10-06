@@ -10,7 +10,7 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart, History, Flame } from "lucide-react";
+import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart, History, Flame, Scale } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { useGroupsFilter } from "@/lib/store";
@@ -100,6 +100,10 @@ export function CommandPalette({ categories, countries, groups }: Props) {
             <CommandItem onSelect={() => { setOpen(false); setTimeout(() => router.push("/populares"), 60); }}>
               <Flame className="h-4 w-4 text-orange-500" />
               Ver grupos populares
+            </CommandItem>
+            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => router.push("/comparar"), 60); }}>
+              <Scale className="h-4 w-4 text-teal-500" />
+              Comparar grupos
             </CommandItem>
           </CommandGroup>
 

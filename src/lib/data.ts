@@ -797,6 +797,23 @@ export async function getGroupBySlug(slug: string): Promise<GroupDTO | null> {
   return g ? toGroupDTO(g) : null;
 }
 
+/**
+ * Groups by explicit slug list, preserving the caller's order. Only `live`
+ * groups are returned. Used by the /comparar tool.
+ */
+export async function getGroupsBySlugs(slugs: string[]): Promise<GroupDTO[]> {
+  const clean = Array.from(new Set(slugs.map((s) => s.trim().toLowerCase()).filter(Boolean))).slice(0, 3);
+  if (clean.length === 0) return [];
+  const placeholders = clean.map(() => "?").join(", ");
+  const rows = await query<GroupRow>(
+    `SELECT ${GROUP_SELECT} ${GROUP_FROM}
+     WHERE g.\`slug\` IN (${placeholders}) AND g.\`status\` = 'live'`,
+    clean
+  );
+  const bySlug = new Map(rows.map((r) => [r.slug, toGroupDTO(r)]));
+  return clean.map((s) => bySlug.get(s)).filter((g): g is GroupDTO => !!g);
+}
+
 export interface PaginatedGroups {
   groups: GroupDTO[];
   total: number;

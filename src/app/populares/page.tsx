@@ -15,7 +15,14 @@ import {
   Clock,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
-import { getGroups, getTopRatedGroups, getRatingsBatch, getStats } from "@/lib/data";
+import {
+  getGroups,
+  getTopRatedGroups,
+  getRatingsBatch,
+  getStats,
+  getCategories,
+  getCountries,
+} from "@/lib/data";
 import type { GroupDTO } from "@/lib/types";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
@@ -23,6 +30,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
+import { PopularesFilters } from "@/components/site/populares-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +50,11 @@ function cleanOrden(v: string | string[] | undefined): Orden {
   return ORDENES.some((o) => o.value === s) ? (s as Orden) : "vistos";
 }
 
+function cleanParam(v: string | string[] | undefined): string | null {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" && s.trim() ? s.trim().toLowerCase().slice(0, 60) : null;
+}
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -49,14 +62,35 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const sp = await searchParams;
   const orden = cleanOrden(sp.orden);
-  const title = `Grupos de WhatsApp más populares — ${SITE.name}`;
-  const description =
-    "Descubre los grupos de WhatsApp en español más populares del momento: los más vistos, los que más gente se une y los mejor valorados por la comunidad.";
+  const pais = cleanParam(sp.pais);
+  const cat = cleanParam(sp.cat);
+
+  // Resolve filter labels for a contextual title (falls back silently if unknown).
+  let contextLabel = "";
+  if (pais || cat) {
+    const [countryRow, catRow] = await Promise.all([
+      pais
+        ? getCountries().then((cs) => cs.find((c) => c.code === pais) ?? null)
+        : Promise.resolve(null),
+      cat
+        ? getCategories().then((cs) => cs.find((c) => c.slug === cat) ?? null)
+        : Promise.resolve(null),
+    ]);
+    contextLabel = [countryRow?.name, catRow?.name].filter(Boolean).join(" · ");
+  }
+
+  const title = contextLabel
+    ? `Grupos de WhatsApp más populares ${contextLabel.includes(" · ") ? "— " : "en "}${contextLabel} — ${SITE.name}`
+    : `Grupos de WhatsApp más populares — ${SITE.name}`;
+  const description = contextLabel
+    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking en vivo por vistas, clics y valoraciones de la comunidad.`
+    : "Descubre los grupos de WhatsApp en español más populares del momento: los más vistos, los que más gente se une y los mejor valorados por la comunidad.";
   return {
     title: { absolute: title },
     description,
     alternates: { canonical: `${SITE.url}/populares` },
-    robots: { index: true, follow: true },
+    // Filtered combinations are thin near-duplicates of /populares — keep them out of the index.
+    robots: pais || cat ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
       title,
       description,
@@ -83,14 +117,29 @@ export default async function PopularesPage({
 }) {
   const sp = await searchParams;
   const orden = cleanOrden(sp.orden);
+  const pais = cleanParam(sp.pais);
+  const cat = cleanParam(sp.cat);
 
-  // Fetch the ranking for the active tab.
+  // Resolve active filters into ids (unknown codes/slugs are ignored).
+  const [allCountries, allCategories] = await Promise.all([getCountries(), getCategories()]);
+  const activeCountry = pais ? allCountries.find((c) => c.code === pais) ?? null : null;
+  const activeCategory = cat ? allCategories.find((c) => c.slug === cat) ?? null : null;
+  const filters = {
+    ...(activeCountry ? { countryId: activeCountry.id } : {}),
+    ...(activeCategory ? { categoryId: activeCategory.id } : {}),
+  };
+
+  // Fetch the ranking for the active tab + filters.
   let groups: GroupDTO[];
   if (orden === "valorados") {
-    groups = await getTopRatedGroups(PER_PAGE);
-    // Top-rated groups may be few — pad with popular ones to keep the grid lively.
+    // Top-rated has no filter support — fetch a wide set and filter locally.
+    let rated = await getTopRatedGroups(60);
+    if (activeCountry) rated = rated.filter((g) => g.country?.code === activeCountry.code);
+    if (activeCategory) rated = rated.filter((g) => g.category?.slug === activeCategory.slug);
+    groups = rated.slice(0, PER_PAGE);
+    // Top-rated groups may be few — pad with filtered popular ones to keep the grid lively.
     if (groups.length < 8) {
-      const extra = (await getGroups({ sort: "populares", limit: PER_PAGE })).filter(
+      const extra = (await getGroups({ ...filters, sort: "populares", limit: PER_PAGE })).filter(
         (g) => !groups.some((x) => x.id === g.id)
       );
       groups = [...groups, ...extra].slice(0, PER_PAGE);
@@ -101,7 +150,7 @@ export default async function PopularesPage({
       clics: "destacados",
       recientes: "recientes",
     };
-    groups = await getGroups({ sort: sortMap[orden], limit: PER_PAGE });
+    groups = await getGroups({ ...filters, sort: sortMap[orden], limit: PER_PAGE });
   }
 
   const [stats, ratings] = await Promise.all([
@@ -200,14 +249,20 @@ export default async function PopularesPage({
         {/* Filter tabs + ranked grid */}
         <section className="pt-2 sm:pt-4" aria-labelledby="ranking-heading">
           <div className="container mx-auto px-4">
+            {/* Orden tabs */}
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card p-1.5 shadow-sm">
               {ORDENES.map((o) => {
                 const Icon = o.icon;
                 const isActive = o.value === orden;
+                const params = new URLSearchParams();
+                if (o.value !== "vistos") params.set("orden", o.value);
+                if (pais) params.set("pais", pais);
+                if (cat) params.set("cat", cat);
+                const qs = params.toString();
                 return (
                   <Link
                     key={o.value}
-                    href={`/populares${o.value !== "vistos" ? `?orden=${o.value}` : ""}`}
+                    href={`/populares${qs ? `?${qs}` : ""}`}
                     aria-current={isActive ? "page" : undefined}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       isActive
@@ -222,6 +277,15 @@ export default async function PopularesPage({
               })}
             </div>
 
+            {/* Country + category filter chips */}
+            <PopularesFilters
+              countries={allCountries.map((c) => ({ code: c.code, name: c.name, flag: c.flag, groupCount: c.groupCount }))}
+              categories={allCategories.map((c) => ({ slug: c.slug, name: c.name, color: c.color, groupCount: c.groupCount }))}
+              orden={orden}
+              pais={pais}
+              cat={cat}
+            />
+
             <h2 id="ranking-heading" className="sr-only">
               Ranking de grupos
             </h2>
@@ -231,17 +295,35 @@ export default async function PopularesPage({
                 <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-muted">
                   <Trophy className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-bold">Todavía no hay datos para este ranking</h3>
+                <h3 className="text-xl font-bold">
+                  {pais || cat ? "Sin resultados con estos filtros" : "Todavía no hay datos para este ranking"}
+                </h3>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  Vuelve pronto: las métricas se actualizan con cada visita y clic de la comunidad.
+                  {pais || cat ? (
+                    <>
+                      No hay grupos suficientes para esta combinación todavía. Prueba a quitar un filtro o
+                      cambia de pestaña para ver el ranking completo.
+                    </>
+                  ) : (
+                    <>Vuelve pronto: las métricas se actualizan con cada visita y clic de la comunidad.</>
+                  )}
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  <Link
-                    href="/"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
-                  >
-                    <Sparkles className="h-4 w-4" /> Explorar el directorio
-                  </Link>
+                  {pais || cat ? (
+                    <Link
+                      href={`/populares${orden !== "vistos" ? `?orden=${orden}` : ""}`}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                    >
+                      <Sparkles className="h-4 w-4" /> Ver el ranking completo
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                    >
+                      <Sparkles className="h-4 w-4" /> Explorar el directorio
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : (
@@ -262,8 +344,11 @@ export default async function PopularesPage({
 
             {groups.length > 0 && (
               <p className="mt-8 text-center text-xs text-muted-foreground">
-                Mostrando el top {groups.length} según {active.label.toLowerCase()}.
-                El ranking se recalcula en tiempo real con la actividad del directorio.
+                Mostrando el top {groups.length} según {active.label.toLowerCase()}
+                {[activeCountry?.name, activeCategory?.name].filter(Boolean).length > 0 && (
+                  <> de {([activeCountry?.name, activeCategory?.name].filter(Boolean) as string[]).join(" · ")}</>
+                )}
+                . El ranking se recalcula en tiempo real con la actividad del directorio.
               </p>
             )}
           </div>
@@ -297,7 +382,9 @@ export default async function PopularesPage({
                   pestaña de <em>Recién llegados</em> para no perderte nada nuevo.
                 </p>
                 <p>
-                  ¿Quieres afinar más? Combina esta página con el{" "}
+                  ¿Dudas entre varios? Ponlos frente a frente en el{" "}
+                  <Link href="/comparar" className="font-medium text-primary hover:underline">comparador de grupos</Link>{" "}
+                  para ver miembros, clics y valoraciones lado a lado. También puedes afinar con el{" "}
                   <Link href="/buscar" className="font-medium text-primary hover:underline">buscador</Link>, las{" "}
                   <Link href="/categorias" className="font-medium text-primary hover:underline">categorías</Link> y
                   los <Link href="/paises" className="font-medium text-primary hover:underline">países</Link> para
