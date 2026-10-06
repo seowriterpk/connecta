@@ -20,6 +20,16 @@ export function CookieConsent() {
     }
   }, []);
 
+  // While the banner is on screen, reserve space at the bottom of the page
+  // so it never covers real content (footer, CTAs, search bar on mobile).
+  React.useEffect(() => {
+    if (!visible) return;
+    document.body.classList.add("cg-cookie-banner-open");
+    return () => {
+      document.body.classList.remove("cg-cookie-banner-open");
+    };
+  }, [visible]);
+
   function decide(value: Consent) {
     try {
       localStorage.setItem(STORAGE_KEY, value);
@@ -41,7 +51,7 @@ export function CookieConsent() {
           role="dialog"
           aria-label="Aviso de cookies"
         >
-          <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border bg-card/95 p-4 shadow-xl shadow-black/10 backdrop-blur sm:flex-row sm:items-center">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border bg-card/95 p-4 text-left shadow-xl shadow-black/10 backdrop-blur sm:flex-row sm:items-center sm:p-5">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
               <Cookie className="h-5 w-5" />
             </span>
@@ -51,6 +61,12 @@ export function CookieConsent() {
                 Solo guardamos tus preferencias (tema, favoritos, grupos vistos) en tu navegador.
                 No usamos cookies de publicidad ni vendemos tus datos. Puedes seguir navegando tal cual.
               </p>
+              <a
+                href="/politica-de-cookies"
+                className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Ver política de cookies
+              </a>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => decide("rejected")}>

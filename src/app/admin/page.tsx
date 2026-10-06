@@ -19,7 +19,6 @@ import {
   Link2,
   LinkIcon,
   MousePointerClick,
-  Send,
   Flag,
   LayoutDashboard,
   FolderTree,
@@ -31,6 +30,10 @@ import {
   ArrowRight,
   UploadCloud,
   FileCode,
+  Share2,
+  Eye,
+  ListChecks,
+  ExternalLink,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -75,6 +78,20 @@ const STATS = [
     icon: Users,
     color: "text-violet-600 dark:text-violet-400",
     bg: "bg-violet-50 dark:bg-violet-950/40",
+  },
+  {
+    key: "favLists",
+    label: "Listas compartidas",
+    icon: Share2,
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-50 dark:bg-teal-950/40",
+  },
+  {
+    key: "favListViews",
+    label: "Visitas a listas",
+    icon: Eye,
+    color: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-50 dark:bg-cyan-950/40",
   },
   {
     key: "reports",
@@ -160,11 +177,30 @@ interface ActivityLogRow {
   createdAt: Date;
 }
 
+interface FavListRow {
+  id: string;
+  shareCode: string;
+  title: string | null;
+  groupIdsJson: string;
+  viewCount: number;
+  createdAt: Date;
+  lastViewedAt: Date | null;
+}
+
+function countListIds(json: string): number {
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default async function AdminDashboardPage() {
   const { adminUser, csrfToken } = await checkAdmin();
 
   // Parallel stat queries
-  const [statRow, recentActivity] = await Promise.all([
+  const [statRow, recentActivity, recentFavLists] = await Promise.all([
     queryOne<Row & Record<string, unknown>>(
       `SELECT
          (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`live\`,
@@ -172,10 +208,15 @@ export default async function AdminDashboardPage() {
          (SELECT COUNT(*) FROM \`groups\` WHERE \`linkStatus\` = 'revoked') AS \`revoked\`,
          (SELECT COALESCE(SUM(\`clicks\`), 0) FROM \`groups\`) AS \`clicks\`,
          (SELECT COUNT(*) FROM \`ugc_contributors\` WHERE \`isBlocked\` = 0) AS \`contributors\`,
+         (SELECT COUNT(*) FROM \`fav_lists\`) AS \`favLists\`,
+         (SELECT COALESCE(SUM(\`viewCount\`), 0) FROM \`fav_lists\`) AS \`favListViews\`,
          (SELECT COUNT(*) FROM \`group_reports\` WHERE \`status\` = 'OPEN') AS \`reports\``
     ),
     query<ActivityLogRow>(
       "SELECT `id`, `adminUser`, `actionLabel`, `targetId`, `targetName`, `createdAt` FROM `admin_activity_log` ORDER BY `createdAt` DESC LIMIT 20"
+    ),
+    query<FavListRow>(
+      "SELECT `id`, `shareCode`, `title`, `groupIdsJson`, `viewCount`, `createdAt`, `lastViewedAt` FROM `fav_lists` ORDER BY `createdAt` DESC LIMIT 8"
     ),
   ]);
 
@@ -185,6 +226,8 @@ export default async function AdminDashboardPage() {
     revoked: Number(statRow?.revoked ?? 0),
     clicks: Number(statRow?.clicks ?? 0),
     contributors: Number(statRow?.contributors ?? 0),
+    favLists: Number(statRow?.favLists ?? 0),
+    favListViews: Number(statRow?.favListViews ?? 0),
     reports: Number(statRow?.reports ?? 0),
   };
 
@@ -232,7 +275,7 @@ export default async function AdminDashboardPage() {
           </div>
 
           {/* Stats grid */}
-          <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             {STATS.map((s) => {
               const Icon = s.icon;
               return (
@@ -331,6 +374,78 @@ export default async function AdminDashboardPage() {
               </CardContent>
             </Card>
           </section>
+          {/* Share lists overview */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Share2 className="h-4 w-4 text-teal-600" />
+                Listas de favoritos compartidas
+              </CardTitle>
+              <CardDescription>
+                Enlaces públicos /lista/&lt;código&gt; creados por usuarios (más recientes, máx. 8).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentFavLists.length === 0 ? (
+                <p className="rounded-md border border-dashed bg-muted/30 px-3 py-6 text-center text-sm text-muted-foreground">
+                  Todavía no se ha compartido ninguna lista de favoritos.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-muted-foreground">
+                        <th className="pb-2 pr-4 font-medium">Código</th>
+                        <th className="pb-2 pr-4 font-medium">Grupos</th>
+                        <th className="pb-2 pr-4 font-medium">Visitas</th>
+                        <th className="pb-2 pr-4 font-medium">Creada</th>
+                        <th className="pb-2 pr-4 font-medium">Última visita</th>
+                        <th className="pb-2 font-medium sr-only">Abrir</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentFavLists.map((l) => (
+                        <tr key={l.id} className="border-b last:border-0">
+                          <td className="py-2.5 pr-4">
+                            <Link
+                              href={`/lista/${l.shareCode}`}
+                              className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400"
+                            >
+                              <ListChecks className="h-3.5 w-3.5" />
+                              {l.shareCode}
+                              <ExternalLink className="h-3 w-3 opacity-60" />
+                            </Link>
+                          </td>
+                          <td className="py-2.5 pr-4 tabular-nums">
+                            {countListIds(l.groupIdsJson)}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <Badge
+                              variant="outline"
+                              className="bg-teal-50 tabular-nums text-teal-700 dark:bg-teal-950/40 dark:text-teal-300"
+                            >
+                              {l.viewCount}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pr-4 text-xs text-muted-foreground">
+                            {formatDateTime(l.createdAt)}
+                          </td>
+                          <td className="py-2.5 pr-4 text-xs text-muted-foreground">
+                            {l.lastViewedAt ? formatDateTime(l.lastViewedAt) : "—"}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                              <Link href={`/lista/${l.shareCode}`}>Ver</Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
       <SiteFooter />

@@ -16,6 +16,7 @@ import {
   Lock,
   ScrollText,
   Cookie,
+  UserRound,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { NewsletterSection } from "@/components/site/newsletter-section";
@@ -31,6 +32,7 @@ const EXPLORE_LINKS = [
 
 const COMPANY_LINKS = [
   { href: "/sobre-nosotros", label: "Sobre nosotros", icon: Info },
+  { href: "/autores", label: "Autores", icon: UserRound },
   { href: "/contacto", label: "Contacto", icon: Mail },
   { href: "/guias", label: "Guías", icon: BookOpen },
   { href: "/reportar-grupo", label: "Reportar un grupo", icon: Flag },

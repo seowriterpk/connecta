@@ -225,6 +225,17 @@
      NOTE: `clip` (not `hidden`) — `hidden` would create a scrollport on
      <body> and break `position: sticky` for the favorites action bar. */
   body { overflow-x: clip; }
+
+  /* Reserve space for the fixed cookie banner so it never covers content.
+     Banner height ≈ 200px mobile / ~110px desktop (with padding). */
+  body.cg-cookie-banner-open {
+    padding-bottom: 13.5rem;
+  }
+  @media (min-width: 640px) {
+    body.cg-cookie-banner-open {
+      padding-bottom: 7.5rem;
+    }
+  }
   
   /* Better tap targets on mobile */
   @media (max-width: 640px) {

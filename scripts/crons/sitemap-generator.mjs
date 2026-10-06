@@ -94,6 +94,7 @@ async function main() {
       urlEntry(`${BASE_URL}/`, undefined, "daily", "1.0"),
       urlEntry(`${BASE_URL}/agregar-grupo`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/sobre-nosotros`, undefined, "monthly", "0.6"),
+      urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),
       urlEntry(`${BASE_URL}/guias`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/contacto`, undefined, "monthly", "0.5"),
       urlEntry(`${BASE_URL}/politica-de-privacidad`, undefined, "yearly", "0.3"),
@@ -102,12 +103,18 @@ async function main() {
       urlEntry(`${BASE_URL}/reportar-grupo`, undefined, "monthly", "0.5"),
     ]);
 
-    // Author profiles — staff uploaders + community contributors
+    // Author profiles — staff uploaders + community contributors (+ index page)
     const autores = await q(
       pool,
       "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
     );
-    writeSitemap("autores.xml", autores.map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")));
+    writeSitemap(
+      "autores.xml",
+      [
+        urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),
+        ...autores.map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")),
+      ]
+    );
 
     // Sitemap index
     const allFiles = [

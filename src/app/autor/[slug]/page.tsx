@@ -180,7 +180,7 @@ export default async function AutorPage({ params }: PageProps) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Inicio", item: SITE.url },
-      { "@type": "ListItem", position: 2, name: "Autores", item: `${SITE.url}/autor` },
+      { "@type": "ListItem", position: 2, name: "Autores", item: `${SITE.url}/autores` },
       {
         "@type": "ListItem",
         position: 3,
@@ -221,7 +221,9 @@ export default async function AutorPage({ params }: PageProps) {
                 <ChevronRight className="h-3 w-3" />
               </li>
               <li>
-                <span>Autor</span>
+                <Link href="/autores" className="hover:text-primary">
+                  Autores
+                </Link>
               </li>
               <li>
                 <ChevronRight className="h-3 w-3" />
@@ -391,11 +393,17 @@ export default async function AutorPage({ params }: PageProps) {
                       className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
                     >
                       {c.name}
-                      <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
-                        {c.count}
-                      </span>
                     </Link>
                   ))}
+                </div>
+                <div className="mt-4 border-t pt-4">
+                  <Link
+                    href="/autores"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    Ver todos los autores y contribuidores
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
               </div>
             )}

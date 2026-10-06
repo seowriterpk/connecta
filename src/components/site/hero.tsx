@@ -8,7 +8,7 @@ import { RandomGroupButton } from "@/components/site/random-group-button";
 
 function Stat({ value, label, icon: Icon }: { value: string; label: string; icon: React.ElementType }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur">
+    <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:shadow-md">
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />
       </span>
@@ -73,7 +73,7 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
             <Sparkles className="h-3.5 w-3.5" />
             Directorio en español · 100% gratis
           </span>
-          <h1 className="mt-5 text-balance text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mt-5 text-balance text-[2rem] font-extrabold leading-[1.15] tracking-tight sm:mt-6 sm:text-5xl sm:leading-[1.1] lg:text-6xl">
             Encuentra los mejores{" "}
             <span className="cg-gradient-text">grupos de WhatsApp</span> en español
           </h1>
@@ -104,11 +104,13 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
             </button>
           </form>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-            <Stat value={`${stats.groups}+`} label="Grupos activos" icon={Users} />
-            <Stat value={`${stats.categories}`} label="Categorías" icon={Sparkles} />
-            <Stat value={`${totalCountries}`} label="Países hispanos" icon={Globe2} />
-            <Stat value={stats.members > 1000 ? `${Math.round(stats.members / 1000)}k+` : `${stats.members}`} label="Miembros" icon={ShieldCheck} />
+          <div className="mt-8 border-t border-border/40 pt-6 [mask-image:linear-gradient(to_bottom,transparent,black_18px)] sm:mt-9">
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <Stat value={`${stats.groups}+`} label="Grupos activos" icon={Users} />
+              <Stat value={`${stats.categories}`} label="Categorías" icon={Sparkles} />
+              <Stat value={`${totalCountries}`} label="Países hispanos" icon={Globe2} />
+              <Stat value={stats.members > 1000 ? `${Math.round(stats.members / 1000)}k+` : `${stats.members}`} label="Miembros" icon={ShieldCheck} />
+            </div>
           </div>
 
           <div className="mt-5 flex items-center justify-center">

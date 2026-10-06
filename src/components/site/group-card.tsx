@@ -81,7 +81,7 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
   })();
 
   return (
-    <Link href={`/grupo/${group.slug}`} className="block h-full">
+    <Link href={`/grupo/${group.slug}`} title={group.title} className="block h-full">
       <motion.article
         whileHover={{ y: -6 }}
         transition={{ type: "spring", stiffness: 320, damping: 24 }}

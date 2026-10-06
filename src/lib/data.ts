@@ -1145,6 +1145,96 @@ export async function getAllUploaderSlugs(): Promise<string[]> {
   return (rows as any[]).map((r) => r.slug);
 }
 
+export interface AuthorIndexDTO {
+  id: string;
+  name: string;
+  slug: string;
+  jobTitle: string;
+  description: string | null;
+  imageUrl: string | null;
+  kind: "staff" | "community";
+  publishedCount: number;
+  totalMembers: number;
+  createdAt: Date;
+}
+
+/**
+ * All public authors (staff uploaders + unblocked community contributors)
+ * with live-group stats, sorted by published count desc. Powers /autores.
+ *
+ * NOTE: "members" is a derived value (computeDisplayedMembers), not a DB
+ * column, so we aggregate in JS from a lightweight per-group owner query.
+ */
+export async function getAllAuthors(): Promise<AuthorIndexDTO[]> {
+  const [staff, community, groupStats] = await Promise.all([
+    query<Row>(
+      `SELECT u.\`id\`, u.\`name\`, u.\`slug\`, u.\`jobTitle\`, u.\`description\`, u.\`imageUrl\`, u.\`createdAt\`
+       FROM \`uploaders\` u
+       ORDER BY u.\`name\` ASC`
+    ),
+    query<Row>(
+      `SELECT c.\`id\`, c.\`displayName\` AS \`name\`, c.\`displaySlug\` AS \`slug\`, c.\`avatarUrl\` AS \`imageUrl\`,
+              c.\`publishedCount\`, c.\`createdAt\`
+       FROM \`ugc_contributors\` c
+       WHERE c.\`isBlocked\` = 0 AND c.\`isRemoved\` = 0
+       ORDER BY c.\`publishedCount\` DESC, c.\`displayName\` ASC`
+    ),
+    query<Row>(
+      `SELECT \`uploaderId\`, \`ugcContributorId\`, \`id\`, \`clicks\`, \`joinCount\`
+       FROM \`groups\`
+       WHERE \`status\` = 'live' AND \`isAdult\` = 0`
+    ),
+  ]);
+
+  // ownerKey → { published, members }
+  const stats = new Map<string, { published: number; members: number }>();
+  for (const g of groupStats as any[]) {
+    const key = g.uploaderId ?? g.ugcContributorId;
+    if (!key) continue;
+    const entry = stats.get(key) ?? { published: 0, members: 0 };
+    entry.published += 1;
+    entry.members += computeDisplayedMembers(Number(g.clicks ?? 0), Number(g.joinCount ?? 0), String(g.id));
+    stats.set(key, entry);
+  }
+
+  const authors: AuthorIndexDTO[] = [];
+
+  for (const r of staff as any[]) {
+    const s = stats.get(r.id) ?? { published: 0, members: 0 };
+    authors.push({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      jobTitle: r.jobTitle ?? "Curador de Comunidades",
+      description: r.description ?? null,
+      imageUrl: r.imageUrl ?? null,
+      kind: "staff",
+      publishedCount: s.published,
+      totalMembers: s.members,
+      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
+    });
+  }
+
+  for (const r of community as any[]) {
+    const s = stats.get(r.id) ?? { published: 0, members: 0 };
+    authors.push({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      jobTitle: "Contribuidor de la comunidad",
+      description: null,
+      imageUrl: r.imageUrl ?? null,
+      kind: "community",
+      publishedCount: s.published > 0 ? s.published : Number(r.publishedCount ?? 0),
+      totalMembers: s.members,
+      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
+    });
+  }
+
+  // Global ordering: most published first.
+  return authors.sort((a, b) => b.publishedCount - a.publishedCount || a.name.localeCompare(b.name));
+}
+
 export async function getGroupsByUploader(uploaderId: string, limit = 60): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
