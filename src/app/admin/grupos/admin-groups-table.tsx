@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GroupImage } from "@/components/site/group-image";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -265,17 +266,13 @@ export function AdminGroupsTable({
                 </TableCell>
                 <TableCell className="px-2">
                   <div className="flex items-center gap-2">
-                    {g.profileImage ? (
-                      <img
-                        src={g.profileImage}
-                        alt=""
-                        className="h-7 w-7 shrink-0 rounded-full border object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-xs">
-                        📱
-                      </span>
-                    )}
+                    <GroupImage
+                      src={g.profileImage}
+                      alt={g.groupName}
+                      title={g.groupName}
+                      size={28}
+                      className="rounded-full border"
+                    />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1 font-medium text-foreground">
                         <span className="truncate" title={g.groupName}>

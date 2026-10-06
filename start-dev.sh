@@ -24,7 +24,7 @@ sleep 1
   setsid bash -c '
     # Second fork — reparented to init after first-fork exits
     cd /home/z/my-project
-    export NODE_OPTIONS='--max-old-space-size=1536'
+    export NODE_OPTIONS='--max-old-space-size=1792'
     exec ./node_modules/.bin/next dev -p 3000 --webpack
   ' </dev/null >/home/z/my-project/dev.log 2>&1 &
   # First fork exits immediately, orphaning the second fork → init adopts it

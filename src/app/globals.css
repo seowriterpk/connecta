@@ -221,8 +221,10 @@
     input, textarea, select { font-size: inherit; }
   }
   
-  /* Prevent text overflow on small screens */
-  body { overflow-x: hidden; }
+  /* Prevent text overflow on small screens.
+     NOTE: `clip` (not `hidden`) — `hidden` would create a scrollport on
+     <body> and break `position: sticky` for the favorites action bar. */
+  body { overflow-x: clip; }
   
   /* Better tap targets on mobile */
   @media (max-width: 640px) {

@@ -2987,3 +2987,33 @@ Stage Summary:
 - Production notes: /favoritos is noindex (personal localStorage page) — no sitemap/robots changes needed. getGroupsByIds is parameterized + capped (no SQL injection surface).
 - KNOWN RISKS: dev-server OOM on heavy concurrent compiles (restart ./start-dev.sh; cache now preserved); VLM noted avatar aspect-ratio inconsistency (minor, default-group.svg vs emoji fallbacks).
 - Next-phase candidates: (1) fix avatar aspect-ratio consistency, (2) sticky action bar on /favoritos for long lists, (3) favorites export/import (JSON download), (4) rate-limit tuning, (5) sitemap regen with real BASE_URL, (6) UGC flow E2E test with fresh submission.
+
+---
+Task ID: QA-FAVORITOS-V2
+Agent: orchestrator (main)
+Task: Phase QA (agent-browser E2E) + favorites export/import & sorting features + avatar consistency styling + OOM mitigation.
+
+Work Log:
+- Verified runtime: MariaDB 11.8.6 alive, Next dev alive, /api/health 200 with DB ok. dev.log clean (only /api/img 403s for fake placeholder CDN URLs — expected, fallbacks handle them).
+- agent-browser QA sweep (all 200): /, /favoritos, /grupo/[6 real slugs], /categoria/tecnologia, /pais/es, /buscar?q=cafe, /guias, /agregar-grupo, /reportar-grupo, /contacto, /sobre-nosotros, legal pages ×3, /paises, /categorias, /ciudades, /ciudad/sevilla, /etiqueta/charlar, /rss, /admin/login, /grupo/test-group (new UGC-approved). Zero console/page errors on fresh reload (historical ArrowUpRight errors were from old HMR states — current file clean).
+- UGC E2E (admin review half): /admin/ugc → Enviados tab → "Aprobar y publicar" on Test Group → DB row status=approved + publishedGroupId=cmuwmao4vb3d323a6e5a0aa8a → groups row live/ugc → /grupo/test-group 200. "Rechazar" on second submission → status=rejected. Fresh-submission half remains untestable without a real active WhatsApp invite link (backend re-validates server-side — security by design).
+- BUG FIX 1 (sticky): body { overflow-x: hidden } in globals.css created a scrollport that broke position:sticky → changed to overflow-x: clip (documented note). Favorites sticky toolbar verified sticking at top:64 under 64px header (measured after paint settles — same-tick evals catch mid-animation layouts and lie).
+- BUG FIX 2 (Next warning): added data-scroll-behavior="smooth" to <html> (silences route-transition warning).
+- FEATURE — Favorites export/import:
+  * src/lib/favorites.ts: importIds(ids) action (regex-validated, dedup, FAVORITES_MAX=120 cap) + FAVORITES_MAX export.
+  * favorites-client.tsx: Export downloads conectagrupos-favoritos-YYYY-MM-DD.json {app,version,exportedAt,groups:[{id,slug,title}]}; Import accepts both our shape and plain {ids:[...]}; empty-state also has "Importar copia" button (device-switching recovery). E2E verified: export → file downloaded with 4 groups → cleared localStorage → uploaded file → 4 favorites restored + 4 cards rendered.
+- FEATURE — Favorites sorting: native <select> in sticky toolbar (Añadidos recientemente / Más miembros / Mejor valorados), client-side stable sort (recent = saved order newest-first, rating uses ratings-batch data, unrated sink). Verified all 3 modes reorder cards correctly.
+- FEATURE — Sticky action toolbar (top-16, backdrop-blur, -mx-4 full-bleed): count chip + total members chip + sort + Exportar/Importar/Compartir/Vaciar(icon-only <sm, labels ≥sm). AlertDialog "Vaciar" now mentions export-first. FAVORITES_MAX notice banner when full. Hero decluttered to stats only.
+- STYLING — GroupImage consistency (VLM's prior "avatar aspect-ratio inconsistency" fixed):
+  * All 3 render paths share identical square wrapper (fixed size, overflow-hidden, caller className).
+  * NEW deterministic gradient+initials fallback (16 pastel gradient palette hashed from alt, initials from first 2 significant words skipping Spanish stopwords, size-relative font, textShadow) — replaces default-group.svg path. Emoji fallback keeps bg-primary/10 with size-relative font.
+  * admin-groups-table.tsx: replaced raw <img>/📱 fallback with GroupImage (gets CDN proxy + gradient initials, consistent rounded-full border). Report page search results + autor page automatically get gradient initials (verified: 3 avatars "RC" amber gradient on /reportar-grupo; 29 gradient avatars in admin table; VLM: "consistent, professional, no broken images").
+- OOM MITIGATION: dev server OOM-killed 3× during QA bursts. Added experimental.webpackMemoryOptimizations to next.config.ts + raised NODE_OPTIONS max-old-space 1536→1792 in start-dev.sh. Post-fix: full 23-route paced sweep survived, RSS 1956MB, available 1113MB. (Turbopack remains unusable; webpack dev with .next cache preserved is the mode.)
+- Verification: bun run lint exit 0, bunx tsc --noEmit exit 0, all routes 200, zero console/page errors, VLM audits pass ("professional and well-structured", toolbar "correctly rendered and polished", mobile "clean and highly usable", no overlaps).
+
+Stage Summary:
+- Status: STABLE + enhanced. QA found no production-code bugs (server OOMs are the sandbox-only memory ceiling; mitigation applied).
+- New user-facing surface: favorites export/import round-trip, 3-mode sorting, persistent sticky toolbar, deterministic gradient initial avatars everywhere GroupImage renders.
+- Data notes: 4 pending UGC submissions remain in DB (2 DIGITAL ACCOUNTS + 1 Test Group + 1 UNIQUE TEST); ugc_contributors table is EMPTY → /autor/[slug] correctly 404s (data state, not a bug); 33→34 live groups after approving Test Group.
+- KNOWN RISKS: dev-server OOM under heavy parallel compiles (restart ./start-dev.sh; cache preserved; config now more resilient). Fake pps.whatsapp.net demo URLs 403 upstream → fallbacks render (by design).
+- Next-phase candidates: (1) rate-limit tuning, (2) sitemap regen with real BASE_URL, (3) more SEO landing pages, (4) seed ugc_contributors to light up autor pages, (5) image CDN/self-host for group images, (6) favorites public share links (server-side list storage).

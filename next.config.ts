@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   allowedDevOrigins: ["*.space-z.ai", "*.chatglm.cn"],
+  // Dev-mode memory relief: the 4GB sandbox cgroup OOM-kills webpack dev
+  // when many routes compile at once. This flag trades compile speed for
+  // a much lower heap footprint.
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
 };
 
 export default nextConfig;
