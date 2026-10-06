@@ -22,6 +22,7 @@ import {
   getStats,
   getCategories,
   getCountries,
+  getTrendingMovers,
 } from "@/lib/data";
 import type { GroupDTO } from "@/lib/types";
 import { GroupCard } from "@/components/site/group-card";
@@ -31,6 +32,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 import { PopularesFilters } from "@/components/site/populares-filters";
+import { MoversSection } from "@/components/site/movers-section";
 
 export const dynamic = "force-dynamic";
 
@@ -153,9 +155,11 @@ export default async function PopularesPage({
     groups = await getGroups({ ...filters, sort: sortMap[orden], limit: PER_PAGE });
   }
 
-  const [stats, ratings] = await Promise.all([
+  const [stats, ratings, movers] = await Promise.all([
     getStats(),
     getRatingsBatch(groups.map((g) => g.id)),
+    // Movers are a global signal — only fetched/rendered on the unfiltered view.
+    pais || cat ? Promise.resolve([]) : getTrendingMovers(6),
   ]);
 
   const totalViews = groups.reduce((a, g) => a + (g.views || 0), 0);
@@ -354,6 +358,9 @@ export default async function PopularesPage({
           </div>
         </section>
 
+        {/* Trending movers — 7-day view growth (global, unfiltered view only) */}
+        <MoversSection movers={movers} />
+
         {/* SEO long-form */}
         <section className="mt-12 border-t bg-muted/20 py-10 sm:py-12">
           <div className="container mx-auto px-4">
@@ -380,6 +387,14 @@ export default async function PopularesPage({
                   <em>Mejor valorados</em> recoge la experiencia de quienes ya están dentro, por lo que
                   suele ser el más fiable si buscas calidad. Si acabas de llegar, también tienes la
                   pestaña de <em>Recién llegados</em> para no perderte nada nuevo.
+                </p>
+                <p>
+                  La sección <strong className="font-semibold text-foreground">En ascenso</strong> va un paso
+                  más allá: comparamos las vistas de los <strong className="font-semibold text-foreground">últimos
+                  7 días</strong> con las de la semana anterior para detectar las comunidades que están
+                  despegando justo ahora. Un grupo puede llevar poco tiempo en el directorio y aparecer
+                  ahí por delante de veteranos mucho más grandes: es la señal más temprana de impulso
+                  que publicamos, y se recalcula a diario con la actividad real.
                 </p>
                 <p>
                   ¿Dudas entre varios? Ponlos frente a frente en el{" "}

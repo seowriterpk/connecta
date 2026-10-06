@@ -11,11 +11,13 @@ import { query, queryOne } from "@/lib/db";
 import {
   getGroupBySlug,
   getRatingsBatch,
+  getGroupActivity,
   incrementViews,
   touchGroupActivity,
   citySlug,
 } from "@/lib/data";
 import { getRelatedGroups } from "@/lib/related-groups";
+import { GroupActivityCard } from "@/components/site/group-activity";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { GroupImage } from "@/components/site/group-image";
@@ -97,13 +99,14 @@ export default async function GroupPage({ params }: PageProps) {
   incrementViews(group.id).catch(() => {});
   touchGroupActivity(group.id).catch(() => {});
 
-  const [related, ratingsBatch, ratingEntries] = await Promise.all([
+  const [related, ratingsBatch, ratingEntries, activity] = await Promise.all([
     getRelatedGroups(group.id, group.category?.name ?? "", group.country?.name ?? "", 10),
     getRatingsBatch([group.id]),
     query<ReviewEntryRow>(
       "SELECT `id`, `rating`, `createdAt` FROM `group_reviews` WHERE `groupId` = ? ORDER BY `createdAt` DESC LIMIT 10",
       [group.id]
     ),
+    getGroupActivity(group.id),
   ]);
   const rating = ratingsBatch[group.id] ?? { avg: 0, count: 0 };
   const uploader = group.uploaderId
@@ -327,6 +330,9 @@ export default async function GroupPage({ params }: PageProps) {
 
             {/* Sidebar */}
             <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
+              {/* 14-day activity trend (server sparkline) */}
+              <GroupActivityCard activity={activity} slug={group.slug} />
+
               {/* Uploader / Author snippet (E-E-A-T) */}
               {uploader && (
                 <div className="rounded-2xl border bg-card p-5 shadow-sm">

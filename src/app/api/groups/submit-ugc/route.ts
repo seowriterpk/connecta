@@ -32,7 +32,7 @@ import bcrypt from "bcryptjs";
 import { exec, newId, query, queryOne, type Row } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 import { extractInviteCode, fetchWhatsAppMeta, isValidWhatsAppInvite } from "@/lib/whatsapp-validator";
-import { checkUgcRateLimits, getClientIp, hashValue, hitRateLimit } from "@/lib/rate-limiter";
+import { checkUgcRateLimits, hitUgcRateLimits, getClientIp, hashValue } from "@/lib/rate-limiter";
 import { detectDuplicate } from "@/lib/duplicate-detector";
 import { hunterScan } from "@/lib/content-hunter";
 import { calculateScore } from "@/lib/quality-score";
@@ -348,9 +348,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Bump rate limit counters (one hit per device + one per IP).
-    await hitRateLimit(`submit_device:${hashValue(deviceToken)}`, "ugc_submit");
-    await hitRateLimit(`submit_ip:${hashValue(ip)}`, "ugc_submit");
+    // Bump rate limit counters (burst + device + IP layers).
+    await hitUgcRateLimits(ip, deviceToken);
 
     // --- Step 13: Decision ---
     // drop_silently: fake-success without persisting anything meaningful.

@@ -276,7 +276,14 @@ export async function getGroupById(id: string): Promise<GroupDTO | null> {
 
 export async function incrementViews(id: string): Promise<void> {
   try {
-    await exec("UPDATE `groups` SET `views` = `views` + 1 WHERE `id` = ?", [id]);
+    await Promise.all([
+      exec("UPDATE `groups` SET `views` = `views` + 1 WHERE `id` = ?", [id]),
+      // Daily time-series row (trending "movers" on /populares)
+      exec(
+        "INSERT INTO `group_daily_stats` (`groupId`, `day`, `views`, `clicks`) VALUES (?, CURDATE(), 1, 0) ON DUPLICATE KEY UPDATE `views` = `views` + 1",
+        [id]
+      ),
+    ]);
   } catch {
     /* ignore */
   }
@@ -646,7 +653,14 @@ export async function touchGroupActivity(id: string): Promise<void> {
 
 export async function incrementClicks(id: string): Promise<void> {
   try {
-    await exec("UPDATE `groups` SET `clicks` = `clicks` + 1 WHERE `id` = ?", [id]);
+    await Promise.all([
+      exec("UPDATE `groups` SET `clicks` = `clicks` + 1 WHERE `id` = ?", [id]),
+      // Daily time-series row (trending "movers" on /populares)
+      exec(
+        "INSERT INTO `group_daily_stats` (`groupId`, `day`, `views`, `clicks`) VALUES (?, CURDATE(), 0, 1) ON DUPLICATE KEY UPDATE `clicks` = `clicks` + 1",
+        [id]
+      ),
+    ]);
   } catch {
     /* ignore */
   }
@@ -661,6 +675,72 @@ export async function getMostSharedGroups(limit = 6): Promise<GroupDTO[]> {
     [limit]
   );
   return rows.map(toGroupDTO);
+}
+
+// ---------------------------------------------------------------------------
+// Trending movers (view growth, last 7 days vs previous 7 days)
+// ---------------------------------------------------------------------------
+
+export interface TrendingMover {
+  group: GroupDTO;
+  /** Views in the last 7 days (incl. today). */
+  weekViews: number;
+  /** Views in the previous 7 days. */
+  prevViews: number;
+  /** weekViews - prevViews (positive = rising). */
+  delta: number;
+  /** Relative change vs previous week (null when prevViews is 0). */
+  deltaPct: number | null;
+  /** Daily view counts for the last 14 days, oldest → newest. */
+  series: number[];
+}
+
+/**
+ * Groups with the strongest view growth this week (backed by
+ * group_daily_stats). Ordered by absolute delta, tie-broken by weekly volume.
+ */
+export async function getTrendingMovers(limit = 6): Promise<TrendingMover[]> {
+  try {
+    const rows = await query<GroupRow>(
+      `SELECT ${GROUP_SELECT}, st.\`weekViews\`, st.\`prevViews\`, st.\`seriesJson\`
+       ${GROUP_FROM}
+       JOIN (
+         SELECT \`groupId\`,
+           SUM(CASE WHEN \`day\` >= SUBDATE(CURDATE(), 6) THEN \`views\` ELSE 0 END) AS \`weekViews\`,
+           SUM(CASE WHEN \`day\` < SUBDATE(CURDATE(), 6) AND \`day\` >= SUBDATE(CURDATE(), 13) THEN \`views\` ELSE 0 END) AS \`prevViews\`,
+           CONCAT('[', GROUP_CONCAT(\`views\` ORDER BY \`day\` SEPARATOR ','), ']') AS \`seriesJson\`
+         FROM \`group_daily_stats\`
+         WHERE \`day\` >= SUBDATE(CURDATE(), 13)
+         GROUP BY \`groupId\`
+       ) st ON st.\`groupId\` = g.\`id\`
+       WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0
+       ORDER BY (st.\`weekViews\` - st.\`prevViews\`) DESC, st.\`weekViews\` DESC
+       LIMIT ?`,
+      [limit]
+    );
+    return rows.map((r) => {
+      const weekViews = Number(r.weekViews ?? 0);
+      const prevViews = Number(r.prevViews ?? 0);
+      let series: number[] = [];
+      try {
+        const parsed = JSON.parse(String(r.seriesJson ?? "[]"));
+        if (Array.isArray(parsed)) series = parsed.map(Number).filter(Number.isFinite);
+      } catch {
+        /* keep empty series */
+      }
+      return {
+        group: toGroupDTO(r),
+        weekViews,
+        prevViews,
+        delta: weekViews - prevViews,
+        deltaPct: prevViews > 0 ? Math.round(((weekViews - prevViews) / prevViews) * 100) : null,
+        series,
+      };
+    });
+  } catch {
+    // Table not migrated yet or transient error — degrade gracefully.
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1292,4 +1372,39 @@ export async function getNewestGroupsForRss(limit = 50): Promise<GroupDTO[]> {
     [Math.min(Math.max(limit, 1), 100)]
   );
   return rows.map(toGroupDTO);
+}
+
+export interface GroupActivity {
+  /** Daily view counts for the last 14 days, oldest → newest. */
+  series: number[];
+  weekViews: number;
+  prevViews: number;
+  totalViews: number;
+}
+
+/** 14-day view history for a single group (group detail activity card). */
+export async function getGroupActivity(groupId: string): Promise<GroupActivity | null> {
+  try {
+    const rows = await query<Row & { day: Date | string; views: number }>(
+      "SELECT `day`, `views` FROM `group_daily_stats` WHERE `groupId` = ? AND `day` >= SUBDATE(CURDATE(), 13) ORDER BY `day` ASC",
+      [groupId]
+    );
+    if (rows.length === 0) return null;
+    const byDay = new Map<string, number>();
+    for (const r of rows) {
+      const d = r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10);
+      byDay.set(d, Number(r.views ?? 0));
+    }
+    const series: number[] = [];
+    const today = new Date();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10);
+      series.push(byDay.get(d) ?? 0);
+    }
+    const weekViews = series.slice(7).reduce((a, b) => a + b, 0);
+    const prevViews = series.slice(0, 7).reduce((a, b) => a + b, 0);
+    return { series, weekViews, prevViews, totalViews: series.reduce((a, b) => a + b, 0) };
+  } catch {
+    return null;
+  }
 }

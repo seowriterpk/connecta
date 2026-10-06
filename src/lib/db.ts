@@ -360,6 +360,17 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       KEY \`idx_fav_lists_createdAt\` (\`createdAt\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
+  {
+    name: "group_daily_stats",
+    sql: `CREATE TABLE IF NOT EXISTS \`group_daily_stats\` (
+      \`groupId\` VARCHAR(191) NOT NULL,
+      \`day\` DATE NOT NULL,
+      \`views\` INT NOT NULL DEFAULT 0,
+      \`clicks\` INT NOT NULL DEFAULT 0,
+      PRIMARY KEY (\`groupId\`, \`day\`),
+      KEY \`idx_gds_day\` (\`day\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
 ];
 
 /**
