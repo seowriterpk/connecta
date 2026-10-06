@@ -34,6 +34,7 @@ import {
 import { useFavorites, FAVORITES_MAX } from "@/lib/favorites";
 import { GroupCard, SkeletonCard } from "@/components/site/group-card";
 import { Reveal } from "@/components/site/reveal";
+import { RecentlyViewed } from "@/components/site/recently-viewed";
 import type { GroupDTO } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -381,6 +382,9 @@ export function FavoritesClient() {
           </div>
         </header>
 
+        {/* Recently viewed (client, localStorage — hidden when empty) */}
+        <RecentlyViewed />
+
         {/* Suggestions */}
         <section className="py-10 sm:py-12" aria-labelledby="sugerencias-heading">
           <div className="container mx-auto px-4">
@@ -637,6 +641,8 @@ function FavoritesShell({
           {children}
         </div>
       </section>
+
+      <RecentlyViewed />
     </>
   );
 }

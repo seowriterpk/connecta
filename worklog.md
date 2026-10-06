@@ -3076,3 +3076,34 @@ Stage Summary:
 - Data notes: fav_lists back to 2 demo lists (QA artifacts cleaned: teststale001 deleted by GC itself, 3qauxmjhww/m9tc5uhwyz test lists removed); cg-recent key now actively used by visitors.
 - KNOWN RISKS: dev-server OOM under heavy compile bursts (restart ./start-dev.sh; mitigation already in place from prev phase). GC definition (viewCount=0 AND >90d) never deletes lists that got even 1 view — share links keep working as long as they're used.
 - Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) more SEO landing pages, (4) recently-viewed on /buscar + /favoritos pages, (5) favorites public share links from mobile deep-linking, (6) admin dashboard graph/trend of fav_list views over time.
+
+---
+Task ID: RECENT-EXPANSION-ANALYTICS
+Agent: orchestrator (main)
+Task: Phase QA + expand "Vistos recientemente" to /buscar and /favoritos + admin dashboard analytics charts (data-viz).
+
+Work Log:
+- Environment/QA: MariaDB alive, dev alive, health 200. 27-route sweep all healthy — /agregar-grupo & /enviar-grupo initially 000/308: the 000 was cold-compile delay (200 on retry); the 308 is an INTENTIONAL permanentRedirect (enviar-grupo → agregar-grupo, documented in page source). Fresh-load console/errors clean (a prior "Fast Refresh advisory" was dev-only HMR noise from previous session's edits — not present on clean reload).
+- FEATURE A — "Vistos recientemente" expansion (was homepage-only, now on 3 surfaces):
+  * /buscar results view: strip between search hero and results grid (before results ✓ verified via compareDocumentPosition).
+  * /buscar landing (no q): strip before "Sugerencias para tu búsqueda" ✓.
+  * /favoritos EMPTY state: strip between hero and "Quizá te gustan estos" trending suggestions ✓ (returning users get their history + trending).
+  * /favoritos POPULATED state: strip AFTER the favorites grid (inside FavoritesShell, after the lista-heading section) ✓. First test attempt had malformed localStorage ids (shell quoting wrote "id1 id2" as one string → empty state) — retested with proper JSON array: DOM order HEADER → SECTION lista → SECTION recently-viewed, sticky toolbar intact, 2 fav cards + 2 RV cards.
+  * Self-hiding component makes all placements zero-cost for first-time visitors (no layout shift when empty).
+- FEATURE B — Admin dashboard analytics (NEW admin-analytics.tsx client component + server aggregation in /admin/page.tsx):
+  * Chart 1 "Grupos por categoría": horizontal BarChart (top 8), per-bar colored by the category's own DB color name (mapped name→hex palette), YAxis tickFormatter truncates long names, footer note "Categoría más activa: X (N grupos)".
+  * Chart 2 "Crecimiento del catálogo": cumulative AreaChart by month (DATE_FORMAT %Y-%m, prefix-sum totals — mutation-free for react-compiler), gradient fill, dots/activeDots; graceful empty-state card when <2 months of data ("aparecerá cuando haya al menos dos meses").
+  * Chart 3 "Embudo de contribuciones UGC" (full-width): horizontal funnel bars Enviados/Pendientes/Aprobados/Rechazados (teal/amber/emerald/rose) + color legend row. needs_review merged into Pendientes.
+  * Uses existing shadcn ChartContainer/ChartTooltip/ChartTooltipContent (recharts 2.15.4), --chart-* CSS vars where applicable, aspect-auto + fixed heights (h-[260px]/h-[180px]).
+  * 3 new SQL queries added to the existing Promise.all batch (categories JOIN groups live counts; groups per month; ugc status counts).
+- FIXES during build: YAxis `formatter` → `tickFormatter` (recharts 2.x typing); react-hooks/immutability error on IIFE accumulator → prefix-sum map; removed now-unused logAdminAction import; comma-expression lint warning → braces.
+- VLM polish note applied: UGC funnel YAxis width 170→185 so "Pendientes de revisión" no longer wraps.
+- E2E VERIFIED: /admin shows 3 chart surfaces, 12 bar rectangles, area curve, funnel legend, "34 grupos publicados hasta hoy" — zero page errors. VLM audit: "clean labels and distinct colors... no visible rendering bugs, overlapping elements, or cut-off labels" (after width fix). /favoritos populated VLM: strip "well-integrated... clean layout... High polish".
+- Verification: lint 0, tsc 0, route sweep 200 (admin 307 = unauth redirect), dev.log clean. Dev server OOM'd 2× during heavy QA bursts (lint+tsc+browser concurrent) — restarted via ./start-dev.sh each time (known sandbox ceiling, cache preserved).
+
+Stage Summary:
+- Status: STABLE + 2 feature surfaces. Mandates fulfilled: features (analytics data-viz section + recently-viewed on 5 page-views across 3 routes) and styling (chart cards, per-category colors, funnel legend, graceful chart empty-states).
+- The recently-viewed loop now covers: homepage, /buscar (2 views), /favoritos (2 states), tracked from every group detail page.
+- Admin dashboard now leads with stats grid → analytics charts → quick actions/activity → share lists overview.
+- KNOWN RISKS: dev-server OOM under concurrent heavy tooling bursts (restart ./start-dev.sh; avoid running lint/tsc/browser-sweeps simultaneously). Growth chart is sparse (2 months of demo data) — fills automatically as data accrues.
+- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) more SEO landing pages, (4) mobile deep-linking for share lists, (5) per-group view/click time-series for richer trends, (6) command palette integration for recently-viewed groups.

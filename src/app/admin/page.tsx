@@ -3,8 +3,9 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
-import { checkAdmin, logAdminAction } from "@/lib/admin-guard";
+import { checkAdmin } from "@/lib/admin-guard";
 import { query, queryOne, type Row } from "@/lib/db";
+import { AdminAnalytics, type CategoryPoint, type GrowthPoint, type UgcPoint } from "./admin-analytics";
 import {
   Card,
   CardContent,
@@ -205,8 +206,8 @@ function countListIds(json: string): number {
 export default async function AdminDashboardPage() {
   const { adminUser, csrfToken } = await checkAdmin();
 
-  // Parallel stat queries
-  const [statRow, recentActivity, recentFavLists] = await Promise.all([
+  // Parallel stat queries + analytics aggregation
+  const [statRow, recentActivity, recentFavLists, categoryRows, growthRows, ugcStatusRows] = await Promise.all([
     queryOne<Row & Record<string, unknown>>(
       `SELECT
          (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`live\`,
@@ -224,6 +225,22 @@ export default async function AdminDashboardPage() {
     query<FavListRow>(
       "SELECT `id`, `shareCode`, `title`, `groupIdsJson`, `viewCount`, `createdAt`, `lastViewedAt` FROM `fav_lists` ORDER BY `createdAt` DESC LIMIT 8"
     ),
+    // Analytics: top categories with live group counts
+    query<{ name: string; groups: number; color: string }>(
+      `SELECT c.\`name\` AS \`name\`, COUNT(g.\`id\`) AS \`groups\`, COALESCE(c.\`color\`, 'emerald') AS \`color\`
+       FROM \`categories\` c
+       LEFT JOIN \`groups\` g ON g.\`categoryId\` = c.\`id\` AND g.\`status\` = 'live'
+       GROUP BY c.\`id\`, c.\`name\`, c.\`color\`
+       ORDER BY \`groups\` DESC, c.\`name\` ASC LIMIT 8`
+    ),
+    // Analytics: live groups per month (catalog growth)
+    query<{ month: string; c: number }>(
+      "SELECT DATE_FORMAT(`createdAt`, '%Y-%m') AS `month`, COUNT(*) AS `c` FROM `groups` WHERE `status` = 'live' GROUP BY `month` ORDER BY `month` ASC"
+    ),
+    // Analytics: UGC pipeline status counts
+    query<{ status: string; c: number }>(
+      "SELECT `status`, COUNT(*) AS `c` FROM `ugc_submissions` GROUP BY `status`"
+    ),
   ]);
 
   const statValues: Record<string, number | string> = {
@@ -236,6 +253,44 @@ export default async function AdminDashboardPage() {
     favListViews: Number(statRow?.favListViews ?? 0),
     reports: Number(statRow?.reports ?? 0),
   };
+
+  // ---- Analytics prop shaping ----
+  // Category color names (DB) → chart palette hexes.
+  const CAT_CHART_COLORS: Record<string, string> = {
+    emerald: "#10b981", teal: "#14b8a6", rose: "#f43f5e", amber: "#f59e0b",
+    violet: "#8b5cf6", cyan: "#06b6d4", orange: "#f97316", lime: "#84cc16",
+    fuchsia: "#d946ef", slate: "#64748b", yellow: "#eab308", stone: "#78716c",
+    red: "#ef4444", green: "#22c55e", pink: "#ec4899", purple: "#a855f7",
+    blue: "#3b82f6", indigo: "#6366f1", sky: "#0ea5e9",
+  };
+  const categories: CategoryPoint[] = categoryRows.map((r) => ({
+    name: r.name,
+    groups: Number(r.groups ?? 0),
+    color: CAT_CHART_COLORS[r.color] ?? CAT_CHART_COLORS.emerald,
+  }));
+
+  // Cumulative growth per month (prefix sums — mutation-free, react-compiler safe).
+  const growth: GrowthPoint[] = growthRows.map((r, i) => ({
+    month: r.month,
+    total: growthRows
+      .slice(0, i + 1)
+      .reduce((sum, row) => sum + Number(row.c ?? 0), 0),
+  }));
+
+  // UGC funnel: total → pending → approved → rejected (+ needs_review merged into pending).
+  const statusCount = (s: string) =>
+    Number(ugcStatusRows.find((r) => r.status === s)?.c ?? 0);
+  const ugcTotal = ugcStatusRows.reduce((acc, r) => acc + Number(r.c ?? 0), 0);
+  const ugc: UgcPoint[] = [
+    { stage: "Enviados", count: ugcTotal, fill: "#14b8a6" },
+    {
+      stage: "Pendientes de revisión",
+      count: statusCount("submitted") + statusCount("needs_review"),
+      fill: "#f59e0b",
+    },
+    { stage: "Aprobados y publicados", count: statusCount("approved"), fill: "#10b981" },
+    { stage: "Rechazados", count: statusCount("rejected"), fill: "#f43f5e" },
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
@@ -299,6 +354,9 @@ export default async function AdminDashboardPage() {
               );
             })}
           </section>
+
+          {/* Analytics charts */}
+          <AdminAnalytics categories={categories} growth={growth} ugc={ugc} />
 
           {/* Two-column main */}
           <section className="mt-6 grid gap-4 lg:grid-cols-3">

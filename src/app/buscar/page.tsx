@@ -19,6 +19,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { SearchBox } from "@/components/site/search-box";
 import { SubmitDialog } from "@/components/site/submit-dialog";
+import { RecentlyViewed } from "@/components/site/recently-viewed";
 
 export const dynamic = "force-dynamic";
 
@@ -240,6 +241,9 @@ export default async function BuscarPage({ searchParams }: PageProps) {
           </div>
         </header>
 
+        {/* Recently viewed (client, localStorage — hidden when empty) */}
+        <RecentlyViewed />
+
         {/* Results grid */}
         <section className="py-10 sm:py-12" aria-labelledby="resultados-heading">
           <div className="container mx-auto px-4">
@@ -400,6 +404,8 @@ async function BuscarLanding() {
             </div>
           </div>
         </header>
+
+        <RecentlyViewed />
 
         <section className="py-12 sm:py-16">
           <div className="container mx-auto px-4">
