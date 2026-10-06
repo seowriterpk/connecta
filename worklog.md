@@ -3017,3 +3017,32 @@ Stage Summary:
 - Data notes: 4 pending UGC submissions remain in DB (2 DIGITAL ACCOUNTS + 1 Test Group + 1 UNIQUE TEST); ugc_contributors table is EMPTY → /autor/[slug] correctly 404s (data state, not a bug); 33→34 live groups after approving Test Group.
 - KNOWN RISKS: dev-server OOM under heavy parallel compiles (restart ./start-dev.sh; cache preserved; config now more resilient). Fake pps.whatsapp.net demo URLs 403 upstream → fallbacks render (by design).
 - Next-phase candidates: (1) rate-limit tuning, (2) sitemap regen with real BASE_URL, (3) more SEO landing pages, (4) seed ugc_contributors to light up autor pages, (5) image CDN/self-host for group images, (6) favorites public share links (server-side list storage).
+
+---
+Task ID: SHARE-LISTS-AUTORES
+Agent: orchestrator (main)
+Task: Phase QA + public favorites share lists + community contributor profiles + autores sitemap.
+
+Work Log:
+- QA pre-check: health 200 (MariaDB alive, dev alive, dev.log clean), 6-route sweep 200, homepage 30 links, zero console/page errors → STABLE → feature phase.
+- FEATURE — Public favorites share lists (server-side):
+  * src/lib/db.ts: new `fav_lists` table in Schema Guard (id PK, shareCode VARCHAR(24) UNIQUE, title, groupIdsJson TEXT, viewCount, creatorIpHash, createdAt/lastViewedAt; auto-created on next query — no migration needed).
+  * src/lib/fav-lists.ts (new): generateShareCode() (10-char unambiguous alphabet), parseListIds() (defensive JSON parse, regex-validated, dedup, cap 120), createFavList() (validates, 3-attempt collision retry), getFavListByCode(), bumpFavListView(), countFavLists().
+  * POST /api/favorites/share (new route): rate-limited 10/IP/hour via ugc_rate_limits (action 'fav_share'), returns {shareCode, shareUrl}. Verified: 9×201 then 429s; test rows cleaned after.
+  * /lista/[code] page (new): server component — hero (badge, title, stats chips: grupos/miembros/fecha/visitas), GroupCard grid with ratings, empty-state when all groups dead, viewCount bump per visit, noindex (personal share links, not evergreen SEO pages). SharedListActions client: "Guardar lista en mis favoritos" (importIds merge) + "Reemplazar mis favoritos" (clear+import), hydration-guarded allSaved state.
+  * Favorites toolbar: new "Enlace público" button (Link2 icon; creating→copied states, clipboard + toast) in front of Exportar.
+  * E2E VERIFIED: toolbar click → fav_lists row (shareCode y4a49ejmeu, 4 ids) → /lista/y4a49ejmeu renders 4 cards + stats → all-saved state shows disabled "Lista guardada" → cleared localStorage → "Guardar lista en mis favoritos" → 4 favorites imported. /lista/nonexistent → 404.
+- FEATURE — Community contributor public profiles:
+  * getUploaderBySlug() now falls back to ugc_contributors (displaySlug lookup; blocked/removed excluded; jobTitle "Contribuidor de la comunidad", description generated from publishedCount, avatarUrl mapped) — /autor/[slug] serves BOTH staff uploaders and UGC contributors.
+  * getGroupsByUploader()/getUploaderCategories() now match uploaderId OR ugcContributorId; getAllUploaderSlugs() UNIONs contributor slugs.
+  * Seeded 2 demo contributors (ana-torres, luis-caminos) + linked the 3 UGC-published groups. Verified: /autor/ana-torres 200 with h1, contributor badge, 2 cards; /autor/luis-caminos 200.
+- SEO — autores sitemap: sitemap-generator.mjs writes new sitemaps/autores.xml (uploaders ∪ contributors, monthly/0.5) + index entry. Regenerated live: autores.xml (6 URLs), sitemap.xml index (6 sub-sitemaps), grupos total 34.
+- Verification: lint exit 0, tsc exit 0, full 10-route sweep 200 (incl. /lista/y4a49ejmeu, /autor/ana-torres), toolbar renders with Enlace público, zero console/page errors, dev.log clean, VLM audits pass ("polished, high-quality... excellent information architecture"; "clean and well-structured" profile). Mobile 390px: no horizontal scroll.
+- Dev server OOM'd once during /autor compile burst → restarted via ./start-dev.sh (known sandbox ceiling; webpackMemoryOptimizations already in place).
+
+Stage Summary:
+- Status: STABLE + 2 new feature surfaces. Favorites now have a full sharing model: text share, JSON export/import, AND public always-up-to-date /lista/ links (view-counted, rate-limited, noindex).
+- Community loop closed: UGC contributors get real public profiles at /autor/[slug] with their published groups + sitemap coverage.
+- Data notes: fav_lists has 1 demo list (y4a49ejmeu, viewCount≥3); ugc_contributors has 2 demo profiles (passkey = bcrypt hash of demo value); 3 UGC groups linked; 34 live groups total.
+- KNOWN RISKS: dev OOM under heavy compile bursts (restart ./start-dev.sh); share lists are unlisted-by-obscurity (10-char code ≈ 10^5·10^7.8 keyspace) — fine for personal lists, not secrets; no share-list GC yet (lists persist forever, viewCount growth is slow).
+- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) share-list GC cron (delete viewCount=0 lists older than 90d), (3) fav_lists admin visibility in /admin dashboard, (4) image CDN/self-host for group images, (5) /autor index page listing all authors, (6) more SEO landing pages.

@@ -346,6 +346,20 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
+  {
+    name: "fav_lists",
+    sql: `CREATE TABLE IF NOT EXISTS \`fav_lists\` (
+      \`id\` VARCHAR(191) NOT NULL PRIMARY KEY,
+      \`shareCode\` VARCHAR(24) NOT NULL UNIQUE,
+      \`title\` VARCHAR(120) DEFAULT NULL,
+      \`groupIdsJson\` TEXT NOT NULL,
+      \`viewCount\` INT NOT NULL DEFAULT 0,
+      \`creatorIpHash\` VARCHAR(191) DEFAULT NULL,
+      \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`lastViewedAt\` DATETIME DEFAULT NULL,
+      KEY \`idx_fav_lists_createdAt\` (\`createdAt\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
 ];
 
 /**

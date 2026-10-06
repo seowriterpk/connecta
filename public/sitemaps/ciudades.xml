@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://conectagrupos.com/ciudad/madrid</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/ciudad-de-mexico</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/buenos-aires</loc>
+    <loc>https://conectagrupos.com/ciudad/asuncion</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -21,17 +11,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/lima</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/santiago</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/quito</loc>
+    <loc>https://conectagrupos.com/ciudad/buenos-aires</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -41,17 +21,17 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/santo-domingo</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/san-juan</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://conectagrupos.com/ciudad/ciudad-de-guatemala</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/ciudad-de-mexico</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/ciudad-de-panama</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -66,17 +46,12 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/tegucigalpa</loc>
+    <loc>https://conectagrupos.com/ciudad/lima</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/montevideo</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/ciudad/san-jose</loc>
+    <loc>https://conectagrupos.com/ciudad/madrid</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -86,12 +61,22 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/asuncion</loc>
+    <loc>https://conectagrupos.com/ciudad/montevideo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/ciudad/ciudad-de-panama</loc>
+    <loc>https://conectagrupos.com/ciudad/quito</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/san-jose</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/san-juan</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -101,7 +86,22 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://conectagrupos.com/ciudad/santiago</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/santo-domingo</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://conectagrupos.com/ciudad/sevilla</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/ciudad/tegucigalpa</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

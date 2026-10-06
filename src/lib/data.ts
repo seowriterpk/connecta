@@ -3,6 +3,7 @@
 // page/component needs to change — only the engine underneath did.
 
 import { query, queryOne, exec, newId, type Row } from "@/lib/db";
+import { SITE } from "@/lib/constants";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 import { computeDisplayedMembers } from "@/lib/members";
 import type {
@@ -1086,36 +1087,71 @@ export interface UploaderDTO {
 
 export async function getUploaderBySlug(slug: string): Promise<UploaderDTO | null> {
   const u = await queryOne<Row>("SELECT * FROM `uploaders` WHERE `slug` = ? LIMIT 1", [slug]);
-  if (!u) return null;
-  const r = u as any;
+  if (u) {
+    const r = u as any;
+    return {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      jobTitle: r.jobTitle ?? "Curador de Comunidades",
+      description: r.description ?? null,
+      facebookUrl: r.facebookUrl ?? null,
+      twitterUrl: r.twitterUrl ?? null,
+      linkedinUrl: r.linkedinUrl ?? null,
+      websiteUrl: r.websiteUrl ?? null,
+      imageUrl: r.imageUrl ?? null,
+      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
+      lastActiveAt: r.lastActiveAt instanceof Date ? r.lastActiveAt : new Date(r.lastActiveAt ?? Date.now()),
+    };
+  }
+
+  // Community contributors also get public profiles at /autor/[slug].
+  // (ugc_contributors — people who publish groups through the UGC form.)
+  const c = await queryOne<Row>(
+    "SELECT `id`, `displayName`, `displaySlug`, `avatarUrl`, `publishedCount`, `submittedCount`, `reputationScore`, `isBlocked`, `isRemoved`, `lastSubmissionAt`, `createdAt` FROM `ugc_contributors` WHERE `displaySlug` = ? LIMIT 1",
+    [slug]
+  );
+  if (!c) return null;
+  const r = c as any;
+  if (r.isBlocked || r.isRemoved) return null;
+  const published = Number(r.publishedCount ?? 0);
+  const description =
+    `Contribuidor de la comunidad de ${SITE.name}: ha publicado ${published} ` +
+    `${published === 1 ? "grupo" : "grupos"} en el directorio.`;
   return {
     id: r.id,
-    name: r.name,
-    slug: r.slug,
-    jobTitle: r.jobTitle ?? "Curador de Comunidades",
-    description: r.description ?? null,
-    facebookUrl: r.facebookUrl ?? null,
-    twitterUrl: r.twitterUrl ?? null,
-    linkedinUrl: r.linkedinUrl ?? null,
-    websiteUrl: r.websiteUrl ?? null,
-    imageUrl: r.imageUrl ?? null,
+    name: r.displayName,
+    slug: r.displaySlug,
+    jobTitle: "Contribuidor de la comunidad",
+    description,
+    facebookUrl: null,
+    twitterUrl: null,
+    linkedinUrl: null,
+    websiteUrl: null,
+    imageUrl: r.avatarUrl || null,
     createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
-    lastActiveAt: r.lastActiveAt instanceof Date ? r.lastActiveAt : new Date(r.lastActiveAt ?? Date.now()),
+    lastActiveAt:
+      r.lastSubmissionAt instanceof Date
+        ? r.lastSubmissionAt
+        : new Date(r.lastSubmissionAt ?? Date.now()),
   };
 }
 
 export async function getAllUploaderSlugs(): Promise<string[]> {
-  const rows = await query<Row>("SELECT `slug` FROM `uploaders`");
+  // Public author profiles: staff uploaders + community contributors.
+  const rows = await query<Row>(
+    "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
+  );
   return (rows as any[]).map((r) => r.slug);
 }
 
 export async function getGroupsByUploader(uploaderId: string, limit = 60): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
-     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0 AND g.\`uploaderId\` = ?
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0 AND (g.\`uploaderId\` = ? OR g.\`ugcContributorId\` = ?)
      ORDER BY g.\`clicks\` DESC, g.\`views\` DESC, g.\`createdAt\` DESC
      LIMIT ?`,
-    [uploaderId, Math.min(Math.max(limit, 1), 100)]
+    [uploaderId, uploaderId, Math.min(Math.max(limit, 1), 100)]
   );
   return rows.map(toGroupDTO);
 }
@@ -1126,8 +1162,8 @@ export async function getUploaderCategories(
   const rows = await query<Row>(
     `SELECT DISTINCT c.\`name\`, c.\`slug\`
      FROM \`groups\` g JOIN \`categories\` c ON c.\`id\` = g.\`categoryId\`
-     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0 AND g.\`uploaderId\` = ?`,
-    [uploaderId]
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0 AND (g.\`uploaderId\` = ? OR g.\`ugcContributorId\` = ?)`,
+    [uploaderId, uploaderId]
   );
   const map = new Map<string, { name: string; slug: string; count: number }>();
   for (const r of rows as any[]) {

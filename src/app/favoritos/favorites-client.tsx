@@ -17,6 +17,7 @@ import {
   Loader2,
   ListChecks,
   ArrowUpDown,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +69,7 @@ export function FavoritesClient() {
   const [suggestions, setSuggestions] = React.useState<GroupDTO[]>([]);
   const [suggestionRatings, setSuggestionRatings] = React.useState<Ratings>({});
   const [shareState, setShareState] = React.useState<"idle" | "copied">("idle");
+  const [linkState, setLinkState] = React.useState<"idle" | "creating" | "copied">("idle");
   const [importing, setImporting] = React.useState(false);
   const [sortMode, setSortMode] = React.useState<SortMode>("recent");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -191,6 +193,41 @@ export function FavoritesClient() {
       toast({
         title: "No se pudo compartir",
         description: "Tu navegador no permite compartir esta lista.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  // ---- Share: create a public server-side list and copy the URL ----
+  async function createShareLink() {
+    if (!groups || groups.length === 0 || linkState === "creating") return;
+    setLinkState("creating");
+    try {
+      const res = await fetch("/api/favorites/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: groups.map((g) => g.id) }),
+      });
+      const json = await res.json();
+      if (!json?.ok || !json?.data?.shareUrl) {
+        throw new Error(json?.error || "No se pudo crear el enlace.");
+      }
+      const url =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${json.data.shareUrl}`
+          : json.data.shareUrl;
+      await navigator.clipboard.writeText(url);
+      setLinkState("copied");
+      setTimeout(() => setLinkState("idle"), 3000);
+      toast({
+        title: "Enlace público copiado",
+        description: "Compártelo: quien lo abra verá tu lista siempre actualizada.",
+      });
+    } catch (err) {
+      setLinkState("idle");
+      toast({
+        title: "No se pudo crear el enlace",
+        description: err instanceof Error ? err.message : "Inténtalo de nuevo.",
         variant: "destructive",
       });
     }
@@ -418,6 +455,25 @@ export function FavoritesClient() {
           </label>
 
           <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={createShareLink}
+              disabled={linkState === "creating"}
+              className="h-9 gap-1.5 px-2.5 sm:px-3"
+              title="Crear enlace público para compartir esta lista"
+            >
+              {linkState === "creating" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : linkState === "copied" ? (
+                <Check className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {linkState === "copied" ? "¡Enlace copiado!" : "Enlace público"}
+              </span>
+            </Button>
             <Button
               size="sm"
               variant="ghost"

@@ -102,12 +102,20 @@ async function main() {
       urlEntry(`${BASE_URL}/reportar-grupo`, undefined, "monthly", "0.5"),
     ]);
 
+    // Author profiles — staff uploaders + community contributors
+    const autores = await q(
+      pool,
+      "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
+    );
+    writeSitemap("autores.xml", autores.map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")));
+
     // Sitemap index
     const allFiles = [
       ...sitemapFiles,
       { filename: "categorias.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "paises.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "ciudades.xml", lastmod: new Date().toISOString().slice(0, 10) },
+      { filename: "autores.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "estaticas.xml", lastmod: new Date().toISOString().slice(0, 10) },
     ];
 
