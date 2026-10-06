@@ -17,6 +17,7 @@ const SHORTCUTS = [
   { keys: ["?"], label: "Mostrar esta ayuda" },
   { keys: ["G", "H"], label: "Ir al inicio (arriba)" },
   { keys: ["G", "G"], label: "Ir a todos los grupos" },
+  { keys: ["G", "F"], label: "Ir a mis favoritos" },
   { keys: ["G", "E"], label: "Enviar un grupo nuevo" },
 ];
 

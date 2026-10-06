@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowUpRight, Filter, X, Loader2 } from "lucide-react";
+import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
+import { useFavorites } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +35,10 @@ function fmt(n: number): string {
 
 export function GroupsDirectoryTable({ groups: initialGroups, categories, countries, popularTags }: Props) {
   const {
-    search, categoryId, countryId, sort, tag,
-    setSearch, setCategory, setCountry, setTag, setSort, reset,
+    search, categoryId, countryId, sort, tag, favoritesOnly,
+    setSearch, setCategory, setCountry, setTag, setSort, setFavoritesOnly, reset,
   } = useGroupsFilter();
+  const favoriteIds = useFavorites((s) => s.ids);
 
   const [groups, setGroups] = React.useState<GroupDTO[]>(initialGroups);
   const [loading, setLoading] = React.useState(false);
@@ -104,7 +107,12 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
 
   const hasMore = totalCount !== null ? groups.length < totalCount : groups.length >= PAGE_SIZE;
 
-  const hasFilters = Boolean(search || categoryId || countryId || tag);
+  // Client-side favorites filter (localStorage ids).
+  const displayedGroups = favoritesOnly
+    ? groups.filter((g) => favoriteIds.includes(g.id))
+    : groups;
+
+  const hasFilters = Boolean(search || categoryId || countryId || tag || favoritesOnly);
   const catName = categories.find((c) => c.id === categoryId)?.name;
   const countryName = countries.find((c) => c.id === countryId)?.name;
 
@@ -178,6 +186,25 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
                   <X className="h-4 w-4" /> Limpiar
                 </Button>
               )}
+              {favoriteIds.length > 0 && (
+                <button
+                  onClick={() => setFavoritesOnly(!favoritesOnly)}
+                  aria-pressed={favoritesOnly}
+                  className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition ${
+                    favoritesOnly
+                      ? "border-rose-400/60 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      : "bg-background text-muted-foreground hover:bg-accent hover:text-rose-500"
+                  }`}
+                >
+                  <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
+                  Solo favoritos
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    favoritesOnly ? "bg-rose-500/20" : "bg-muted"
+                  }`}>
+                    {favoriteIds.length}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -200,22 +227,30 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
           )}
         </div>
 
-        {/* Groups table/rows */}
+        {/* Groups rows */}
         <div className="mt-6">
           {loading && groups.length === 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-20 animate-pulse rounded-xl border bg-muted/30" />
+                <div key={i} className="h-[104px] animate-pulse rounded-2xl border bg-muted/30" />
               ))}
             </div>
-          ) : groups.length === 0 ? (
+          ) : displayedGroups.length === 0 ? (
             <div className="rounded-2xl border border-dashed py-16 text-center">
-              <p className="font-semibold">No encontramos grupos con esos filtros</p>
-              <p className="mt-1 text-sm text-muted-foreground">Prueba con otra categoría, país o búsqueda.</p>
+              <p className="font-semibold">
+                {favoritesOnly
+                  ? "No hay grupos guardados que coincidan"
+                  : "No encontramos grupos con esos filtros"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {favoritesOnly
+                  ? "Guarda grupos con el corazón ♡ para verlos aquí filtrados."
+                  : "Prueba con otra categoría, país o búsqueda."}
+              </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {groups.map((g) => (
+            <div className="space-y-2.5">
+              {displayedGroups.map((g) => (
                 <GroupRow key={g.id} group={g} searchQuery={search} />
               ))}
             </div>
@@ -254,69 +289,155 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
   );
 }
 
+// Category color gradients (same palette as GroupCard).
+const ROW_GRADIENTS: Record<string, string> = {
+  emerald: "from-emerald-500 to-teal-600",
+  rose: "from-rose-500 to-pink-600",
+  fuchsia: "from-fuchsia-500 to-purple-600",
+  sky: "from-sky-500 to-blue-600",
+  slate: "from-slate-500 to-gray-700",
+  teal: "from-teal-500 to-cyan-600",
+  lime: "from-lime-500 to-green-600",
+  violet: "from-violet-500 to-purple-600",
+  amber: "from-amber-500 to-orange-600",
+  yellow: "from-yellow-400 to-amber-500",
+  stone: "from-stone-500 to-zinc-700",
+  orange: "from-orange-500 to-red-600",
+  red: "from-red-500 to-rose-700",
+  cyan: "from-cyan-500 to-sky-600",
+  indigo: "from-indigo-500 to-blue-600",
+  blue: "from-blue-500 to-indigo-600",
+  pink: "from-pink-500 to-rose-600",
+  green: "from-green-500 to-emerald-600",
+  purple: "from-purple-500 to-violet-600",
+};
+
+function RowHeartButton({ id }: { id: string }) {
+  const toggle = useFavorites((s) => s.toggle);
+  const has = useFavorites((s) => s.ids.includes(id));
+  return (
+    <motion.button
+      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
+      aria-pressed={has}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggle(id);
+      }}
+      whileTap={{ scale: 0.8 }}
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition ${
+        has
+          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+          : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
+      }`}
+    >
+      <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} />
+    </motion.button>
+  );
+}
+
 function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string }) {
   const isActiveRecently = group.lastActiveAt
     ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
     : false;
   const isHot = group.members >= 1000;
+  const isTrending = group.views >= 50 || group.members >= 700;
+  const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
 
   return (
-    <Link
-      href={`/grupo/${group.slug}`}
-      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm sm:p-4"
-    >
-      {/* Image / icon */}
-      <div className="relative shrink-0">
-        <GroupImage
-          src={group.imageUrl}
-          alt={group.title}
-          title={group.title}
-          size={56}
-          className="sm:h-16 sm:w-16"
-          fallbackEmoji={group.category?.icon}
+    <Link href={`/grupo/${group.slug}`} className="block">
+      <motion.article
+        whileHover={{ y: -2 }}
+        transition={{ type: "spring", stiffness: 320, damping: 24 }}
+        className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
+      >
+        {/* Category color left accent */}
+        <span
+          className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${gradient} opacity-60 transition-opacity group-hover:opacity-100`}
+          aria-hidden
         />
-        {isActiveRecently && (
-          <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
-        )}
-      </div>
+        {/* Decorative corner wash */}
+        <span
+          className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-[0.07] blur-2xl transition group-hover:opacity-20`}
+          aria-hidden
+        />
 
-      {/* Content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
-          <h3 className="line-clamp-1 text-sm font-semibold sm:text-base">
-            <Highlight text={group.title} query={searchQuery} />
-          </h3>
-          {group.isVerified && <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-600" />}
-          {isHot && <Flame className="h-4 w-4 shrink-0 text-orange-500" />}
-        </div>
-        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground sm:text-sm">
-          <Highlight text={group.description} query={searchQuery} />
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          {group.country && (
-            <span className="inline-flex items-center gap-1">
-              {group.country.flag} {group.country.name}
+        {/* Image / icon */}
+        <div className="relative shrink-0 pl-1">
+          <GroupImage
+            src={group.imageUrl}
+            alt={group.title}
+            title={group.title}
+            size={56}
+            className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
+            fallbackEmoji={group.category?.icon}
+          />
+          {isActiveRecently && (
+            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
+              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
             </span>
           )}
-          {group.city && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {group.city}
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3 w-3" /> {fmt(group.members)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Eye className="h-3 w-3" /> {fmt(group.views)}
-          </span>
-          {group.category && (
-            <Badge variant="outline" className="font-normal">{group.category.name}</Badge>
-          )}
         </div>
-      </div>
 
-      {/* Arrow */}
-      <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground transition group-hover:text-primary" />
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2">
+            <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
+              <Highlight text={group.title} query={searchQuery} />
+            </h3>
+            {group.isVerified && (
+              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
+            )}
+            {group.isFeatured && (
+              <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
+            )}
+            {isHot && <Flame className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-label="Popular" />}
+          </div>
+          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground/90 sm:text-sm">
+            <Highlight text={group.description} query={searchQuery} />
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {group.country && (
+              <span className="inline-flex items-center gap-1">
+                {group.country.flag} {group.country.name}
+              </span>
+            )}
+            {group.city && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> {group.city}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
+              <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Eye className="h-3 w-3" /> {fmt(group.views)}
+            </span>
+            {isTrending && (
+              <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
+                <TrendingUp className="h-3 w-3" /> Tendencia
+              </span>
+            )}
+            {group.category && (
+              <Badge variant="outline" className="gap-1 font-normal">
+                {group.category.icon} {group.category.name}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Actions: heart + join CTA */}
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2.5">
+          <RowHeartButton id={group.id} />
+          <span
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
+            aria-hidden
+          >
+            Unirme
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </span>
+        </div>
+      </motion.article>
     </Link>
   );
 }

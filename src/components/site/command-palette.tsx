@@ -10,7 +10,7 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen } from "lucide-react";
+import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { useGroupsFilter } from "@/lib/store";
@@ -79,9 +79,13 @@ export function CommandPalette({ categories, countries, groups }: Props) {
               <Home className="h-4 w-4" />
               Ver todos los grupos
             </CommandItem>
+            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => router.push("/favoritos"), 60); }}>
+              <Heart className="h-4 w-4 text-rose-500" />
+              Ir a mis favoritos
+            </CommandItem>
             <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(true); })}>
               <Users className="h-4 w-4" />
-              Ver mis favoritos
+              Filtrar solo favoritos aquí
             </CommandItem>
             <CommandItem onSelect={() => { setOpen(false); setTimeout(() => document.getElementById("enviar")?.scrollIntoView({ behavior: "smooth" }), 60); }}>
               <Send className="h-4 w-4" />

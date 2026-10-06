@@ -585,6 +585,23 @@ export async function getTopRatedGroups(limit = 6): Promise<GroupDTO[]> {
   return ids.map((id) => byId.get(id)).filter((g): g is GroupDTO => !!g);
 }
 
+/**
+ * Groups by explicit ID list, preserving the caller's order (most recent
+ * favorite first). Only `live` groups are returned. Used by /favoritos.
+ */
+export async function getGroupsByIds(ids: string[]): Promise<GroupDTO[]> {
+  const clean = Array.from(new Set(ids.map((s) => s.trim()).filter(Boolean))).slice(0, 60);
+  if (clean.length === 0) return [];
+  const placeholders = clean.map(() => "?").join(", ");
+  const rows = await query<GroupRow>(
+    `SELECT ${GROUP_SELECT} ${GROUP_FROM}
+     WHERE g.\`id\` IN (${placeholders}) AND g.\`status\` = 'live'`,
+    clean
+  );
+  const byId = new Map(rows.map((r) => [r.id, toGroupDTO(r)]));
+  return clean.map((id) => byId.get(id)).filter((g): g is GroupDTO => !!g);
+}
+
 export async function getRatingsBatch(
   groupIds: string[]
 ): Promise<Record<string, { avg: number; count: number }>> {

@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu, Moon, Sun, MessageCircle, Search } from "lucide-react";
+import { Menu, Moon, Sun, MessageCircle, Search, Heart } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { useScrollSpy } from "@/hooks/use-scroll-spy";
+import { useFavorites } from "@/lib/favorites";
+import { motion } from "framer-motion";
 
 const SECTION_IDS = NAV_LINKS.map((l) => l.href.replace("#", ""));
 
@@ -16,6 +18,7 @@ export function SiteHeader() {
   const [mounted, setMounted] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const activeId = useScrollSpy(SECTION_IDS);
+  const favCount = useFavorites((s) => s.ids.length);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -73,7 +76,28 @@ export function SiteHeader() {
           <kbd className="rounded border bg-background px-1 py-0.5 text-xs font-semibold">⌘K</kbd>
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* Favorites with live count badge */}
+          {mounted && (
+            <Link
+              href="/favoritos"
+              aria-label={`Mis favoritos${favCount > 0 ? ` (${favCount})` : ""}`}
+              className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-rose-500"
+            >
+              <Heart className="h-[18px] w-[18px] transition-transform duration-200 hover:scale-110" />
+              {favCount > 0 && (
+                <motion.span
+                  key={favCount}
+                  initial={{ scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                  className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                >
+                  {favCount > 99 ? "99+" : favCount}
+                </motion.span>
+              )}
+            </Link>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -117,6 +141,21 @@ export function SiteHeader() {
                       </Link>
                     </SheetClose>
                   ))}
+                  <SheetClose asChild>
+                    <Link
+                      href="/favoritos"
+                      className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-rose-500" /> Mis favoritos
+                      </span>
+                      {mounted && favCount > 0 && (
+                        <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                          {favCount}
+                        </span>
+                      )}
+                    </Link>
+                  </SheetClose>
                 </nav>
                 <div className="mt-auto p-3">
                   <SheetClose asChild>

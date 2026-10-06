@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 
 /**
  * G-prefix keyboard shortcuts: press G then another key within 800ms.
- * GH → #inicio, GG → #grupos, GE → #enviar, GC → #categorias, GP → #paises.
+ * GH → #inicio, GG → #grupos, GE → #enviar, GC → #categorias, GP → #paises, GF → /favoritos.
  */
 export function GPrefixShortcuts() {
   const pendingGRef = React.useRef(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const router = useRouter();
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -19,6 +21,7 @@ export function GPrefixShortcuts() {
 
       // If we have a pending G, treat this key as the second in the sequence
       if (pendingGRef.current) {
+        const isRoute = e.key === "f" || e.key === "F";
         const map: Record<string, string> = {
           h: "#inicio", H: "#inicio",
           g: "#grupos", G: "#grupos",
@@ -26,10 +29,15 @@ export function GPrefixShortcuts() {
           c: "#categorias", C: "#categorias",
           p: "#paises", P: "#paises",
         };
-        const target = map[e.key];
-        if (target) {
+        if (isRoute) {
           e.preventDefault();
-          document.querySelector(target)?.scrollIntoView({ behavior: "smooth" });
+          router.push("/favoritos");
+        } else {
+          const target = map[e.key];
+          if (target) {
+            e.preventDefault();
+            document.querySelector(target)?.scrollIntoView({ behavior: "smooth" });
+          }
         }
         pendingGRef.current = false;
         if (timeoutRef.current) clearTimeout(timeoutRef.current);

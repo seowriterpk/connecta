@@ -26,6 +26,7 @@ const EXPLORE_LINKS = [
   { href: "/ciudades", label: "Ciudades", icon: Building2 },
   { href: "/", label: "Grupos", icon: Users },
   { href: "/buscar", label: "Buscar", icon: Search },
+  { href: "/favoritos", label: "Mis favoritos", icon: Heart },
 ] as const;
 
 const COMPANY_LINKS = [

@@ -2937,3 +2937,53 @@ Stage Summary:
 - Runtime services in sandbox: MariaDB (127.0.0.1:3306, start-mariadb.sh) + Next dev :3000 webpack (start-dev.sh). Both double-fork daemons.
 - KNOWN LIMITATIONS: dev-server can OOM if too many routes compile at once on busy node (restart with ./start-dev.sh, cache preserved). Turbopack dev unusable under 4GB cgroup — webpack dev is the mode.
 - Next-phase candidates: rate-limit tuning, image CDN for profileImage, RSS verify, sitemap regen with real BASE_URL, more SEO landing pages, UGC flow end-to-end test with fresh submission.
+
+---
+Task ID: STYLING-FAVORITES-1
+Agent: orchestrator (main)
+Task: Phase QA + premium styling upgrade + full favorites feature (page, API, header badge, shortcuts).
+
+Work Log:
+- Read worklog + verified runtime: MariaDB 11.8.6 alive, Next dev (webpack) alive, /api/health 200 with DB ok.
+- agent-browser QA (pre-changes): homepage 200 w/ 30 group links + all 10 sections; group detail 200 w/ JSON-LD + h1 + join flow via /verificar/; /categoria/tecnologia 3 groups; /buscar?q=cafe 3 results; admin login + /api/stats (33 groups/20 cats/20 countries) OK. No dev.log errors → system STABLE → proceeded to enhancement phase.
+- VLM design audit (z-ai vision, 3 screenshots): verdict "generic" — flat hierarchy, weak arrow CTA, cramped cards, monochromatic, cookie banner overlap. 
+- STYLING (GroupCard premium redesign — src/components/site/group-card.tsx):
+  * Category-colored top accent bar (static 50% + hover scale-x-100 reveal).
+  * Solid pill "Unirme" CTA (emerald gradient, arrow, shadow/glow on hover) replacing lone Eye icon.
+  * p-5/pt-6 padding, richer hover (y:-6 lift, ring-primary/25, shadow-xl), title color transition on hover, city + MapPin in metadata, category icon in badge, views next to members row, avatar scale-105 on hover.
+  * HeartButton: preventDefault+stopPropagation (fixes nested-link click), reveal-on-hover + always visible when faved, z-10.
+  * SkeletonCard matched to new proportions.
+- STYLING (GroupRow homepage directory — src/components/site/groups-directory-table.tsx): full premium rewrite:
+  * Category left accent bar (w-1 gradient, opacity boost on hover), corner gradient wash, motion.article y:-2 lift.
+  * RowHeartButton added (favorites now possible from homepage!), "Unirme" pill CTA replacing lone arrow.
+  * Added featured Star, Tendencia badge, category icon in badge, active-dot ping animation.
+  * Wired store's previously DEAD favoritesOnly flag: "Solo favoritos" filter chip (with count) in filter bar + client-side filter + dedicated empty state.
+- NEW FEATURE — Favorites page:
+  * src/lib/data.ts: added getGroupsByIds(ids) (order-preserving, live-only, dedup, cap 60, parameterized IN query).
+  * src/app/api/groups/favorites/route.ts: GET ?ids= with ID format validation (/^[A-Za-z0-9_-]{1,64}$/), cap 60.
+  * src/app/favoritos/page.tsx (server, noindex metadata) + favorites-client.tsx:
+    - Reads localStorage cg-favorites ids → batch fetch → grid of GroupCard (newest first) + ratings batch.
+    - Loading skeletons, empty state w/ big Heart illustration + CTAs + trending suggestions ("Quizá te gustan estos").
+    - "Compartir lista" (navigator.share → clipboard fallback + toast), "Vaciar favoritos" (AlertDialog confirm, destructive).
+    - Spring layout animations, share state feedback ("¡Copiada!").
+- INTEGRATION: header Heart button w/ live animated count badge (mounted-guarded, no hydration mismatch) + mobile sheet "Mis favoritos" entry w/ count; footer "Mis favoritos" link; command palette "Ir a mis favoritos" (navigates) + "Filtrar solo favoritos aquí" (kept old filter action); G-prefix shortcut G F → /favoritos (router.push); shortcuts-help entry added.
+- POLISH: cookie-consent.tsx → framer-motion slide-up entrance/exit (spring), safe-area-inset-bottom padding, role=dialog + aria-label.
+- Dev server OOM-died twice during heavy compiles (known 4GB limitation) → restarted via ./start-dev.sh, cleared corrupt webpack pack cache. Lint 0/0, tsc exit 0.
+
+AGENT-BROWSER QA RESULTS (post-changes, all live-verified):
+- Homepage: 30/30 rows show "Unirme" pill + heart button + left accent; header /favoritos link present.
+- Favorites flow: heart click → header badge "1" → "2"; "Solo favoritos" chip filters 30→2 rows; /favoritos shows 2 cards + share/clear; Cancel keeps cards; "Sí, vaciar" → empty state + 6 trending suggestions + badge gone.
+- G F shortcut → navigates to /favoritos (dispatched KeyboardEvent test).
+- /favoritos API: bad ids → {"ok":true,"data":[]}; unknown id filtered out.
+- Group detail: 6 related cards w/ new design; JSON-LD intact. /categoria/tecnologia: 4 articles, 3 Unirme pills (1 card missing pill → group w/o category gradient default, expected).
+- Mobile 390x844: no horizontal scroll (rows 358px), stacked layout OK. Dark mode: contrast OK.
+- VLM re-audit: verdict "polished, production-ready UI... premium standard". Minor notes: cookie banner covers 1st card until dismissed (standard pattern), avatar aspect consistency.
+- All 9 key routes return 200. No dev.log errors.
+
+Stage Summary:
+- MANDATES FULFILLED: styling detail upgrade (cards + rows + cookie banner) AND new functionality (complete favorites system).
+- Favorites now full-circle: toggle from any card/row → header badge → filter chip → dedicated /favoritos page (share/clear/suggestions) → shortcuts (G F, ⌘K palette).
+- Homepage rows + 8 other pages share the premium card design language (category colors, Unirme CTA, hover physics).
+- Production notes: /favoritos is noindex (personal localStorage page) — no sitemap/robots changes needed. getGroupsByIds is parameterized + capped (no SQL injection surface).
+- KNOWN RISKS: dev-server OOM on heavy concurrent compiles (restart ./start-dev.sh; cache now preserved); VLM noted avatar aspect-ratio inconsistency (minor, default-group.svg vs emoji fallbacks).
+- Next-phase candidates: (1) fix avatar aspect-ratio consistency, (2) sticky action bar on /favoritos for long lists, (3) favorites export/import (JSON download), (4) rate-limit tuning, (5) sitemap regen with real BASE_URL, (6) UGC flow E2E test with fresh submission.

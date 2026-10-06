@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp } from "lucide-react";
+import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight } from "lucide-react";
 import type { GroupDTO } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { useFavorites } from "@/lib/favorites";
@@ -50,14 +50,15 @@ function HeartButton({ id }: { id: string }) {
       aria-pressed={has}
       onClick={(e) => {
         e.stopPropagation();
+        e.preventDefault();
         toggle(id);
       }}
       whileTap={{ scale: 0.8 }}
-      className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition ${
+      className={`absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition ${
         has
           ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
-          : "bg-background/70 text-muted-foreground hover:text-rose-500"
-      }`}
+          : "bg-background/70 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:opacity-0"
+      } ${has ? "opacity-100" : ""}`}
     >
       <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} />
     </motion.button>
@@ -80,130 +81,163 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
   })();
 
   return (
-    <Link href={`/grupo/${group.slug}`} className="block">
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ type: "spring", stiffness: 300, damping: 22 }}
-        className="group relative flex w-full flex-col gap-3 overflow-hidden rounded-2xl border bg-card p-4 text-left shadow-sm ring-1 ring-transparent transition hover:shadow-lg hover:ring-primary/20"
+    <Link href={`/grupo/${group.slug}`} className="block h-full">
+      <motion.article
+        whileHover={{ y: -6 }}
+        transition={{ type: "spring", stiffness: 320, damping: 24 }}
+        className="group relative flex h-full w-full flex-col gap-3.5 overflow-hidden rounded-2xl border bg-card p-5 pt-6 text-left shadow-sm ring-1 ring-transparent transition-[box-shadow,border-color,ring-color] duration-300 hover:border-transparent hover:shadow-xl hover:shadow-primary/10 hover:ring-primary/25"
       >
-      {/* Decorative gradient wash */}
-      <span
-        className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition group-hover:opacity-20`}
-        aria-hidden
-      />
+        {/* Category color top accent */}
+        <span
+          className={`absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r ${gradient} transition-transform duration-500 ease-out group-hover:scale-x-100`}
+          aria-hidden
+        />
+        <span
+          className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${gradient} opacity-50`}
+          aria-hidden
+        />
 
-      <HeartButton id={group.id} />
+        {/* Decorative gradient wash */}
+        <span
+          className={`pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition duration-500 group-hover:opacity-25`}
+          aria-hidden
+        />
 
-      <div className="flex items-start gap-3 pr-9">
-        <span className="relative shrink-0">
-          <GroupImage
-            src={group.imageUrl}
-            alt={group.title}
-            title={group.title}
-            size={44}
-            className="rounded-xl"
-            fallbackEmoji={group.category?.icon}
-          />
-          {isActiveRecently && (
-            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
-            </span>
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug">
-            <Highlight text={group.title} query={searchQuery} />
-          </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            {group.country && (
-              <span className="inline-flex items-center gap-1">
-                <span>{group.country.flag}</span>
-                <span className="truncate">{group.country.name}</span>
+        <HeartButton id={group.id} />
+
+        <div className="flex items-start gap-3.5 pr-9">
+          <span className="relative shrink-0">
+            <span className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br opacity-0 blur-md transition duration-300 group-hover:opacity-40" aria-hidden />
+            <GroupImage
+              src={group.imageUrl}
+              alt={group.title}
+              title={group.title}
+              size={48}
+              className="rounded-xl transition duration-300 group-hover:scale-105"
+              fallbackEmoji={group.category?.icon}
+            />
+            {isActiveRecently && (
+              <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
+                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
               </span>
             )}
-            {group.isFeatured && (
-              <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                <Star className="h-3 w-3 fill-current" /> Destacado
-              </span>
-            )}
-            {isHot && (
-              <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
-                <Flame className="h-3 w-3 fill-current" /> Hot
-              </span>
-            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug transition-colors group-hover:text-primary">
+              <Highlight text={group.title} query={searchQuery} />
+            </h3>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              {group.country && (
+                <span className="inline-flex items-center gap-1">
+                  <span>{group.country.flag}</span>
+                  <span className="truncate">{group.country.name}</span>
+                </span>
+              )}
+              {group.city && (
+                <span className="inline-flex items-center gap-0.5 truncate">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{group.city}</span>
+                </span>
+              )}
+              {group.isFeatured && (
+                <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                  <Star className="h-3 w-3 fill-current" /> Destacado
+                </span>
+              )}
+              {isHot && (
+                <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
+                  <Flame className="h-3 w-3 fill-current" /> Hot
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-        <Highlight text={group.description} query={searchQuery} />
-      </p>
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground/90">
+          <Highlight text={group.description} query={searchQuery} />
+        </p>
 
-      {/* Member popularity bar */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3 w-3" /> {fmt(group.members)} miembros
+        {/* Member popularity bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
+              <Users className="h-3.5 w-3.5 text-primary/70" /> {fmt(group.members)} miembros
+            </span>
+            <span className="inline-flex items-center gap-2 tabular-nums">
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-3 w-3" /> {fmt(group.views)}
+              </span>
+              <span className="font-medium text-primary/80">{memberPct}%</span>
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${gradient} shadow-sm transition-all duration-500 group-hover:brightness-110`}
+              style={{ width: `${memberPct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Footer: badges + CTA */}
+        <div className="mt-auto flex items-end justify-between gap-3 pt-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {group.isVerified && (
+              <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                <BadgeCheck className="h-3 w-3" /> Verificado
+              </Badge>
+            )}
+            <Badge variant="outline" className="gap-1 font-normal">
+              {group.category?.icon} {group.category?.name ?? "Sin categoría"}
+            </Badge>
+            {isTrending && (
+              <Badge variant="outline" className="gap-1 border-orange-300/50 font-normal text-orange-600 dark:text-orange-400">
+                <TrendingUp className="h-3 w-3" /> Tendencia
+              </Badge>
+            )}
+            {isActiveRecently && (
+              <Badge variant="outline" className="gap-1 border-emerald-300/50 font-normal text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
+              </Badge>
+            )}
+            {hasRating && (
+              <Badge variant="outline" className="gap-1 border-amber-300/50 font-normal text-amber-600 dark:text-amber-400">
+                <Star className="h-3 w-3 fill-current" /> {rating!.avg.toFixed(1)}
+              </Badge>
+            )}
+          </div>
+          {/* Solid pill CTA (visual affordance; whole card is a link) */}
+          <span
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-emerald-500/40 group-hover:brightness-110"
+            aria-hidden
+          >
+            Unirme
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
-          <span className="tabular-nums">{memberPct}%</span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-500`}
-            style={{ width: `${memberPct}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-auto flex items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {group.isVerified && (
-            <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              <BadgeCheck className="h-3 w-3" /> Verificado
-            </Badge>
-          )}
-          <Badge variant="outline" className="gap-1 font-normal">
-            <MapPin className="h-3 w-3" /> {group.category?.name ?? "Sin categoría"}
-          </Badge>
-          {isTrending && (
-            <Badge variant="outline" className="gap-1 border-orange-300/50 font-normal text-orange-600 dark:text-orange-400">
-              <TrendingUp className="h-3 w-3" /> Tendencia
-            </Badge>
-          )}
-          {isActiveRecently && (
-            <Badge variant="outline" className="gap-1 border-emerald-300/50 font-normal text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
-            </Badge>
-          )}
-          {hasRating && (
-            <Badge variant="outline" className="gap-1 border-amber-300/50 font-normal text-amber-600 dark:text-amber-400">
-              <Star className="h-3 w-3 fill-current" /> {rating!.avg.toFixed(1)}
-            </Badge>
-          )}
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
-          <Eye className="h-3 w-3" /> {fmt(group.views)}
-        </span>
-      </div>
-      </motion.div>
+      </motion.article>
     </Link>
   );
 }
 
 export function SkeletonCard() {
   return (
-    <div className="relative flex animate-pulse flex-col gap-3 overflow-hidden rounded-2xl border bg-card p-4">
+    <div className="relative flex animate-pulse flex-col gap-3.5 overflow-hidden rounded-2xl border bg-card p-5 pt-6">
+      <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-muted" />
       <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/5 to-transparent [animation:cg-shimmer_1.6s_infinite]" />
-      <div className="flex items-start gap-3 pr-9">
-        <div className="h-11 w-11 rounded-xl bg-muted" />
+      <div className="flex items-start gap-3.5 pr-9">
+        <div className="h-12 w-12 rounded-xl bg-muted" />
         <div className="flex-1 space-y-2">
-          <div className="h-3.5 w-3/4 rounded bg-muted" />
+          <div className="h-4 w-3/4 rounded bg-muted" />
           <div className="h-3 w-1/2 rounded bg-muted" />
         </div>
       </div>
       <div className="h-3 w-full rounded bg-muted" />
       <div className="h-3 w-2/3 rounded bg-muted" />
       <div className="h-1.5 w-full rounded-full bg-muted" />
+      <div className="mt-auto flex items-center justify-between">
+        <div className="h-5 w-24 rounded-full bg-muted" />
+        <div className="h-8 w-20 rounded-full bg-muted" />
+      </div>
     </div>
   );
 }
