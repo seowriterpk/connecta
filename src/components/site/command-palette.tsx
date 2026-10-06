@@ -1,0 +1,161 @@
+"use client";
+
+import * as React from "react";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
+import { useGroupsFilter } from "@/lib/store";
+
+interface Props {
+  categories: CategoryDTO[];
+  countries: CountryDTO[];
+  groups: GroupDTO[];
+}
+
+export function CommandPalette({ categories, countries, groups }: Props) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const setCategory = useGroupsFilter((s) => s.setCategory);
+  const setCountry = useGroupsFilter((s) => s.setCountry);
+  const setSearch = useGroupsFilter((s) => s.setSearch);
+  const setFavoritesOnly = useGroupsFilter((s) => s.setFavoritesOnly);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function goAndClose(fn: () => void) {
+    fn();
+    setOpen(false);
+    setTimeout(() => {
+      document.getElementById("grupos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }
+
+  function pickGroup(g: GroupDTO) {
+    setOpen(false);
+    setTimeout(() => router.push(`/grupo/${g.slug}`), 60);
+  }
+
+  const query = open ? "" : "";
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Abrir búsqueda rápida (Cmd+K)"
+        className="fixed bottom-5 left-5 z-40 hidden items-center gap-2 rounded-full border bg-background/90 px-3.5 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur transition hover:bg-accent hover:text-foreground sm:inline-flex"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>Búsqueda rápida</span>
+        <kbd className="ml-1 rounded border bg-muted px-1.5 py-0.5 text-xs font-semibold">
+          ⌘K
+        </kbd>
+      </button>
+
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandInput placeholder="Busca grupos, categorías, países…" />
+        <CommandList>
+          <CommandEmpty>No encontramos resultados.</CommandEmpty>
+
+          <CommandGroup heading="Acciones">
+            <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(false); })}>
+              <Home className="h-4 w-4" />
+              Ver todos los grupos
+            </CommandItem>
+            <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(true); })}>
+              <Users className="h-4 w-4" />
+              Ver mis favoritos
+            </CommandItem>
+            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => document.getElementById("enviar")?.scrollIntoView({ behavior: "smooth" }), 60); }}>
+              <Send className="h-4 w-4" />
+              Enviar un grupo
+            </CommandItem>
+            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => document.getElementById("guias")?.scrollIntoView({ behavior: "smooth" }), 60); }}>
+              <BookOpen className="h-4 w-4" />
+              Ver guías prácticas
+            </CommandItem>
+          </CommandGroup>
+
+          {groups.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Grupos populares">
+                {groups.slice(0, 6).map((g) => (
+                  <CommandItem
+                    key={g.id}
+                    value={`${g.title} ${g.description} ${g.category?.name} ${g.country?.name}`}
+                    onSelect={() => pickGroup(g)}
+                  >
+                    <span className="text-base">{g.category?.icon ?? "💬"}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{g.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {g.country?.flag} {g.country?.name} · {g.members.toLocaleString("es-ES")} miembros
+                      </span>
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
+
+          {categories.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Categorías">
+                {categories.slice(0, 10).map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`cat ${c.name}`}
+                    onSelect={() => { setOpen(false); setTimeout(() => router.push(`/categoria/${c.slug}`), 60); }}
+                  >
+                    <span className="text-base">{c.icon}</span>
+                    <span className="text-sm">{c.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{c.groupCount}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
+
+          {countries.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Países">
+                {countries.slice(0, 10).map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`pais ${c.name}`}
+                    onSelect={() => { setOpen(false); setTimeout(() => router.push(`/pais/${c.code}`), 60); }}
+                  >
+                    <Globe2 className="h-4 w-4" />
+                    <span className="text-base">{c.flag}</span>
+                    <span className="text-sm">{c.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{c.groupCount}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
+        </CommandList>
+      </CommandDialog>
+    </>
+  );
+}

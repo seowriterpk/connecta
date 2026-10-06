@@ -1,0 +1,90 @@
+import { SiteHeader } from "@/components/site/header";
+import { Hero } from "@/components/site/hero";
+import { ReadingProgress } from "@/components/site/reading-progress";
+import { GroupsDirectoryTable } from "@/components/site/groups-directory-table";
+import { CategoriesSection } from "@/components/site/categories-section";
+import { CountriesSection } from "@/components/site/countries-section";
+import { CitiesSection } from "@/components/site/cities-section";
+import { AboutSection } from "@/components/site/about-section";
+import { MetricsSection } from "@/components/site/metrics-section";
+import { TestimonialsSection } from "@/components/site/testimonials-section";
+import { CtaBanner } from "@/components/site/cta-banner";
+import { LongFormSection } from "@/components/site/long-form-section";
+import { FaqSection } from "@/components/site/faq-section";
+import { SiteFooter } from "@/components/site/footer";
+import { BackToTop } from "@/components/site/back-to-top";
+import { CookieConsent } from "@/components/site/cookie-consent";
+import { CommandPalette } from "@/components/site/command-palette";
+import { ShortcutsHelp } from "@/components/site/shortcuts-help";
+import { GPrefixShortcuts } from "@/components/site/g-prefix-shortcuts";
+import {
+  getCategories,
+  getCountries,
+  getGroups,
+  getStats,
+  getPopularTags,
+  getMetrics,
+  getAllCities,
+} from "@/lib/data";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [categories, countries, stats, initialGroups, popularTags, metrics, cities] = await Promise.all([
+    getCategories(),
+    getCountries(),
+    getStats(),
+    getGroups({ sort: "destacados", limit: 30 }),
+    getPopularTags(14),
+    getMetrics(),
+    getAllCities(),
+  ]);
+
+  // Groups for command palette (popular ones)
+  const paletteGroups = await getGroups({ sort: "populares", limit: 8 });
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <ReadingProgress />
+      <SiteHeader />
+      <main className="flex-1">
+        {/* Hero section */}
+        <Hero stats={stats} totalCountries={countries.length} />
+
+        {/* Groups directory table (bulk directory style) */}
+        <GroupsDirectoryTable
+          groups={initialGroups}
+          categories={categories}
+          countries={countries}
+          popularTags={popularTags}
+        />
+
+        {/* Category authority pages */}
+        <CategoriesSection categories={categories} />
+
+        {/* Country authority pages */}
+        <CountriesSection countries={countries} />
+
+        {/* City pages */}
+        {cities.length > 0 && <CitiesSection cities={cities} />}
+
+        <AboutSection stats={stats} />
+        <MetricsSection metrics={metrics} />
+        <TestimonialsSection />
+        <CtaBanner categories={categories} countries={countries} />
+        <LongFormSection />
+        <FaqSection />
+      </main>
+      <SiteFooter />
+      <BackToTop />
+      <CookieConsent />
+      <ShortcutsHelp />
+      <GPrefixShortcuts />
+      <CommandPalette
+        categories={categories}
+        countries={countries}
+        groups={paletteGroups}
+      />
+    </div>
+  );
+}
