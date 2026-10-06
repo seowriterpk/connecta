@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getCategories } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const data = await getCategories();
+    // adult=only → adult categories (18+ mode, client-side fetch only).
+    // default → clean categories only (indexing pages / SSR).
+    const adultOnly = req.nextUrl.searchParams.get("adult") === "only";
+    const data = await getCategories(adultOnly ? { adult: "only" } : {});
     return NextResponse.json({ ok: true, data });
   } catch {
     return NextResponse.json(

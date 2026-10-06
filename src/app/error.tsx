@@ -22,6 +22,21 @@ export default function GlobalError({
         <p className="mt-3 max-w-md text-base text-muted-foreground">
           Ha ocurrido un error inesperado. Puedes intentar de nuevo o volver al inicio.
         </p>
+
+        {/* Dev diagnostics — Next.js masks server errors by default; surface
+            message + stack during development so bugs are debuggable. */}
+        {process.env.NODE_ENV === "development" && (
+          <details className="mt-6 max-w-2xl text-left" open>
+            <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+              Detalles técnicos (solo desarrollo)
+            </summary>
+            <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-muted p-4 text-left text-xs leading-relaxed text-foreground/80">
+              {error.message}
+              {error.digest ? `\n\ndigest: ${error.digest}` : ""}
+              {error.stack ? `\n\n${error.stack}` : ""}
+            </pre>
+          </details>
+        )}
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
             onClick={reset}

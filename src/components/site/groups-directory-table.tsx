@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
+import { useAdultModeHydrated } from "@/lib/adult-store";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
 import { useFavorites } from "@/lib/favorites";
 import { CompareIconButton } from "@/components/site/compare-button";
+import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +42,8 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
     setSearch, setCategory, setCountry, setTag, setSort, setFavoritesOnly, reset,
   } = useGroupsFilter();
   const favoriteIds = useFavorites((s) => s.ids);
+  // 18+ mode: when ON, client fetches include adult rows (never in SSR HTML).
+  const { enabled: adultMode } = useAdultModeHydrated();
 
   const [groups, setGroups] = React.useState<GroupDTO[]>(initialGroups);
   const [loading, setLoading] = React.useState(false);
@@ -61,6 +65,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
     if (countryId) params.set("pais", countryId);
     if (tag) params.set("tag", tag);
     if (sort) params.set("orden", sort);
+    if (adultMode) params.set("adult", "1");
     params.set("limite", String(PAGE_SIZE));
 
     setLoading(true);
@@ -81,7 +86,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
       .catch(() => {})
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [search, categoryId, countryId, tag, sort]);
+  }, [search, categoryId, countryId, tag, sort, adultMode]);
 
   function loadMore() {
     if (loadingMore) return;
@@ -94,6 +99,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
     if (countryId) params.set("pais", countryId);
     if (tag) params.set("tag", tag);
     if (sort) params.set("orden", sort);
+    if (adultMode) params.set("adult", "1");
     params.set("limite", String(nextLimit));
     fetch(`/api/groups?${params.toString()}&XTransformPort=3000`)
       .then((r) => r.json())
@@ -126,7 +132,12 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
             Directorio de grupos de WhatsApp
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Explora {groups.length}+ comunidades activas en español. Usa los filtros para encontrar el grupo perfecto.
+            Explora {groups.length}+ comunidades activas en español.{" "}
+            {adultMode ? (
+              <span className="font-medium text-rose-600 dark:text-rose-400">Modo 18+ activo — se incluye contenido adulto.</span>
+            ) : (
+              <span>Contenido 100% apto para todos.</span>
+            )}
           </p>
         </div>
 
@@ -206,6 +217,10 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
                   </span>
                 </button>
               )}
+              {/* 18+ mode toggle — controls whether adult rows are fetched */}
+              <div className="flex h-11 items-center">
+                <AdultModeToggle variant="compact" />
+              </div>
             </div>
           </div>
 
@@ -344,6 +359,9 @@ function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string
   const isHot = group.members >= 1000;
   const isTrending = group.views >= 50 || group.members >= 700;
   const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
+  // Adult directive: blank image title/alt on adult groups (SEO safety).
+  const imgAlt = group.isAdult ? "" : group.title;
+  const imgTitle = group.isAdult ? undefined : group.title;
 
   return (
     <Link href={`/grupo/${group.slug}`} className="block">
@@ -367,8 +385,8 @@ function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string
         <div className="relative shrink-0 pl-1">
           <GroupImage
             src={group.imageUrl}
-            alt={group.title}
-            title={group.title}
+            alt={imgAlt}
+            title={imgTitle}
             size={56}
             className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
             fallbackEmoji={group.category?.icon}
@@ -386,6 +404,11 @@ function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string
             <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
               <Highlight text={group.title} query={searchQuery} />
             </h3>
+            {group.isAdult && (
+              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
+                18+
+              </span>
+            )}
             {group.isVerified && (
               <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
             )}

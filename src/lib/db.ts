@@ -45,14 +45,16 @@ function createPool(): mysql.Pool {
     user: process.env.DB_USER || "grupos",
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME || "gruposwhatsapp",
+    // Aggressive idle recycling — prevents connection saturation on shared
+    // hosting (ECONNREFUSED / 500s). Few idle connections held, freed fast.
     waitForConnections: true,
-    connectionLimit: 10,
-    maxIdle: 10,
-    idleTimeout: 60_000,
+    connectionLimit: 8,
+    maxIdle: 2,           // recycle idle conns almost immediately
+    idleTimeout: 30_000,  // 30s idle → close (was 60s)
     queueLimit: 0,
     connectTimeout: 10_000,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 30_000,
+    keepAliveInitialDelay: 15_000, // detect dead peers sooner (was 30s)
     charset: "utf8mb4",
     decimalNumbers: true,
     timezone: "Z", // store/interpret DATETIME as UTC

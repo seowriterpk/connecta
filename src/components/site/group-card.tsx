@@ -73,6 +73,10 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
   const isTrending = group.views >= 50 || group.members >= 700;
   const isHot = group.members >= 1000;
   const hasRating = rating && rating.count > 0;
+  // Adult directive: blank image title/alt on adult groups (SEO safety).
+  const imgAlt = group.isAdult ? "" : group.title;
+  const imgTitle = group.isAdult ? undefined : group.title;
+  const linkTitle = group.isAdult ? undefined : group.title;
 
   // "Active recently" = lastActiveAt within 7 days
   const isActiveRecently = (() => {
@@ -82,7 +86,7 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
   })();
 
   return (
-    <Link href={`/grupo/${group.slug}`} title={group.title} className="block h-full">
+    <Link href={`/grupo/${group.slug}`} title={linkTitle} className="block h-full">
       <motion.article
         whileHover={{ y: -6 }}
         transition={{ type: "spring", stiffness: 320, damping: 24 }}
@@ -111,8 +115,8 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
             <span className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br opacity-0 blur-md transition duration-300 group-hover:opacity-40" aria-hidden />
             <GroupImage
               src={group.imageUrl}
-              alt={group.title}
-              title={group.title}
+              alt={imgAlt}
+              title={imgTitle}
               size={48}
               className="rounded-xl transition duration-300 group-hover:scale-105"
               fallbackEmoji={group.category?.icon}
@@ -127,6 +131,11 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
             <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug transition-colors group-hover:text-primary">
               <Highlight text={group.title} query={searchQuery} />
             </h3>
+            {group.isAdult && (
+              <span className="mt-1 inline-flex items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
+                18+
+              </span>
+            )}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               {group.country && (
                 <span className="inline-flex items-center gap-1">

@@ -6,6 +6,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://conectagrupos.com/autor/ana-torres</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://conectagrupos.com/autor/carlos-ramirez</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -21,17 +26,12 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://conectagrupos.com/autor/maria-gonzalez</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://conectagrupos.com/autor/ana-torres</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
     <loc>https://conectagrupos.com/autor/luis-caminos</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://conectagrupos.com/autor/maria-gonzalez</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

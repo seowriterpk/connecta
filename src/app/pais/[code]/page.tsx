@@ -27,6 +27,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
 import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
+import { AdultCountryZone } from "@/components/site/adult-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -326,6 +327,14 @@ export default async function CountryPage({
               page={result.page}
               totalPages={result.totalPages}
             />
+          </div>
+        </section>
+
+        {/* ADULT DIRECTIVE: country pages default to clean. Adult groups for
+            this region load client-side, only while the 18+ toggle is on. */}
+        <section className="pb-10 sm:pb-12">
+          <div className="container mx-auto px-4">
+            <AdultCountryZone countryId={country.id} countryName={country.name} />
           </div>
         </section>
 

@@ -74,8 +74,8 @@ async function main() {
       sitemapFiles.push({ filename, lastmod: new Date().toISOString().slice(0, 10) });
     }
 
-    // Categories
-    const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1");
+    // Categories (never adult — adult categories are not submitted to search engines)
+    const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1 AND `isAdult` = 0");
     writeSitemap("categorias.xml", categories.map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9")));
 
     // Countries

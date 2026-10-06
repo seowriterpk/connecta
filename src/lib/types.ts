@@ -78,6 +78,16 @@ export interface GroupsQuery {
   limit?: number;
   offset?: number;
   status?: GroupStatus;
+  /**
+   * Adult content policy (production directive: strict separation).
+   * - "exclude" (default): 100% clean — used by every indexing page (SSR).
+   * - "include": clean + adult mixed — 18+ mode client fetches only.
+   * - "only": adult only — adult zone sections / adult category feeds.
+   * Personal pages (favoritos, recientes, comparar, listas, búsqueda)
+   * bypass getGroups and query by ids/slugs directly, so they keep showing
+   * adult content regardless of the toggle.
+   */
+  adult?: "exclude" | "include" | "only";
 }
 
 export interface SubmitGroupPayload {

@@ -19,13 +19,17 @@ export const metadata = {
 export default async function AdminBulkUploadPage() {
   const { csrfToken } = await checkAdmin();
 
-  // Load category + country banks for the column-mapping guide + JSON reference
-  const [categoryRows, countryRows, queueCountRow, pendingCountRow] = await Promise.all([
-    query<Row & { name: string; slug: string; isAdult: number }>(
-      "SELECT `name`, `slug`, `isAdult` FROM `categories` WHERE `isActive` = 1 ORDER BY `sortOrder` ASC, `name` ASC"
+  // Load rich banks for the smart auto-suggests (ids, icons, flags, counts)
+  // + a tag frequency bank for TagSuggest hints.
+  const [categoryRows, countryRows, tagRows, queueCountRow, pendingCountRow] = await Promise.all([
+    query<Row & Record<string, unknown>>(
+      "SELECT `id`, `name`, `slug`, `icon`, `isAdult`, (SELECT COUNT(*) FROM `groups` g WHERE g.`categoryId` = `categories`.`id` AND g.`status` = 'live') AS `cnt` FROM `categories` WHERE `isActive` = 1 ORDER BY `sortOrder` ASC, `name` ASC"
     ),
-    query<Row & { name: string; code: string }>(
-      "SELECT `name`, `code` FROM `countries` WHERE `isActive` = 1 ORDER BY `name` ASC"
+    query<Row & Record<string, unknown>>(
+      "SELECT `id`, `name`, `code`, `flag` FROM `countries` WHERE `isActive` = 1 ORDER BY `name` ASC"
+    ),
+    query<Row & Record<string, unknown>>(
+      "SELECT `tags` FROM `groups` WHERE `tags` IS NOT NULL AND `tags` <> '[]' LIMIT 800"
     ),
     queryOne<Row & { cnt: number }>(
       "SELECT COUNT(*) AS `cnt` FROM `groups_queue`"
@@ -36,11 +40,39 @@ export default async function AdminBulkUploadPage() {
     ),
   ]);
   const categories = categoryRows.map((c) => ({
-    name: c.name,
-    slug: c.slug,
+    id: String(c.id),
+    name: String(c.name ?? ""),
+    slug: String(c.slug ?? ""),
+    icon: String(c.icon ?? ""),
     isAdult: !!c.isAdult,
+    groupCount: Number(c.cnt ?? 0),
   }));
-  const countries = countryRows.map((c) => ({ name: c.name, code: c.code }));
+  const countries = countryRows.map((c) => ({
+    id: String(c.id),
+    name: String(c.name ?? ""),
+    code: String(c.code ?? ""),
+    flag: String(c.flag ?? ""),
+  }));
+
+  // Aggregate tag usage frequency (used by TagSuggest to rank suggestions).
+  const tagFreq = new Map<string, number>();
+  for (const r of tagRows) {
+    try {
+      const arr = JSON.parse(String(r.tags ?? "[]"));
+      if (Array.isArray(arr)) {
+        for (const t of arr) {
+          const k = String(t).toLowerCase();
+          if (k) tagFreq.set(k, (tagFreq.get(k) ?? 0) + 1);
+        }
+      }
+    } catch {
+      /* ignore malformed rows */
+    }
+  }
+  const tagSuggestions = [...tagFreq.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 100);
   const queueCount = Number(queueCountRow?.cnt ?? 0);
   const pendingCount = Number(pendingCountRow?.cnt ?? 0);
 
@@ -64,7 +96,7 @@ export default async function AdminBulkUploadPage() {
                   Carga masiva de grupos
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Importa grupos desde un CSV o pega un array JSON.
+                  Editor visual con autocompletado, actualización masiva, CSV o JSON — sin IDs manuales.
                 </p>
               </div>
             </div>
@@ -114,6 +146,7 @@ export default async function AdminBulkUploadPage() {
               csrfToken={csrfToken}
               categories={categories}
               countries={countries}
+              tagSuggestions={tagSuggestions}
             />
           </div>
 

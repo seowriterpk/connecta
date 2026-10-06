@@ -58,19 +58,50 @@ export default async function AdminGroupEditPage({
     updatedAt: (group.updatedAt as Date | string) ?? new Date(0),
   };
 
-  const [categories, countries] = await Promise.all([
+  const [categories, countries, tagRows] = await Promise.all([
     query<Row & Record<string, unknown>>(
-      "SELECT `id`, `name`, `isAdult` FROM `categories` ORDER BY `sortOrder` ASC"
+      "SELECT `id`, `name`, `icon`, `isAdult`, (SELECT COUNT(*) FROM `groups` g WHERE g.`categoryId` = `categories`.`id` AND g.`status` = 'live') AS `cnt` FROM `categories` ORDER BY `sortOrder` ASC"
     ),
-    query<{ id: string; name: string }>(
-      "SELECT `id`, `name` FROM `countries` ORDER BY `name` ASC"
+    query<Row & Record<string, unknown>>(
+      "SELECT `id`, `name`, `flag`, `code` FROM `countries` ORDER BY `name` ASC"
+    ),
+    query<Row & Record<string, unknown>>(
+      "SELECT `tags` FROM `groups` WHERE `status` = 'live' AND `tags` IS NOT NULL AND `tags` <> '[]' LIMIT 500"
     ),
   ]);
   const categoryOptions = categories.map((c) => ({
     id: String(c.id),
     name: String(c.name ?? ""),
+    icon: String(c.icon ?? ""),
     isAdult: !!c.isAdult,
+    groupCount: Number(c.cnt ?? 0),
   }));
+  const countryOptions = countries.map((c) => ({
+    id: String(c.id),
+    name: String(c.name ?? ""),
+    flag: String(c.flag ?? ""),
+    code: String(c.code ?? ""),
+  }));
+
+  // Aggregate tag usage frequency for the TagSuggest hints.
+  const tagFreq = new Map<string, number>();
+  for (const r of tagRows) {
+    try {
+      const arr = JSON.parse(String(r.tags ?? "[]"));
+      if (Array.isArray(arr)) {
+        for (const t of arr) {
+          const k = String(t).toLowerCase();
+          if (k) tagFreq.set(k, (tagFreq.get(k) ?? 0) + 1);
+        }
+      }
+    } catch {
+      /* ignore malformed rows */
+    }
+  }
+  const tagSuggestions = [...tagFreq.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 80);
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
@@ -133,7 +164,8 @@ export default async function AdminGroupEditPage({
               <AdminGroupEditForm
                 group={groupData}
                 categories={categoryOptions}
-                countries={countries}
+                countries={countryOptions}
+                tagSuggestions={tagSuggestions}
                 csrfToken={csrfToken}
               />
             </CardContent>

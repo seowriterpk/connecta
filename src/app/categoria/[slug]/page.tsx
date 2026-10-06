@@ -17,6 +17,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
 import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
+import { AdultCategoryFeed } from "@/components/site/adult-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,15 @@ export async function generateMetadata({
   if (!category) {
     return {
       title: "Categoría no encontrada",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  // Adult categories: never indexed (strict separation directive).
+  if (category.isAdult) {
+    return {
+      title: { absolute: `${category.name} — ${SITE.name}` },
+      description: category.description,
       robots: { index: false, follow: false },
     };
   }
@@ -138,14 +148,19 @@ export default async function CategoryPage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      {/* ADULT DIRECTIVE: adult categories emit no structured data. */}
+      {!category.isAdult && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+          />
+        </>
+      )}
 
       <SiteHeader />
 
@@ -231,8 +246,14 @@ export default async function CategoryPage({
                   Grupos de {category.name}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Mostrando {rangeStart}–{rangeEnd} de {result.total}{" "}
-                  {result.total === 1 ? "grupo" : "grupos"}
+                  {category.isAdult ? (
+                    <span>Contenido para adultos — visible solo con el modo 18+ activo.</span>
+                  ) : (
+                    <>
+                      Mostrando {rangeStart}–{rangeEnd} de {result.total}{" "}
+                      {result.total === 1 ? "grupo" : "grupos"}
+                    </>
+                  )}
                 </p>
               </div>
               <SubmitDialog
@@ -246,7 +267,11 @@ export default async function CategoryPage({
               />
             </div>
 
-            {groups.length === 0 ? (
+            {/* ADULT DIRECTIVE: adult category groups load client-side only,
+                after the 18+ toggle. Never server-rendered. */}
+            {category.isAdult ? (
+              <AdultCategoryFeed categoryId={category.id} categoryName={category.name} />
+            ) : groups.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
                 <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-3xl">
                   {category.icon}
@@ -278,11 +303,13 @@ export default async function CategoryPage({
               </Reveal>
             )}
 
-            <Pagination
-              basePath={basePath}
-              page={result.page}
-              totalPages={result.totalPages}
-            />
+            {!category.isAdult && (
+              <Pagination
+                basePath={basePath}
+                page={result.page}
+                totalPages={result.totalPages}
+              />
+            )}
           </div>
         </section>
 

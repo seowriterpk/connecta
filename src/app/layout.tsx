@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/site/theme-provider";
 import { CommandPalette } from "@/components/site/command-palette";
 import { CompareBar } from "@/components/site/compare-bar";
+import { TranslationFix } from "@/components/site/translation-fix";
 import { getCategories, getCountries, getGroups } from "@/lib/data";
 import { SITE } from "@/lib/constants";
 
@@ -202,6 +203,8 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        {/* Google-Translate crash guard — must mount before any interactive tree */}
+        <TranslationFix />
         <ThemeProvider>
           {children}
           <Toaster />

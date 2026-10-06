@@ -6,6 +6,18 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
+    // Adult content policy (strict separation directive):
+    // - default (no param): 100% clean — indexing pages never see adult rows.
+    // - adult=1 : include adult (18+ toggle active, client-side fetch only).
+    // - adult=only : adult-only zone (country 18+ section / adult category).
+    const adultParam = sp.get("adult");
+    const adult =
+      adultParam === "1" || adultParam === "include"
+        ? ("include" as const)
+        : adultParam === "only"
+        ? ("only" as const)
+        : undefined; // default → exclude (clean)
+
     const data = await getGroups({
       search: sp.get("q") ?? undefined,
       categoryId: sp.get("cat") ?? undefined,
@@ -16,6 +28,7 @@ export async function GET(req: NextRequest) {
       sort: (sp.get("orden") as any) ?? undefined,
       limit: Number(sp.get("limite")) || undefined,
       offset: Number(sp.get("desde")) || undefined,
+      adult,
     });
     return NextResponse.json({ ok: true, data });
   } catch {

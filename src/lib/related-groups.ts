@@ -4,6 +4,10 @@
  *
  * Returns 10 related groups: 4 newest + 4 fewest clicks + 2 random.
  * Priority: same category AND country, with fallbacks.
+ *
+ * SILOED LINKING (adult separation directive): related groups always match
+ * the current group's content silo — adult groups only ever recommend other
+ * adult groups; clean groups only ever recommend clean groups.
  */
 
 import { query, type Row } from "./db";
@@ -43,7 +47,7 @@ function toDTO(g: GroupRow): GroupDTO {
     createdAt: g.createdAt instanceof Date ? g.createdAt.toISOString() : String(g.createdAt),
     lastActiveAt: g.lastActiveAt instanceof Date ? g.lastActiveAt.toISOString() : null,
     category: g.catName
-      ? { id: g.categoryId, name: g.catName, slug: g.catSlug, description: g.catDesc ?? "", icon: g.catIcon ?? "💬", color: g.catColor ?? "emerald", sortOrder: g.catSort ?? 1000, groupCount: 0 }
+      ? { id: g.categoryId, name: g.catName, slug: g.catSlug, description: g.catDesc ?? "", icon: g.catIcon ?? "💬", color: g.catColor ?? "emerald", sortOrder: g.catSort ?? 1000, groupCount: 0, isAdult: !!g.catIsAdult }
       : undefined,
     country: g.countryName
       ? { id: g.countryId, name: g.countryName, code: g.countryCode, flag: g.countryFlag, region: g.countryRegion, dialCode: g.countryDial ?? null, groupCount: 0 }
@@ -62,7 +66,7 @@ function shuffle<T>(array: T[]): T[] {
 
 const RELATED_SELECT = `
   g.*,
-  c.\`name\` AS \`catName\`, c.\`slug\` AS \`catSlug\`, c.\`description\` AS \`catDesc\`, c.\`icon\` AS \`catIcon\`, c.\`color\` AS \`catColor\`, c.\`sortOrder\` AS \`catSort\`,
+  c.\`name\` AS \`catName\`, c.\`slug\` AS \`catSlug\`, c.\`description\` AS \`catDesc\`, c.\`icon\` AS \`catIcon\`, c.\`color\` AS \`catColor\`, c.\`sortOrder\` AS \`catSort\`, c.\`isAdult\` AS \`catIsAdult\`,
   co.\`name\` AS \`countryName\`, co.\`code\` AS \`countryCode\`, co.\`flag\` AS \`countryFlag\`, co.\`region\` AS \`countryRegion\`, co.\`dialCode\` AS \`countryDial\`
 `;
 
@@ -76,19 +80,22 @@ export async function getRelatedGroups(
   currentGroupId: string,
   category: string,
   country: string,
-  limit = 10
+  limit = 10,
+  opts: { isAdult?: boolean } = {}
 ): Promise<any[]> {
   const usedIds = new Set<string>([currentGroupId]);
+  // Silo: related groups must live in the same content silo as this group.
+  const siloIsAdult = opts.isAdult ? 1 : 0;
 
   const fetchGroups = (extraWhere: string, params: unknown[], orderBy: string, take: number) => {
     const notIn = [...usedIds];
     const notInSql = notIn.length > 0 ? `AND g.\`id\` NOT IN (${notIn.map(() => "?").join(", ")})` : "";
     return query<GroupRow>(
       `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-       WHERE g.\`status\` = 'live' AND g.\`linkStatus\` = 'active' AND g.\`isAdult\` = 0 ${extraWhere ? `AND ${extraWhere}` : ""} ${notInSql}
+       WHERE g.\`status\` = 'live' AND g.\`linkStatus\` = 'active' AND g.\`isAdult\` = ? ${extraWhere ? `AND ${extraWhere}` : ""} ${notInSql}
        ORDER BY ${orderBy}
        LIMIT ?`,
-      [...params, ...notIn, take]
+      [siloIsAdult, ...params, ...notIn, take]
     );
   };
 

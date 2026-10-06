@@ -36,9 +36,13 @@ import {
   ListChecks,
   Database,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateSlugClient } from "@/lib/slug-client";
+import { BulkVisualEditor } from "@/components/admin/bulk-visual-editor";
+import { BulkUpdateTool } from "@/components/admin/bulk-update-tool";
+import type { TagOption } from "@/components/admin/smart-suggest";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,10 +78,12 @@ type ImportResult = {
 
 interface Props {
   csrfToken: string;
-  /** Available categories (name list, for the column-mapping guide). */
-  categories: { name: string; slug: string; isAdult: boolean }[];
-  /** Available countries (name list, for the column-mapping guide). */
-  countries: { name: string; code: string }[];
+  /** Available categories (rich list for the smart auto-suggest). */
+  categories: { id: string; name: string; slug: string; icon: string; isAdult: boolean; groupCount: number }[];
+  /** Available countries (rich list for the smart auto-suggest). */
+  countries: { id: string; name: string; code: string; flag: string }[];
+  /** Tag frequency bank for the TagSuggest hints. */
+  tagSuggestions: TagOption[];
 }
 
 // Mirror of the server-side validator (sync subset for client preview).
@@ -231,9 +237,9 @@ function csvTemplateString(): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
+export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestions }: Props) {
   const router = useRouter();
-  const [tab, setTab] = React.useState<"csv" | "json">("csv");
+  const [tab, setTab] = React.useState<"csv" | "json" | "visual" | "update">("visual");
   const [rows, setRows] = React.useState<RawRow[]>([]);
   const [csvFileName, setCsvFileName] = React.useState<string>("");
   const [jsonText, setJsonText] = React.useState<string>(
@@ -460,7 +466,7 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           groups: rows,
-          mode: tab,
+          mode: tab === "json" ? "json" : "csv", // visual editor produces CSV-equivalent rows
           target,
           csrf: csrfToken,
         }),
@@ -497,17 +503,49 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
 
   return (
     <div className="space-y-4">
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "csv" | "json")}>
-        <TabsList>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "csv" | "json" | "visual" | "update")}>
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="visual">
+            <Sparkles className="h-4 w-4" />
+            <span>Editor visual</span>
+          </TabsTrigger>
+          <TabsTrigger value="update">
+            <ListChecks className="h-4 w-4" />
+            <span>Actualización masiva</span>
+          </TabsTrigger>
           <TabsTrigger value="csv">
             <Upload className="h-4 w-4" />
-            Subir CSV
+            <span>Subir CSV</span>
           </TabsTrigger>
           <TabsTrigger value="json">
             <FileText className="h-4 w-4" />
-            Constructor JSON
+            <span>Constructor JSON</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* ============= TAB: VISUAL EDITOR (default) ============= */}
+        <TabsContent value="visual" className="space-y-4">
+          <BulkVisualEditor
+            categories={categories}
+            countries={countries}
+            tagSuggestions={tagSuggestions}
+            rows={rows}
+            onChange={(r) => {
+              setRows(r);
+              setResult(null);
+            }}
+          />
+        </TabsContent>
+
+        {/* ============= TAB: BULK UPDATE (existing groups) ============= */}
+        <TabsContent value="update" className="space-y-4">
+          <BulkUpdateTool
+            csrfToken={csrfToken}
+            categories={categories}
+            countries={countries}
+            tagSuggestions={tagSuggestions}
+          />
+        </TabsContent>
 
         {/* ============= TAB 1: CSV ============= */}
         <TabsContent value="csv" className="space-y-4">
@@ -571,14 +609,14 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
                     className="text-muted-foreground"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Limpiar
+                    <span>Limpiar</span>
                   </Button>
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={downloadTemplate}>
                   <Download className="h-3.5 w-3.5" />
-                  Descargar plantilla CSV
+                  <span>Descargar plantilla CSV</span>
                 </Button>
               </div>
             </CardContent>
@@ -637,11 +675,11 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
                   disabled={!jsonValidation.ok && jsonText.trim() !== "[]"}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Añadir fila
+                  <span>Añadir fila</span>
                 </Button>
                 <Button variant="outline" size="sm" onClick={removeLastRow}>
                   <Trash2 className="h-3.5 w-3.5" />
-                  Quitar última
+                  <span>Quitar última</span>
                 </Button>
                 <Button
                   variant="default"
@@ -650,11 +688,11 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
                   disabled={!jsonValidation.ok}
                 >
                   <ListChecks className="h-3.5 w-3.5" />
-                  Aplicar y validar
+                  <span>Aplicar y validar</span>
                 </Button>
                 <Button variant="outline" size="sm" onClick={downloadTemplate}>
                   <Download className="h-3.5 w-3.5" />
-                  Plantilla CSV
+                  <span>Plantilla CSV</span>
                 </Button>
               </div>
             </CardContent>
@@ -662,6 +700,9 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
         </TabsContent>
       </Tabs>
 
+      {/* Insert-only sections — hidden while the bulk-update tab is active */}
+      {tab !== "update" && (
+        <>
       {/* ============= Column mapping guide ============= */}
       <Card>
         <CardHeader>
@@ -948,14 +989,16 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              {importing
-                ? "Importando…"
-                : `Importar ${validCount} de ${rows.length} grupo(s)`}
+              {importing ? (
+                <span>Importando…</span>
+              ) : (
+                <span>Importar {validCount} de {rows.length} grupo(s)</span>
+              )}
             </Button>
             {rows.length > 0 && (
               <Button variant="ghost" onClick={resetAll} disabled={importing}>
                 <Trash2 className="h-4 w-4" />
-                Limpiar todo
+                <span>Limpiar todo</span>
               </Button>
             )}
             <div className="text-xs text-muted-foreground">
@@ -1026,6 +1069,8 @@ export function BulkUploadForm({ csrfToken, categories, countries }: Props) {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

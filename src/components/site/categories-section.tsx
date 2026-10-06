@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { useGroupsFilter } from "@/lib/store";
+import { useAdultModeHydrated } from "@/lib/adult-store";
 import type { CategoryDTO } from "@/lib/types";
 import { StaggerGrid, StaggerItem } from "@/components/site/reveal";
 
@@ -31,6 +32,27 @@ const COLOR_STYLES: Record<string, { bg: string; text: string; ring: string }> =
 
 export function CategoriesSection({ categories }: { categories: CategoryDTO[] }) {
   const setCategory = useGroupsFilter((s) => s.setCategory);
+  // 18+ mode: adult categories are fetched client-side only when active —
+  // they never appear in the server-rendered DOM (clean silo by default).
+  const { enabled: adultMode } = useAdultModeHydrated();
+  const [adultCategories, setAdultCategories] = React.useState<CategoryDTO[]>([]);
+
+  React.useEffect(() => {
+    if (!adultMode) {
+      setAdultCategories([]);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/categories?adult=only&XTransformPort=3000")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.ok && Array.isArray(j.data)) setAdultCategories(j.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [adultMode]);
 
   function pick(id: string) {
     setCategory(id);
@@ -80,6 +102,42 @@ export function CategoriesSection({ categories }: { categories: CategoryDTO[] })
             );
           })}
         </StaggerGrid>
+
+        {/* ADULT DIRECTIVE: adult categories render client-side only, in a
+            clearly separated 18+ cluster, only while the toggle is on. */}
+        {adultMode && adultCategories.length > 0 && (
+          <div className="mt-7">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                🔞 Zona 18+
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Categorías para adultos — separadas del directorio general
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/[0.03] p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {adultCategories.map((c) => {
+                const st = COLOR_STYLES[c.color] ?? COLOR_STYLES.rose;
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/categoria/${c.slug}`}
+                    className="group relative flex h-full w-full flex-col items-start gap-2 rounded-2xl border border-rose-500/20 bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400/50 hover:shadow-md"
+                  >
+                    <span className={`grid h-11 w-11 place-items-center rounded-xl text-xl ${st.bg} ${st.text}`}>
+                      {c.icon}
+                    </span>
+                    <span className="line-clamp-2 text-sm font-semibold leading-tight">{c.name}</span>
+                    <span className="mt-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      {c.groupCount} grupos
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

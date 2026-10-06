@@ -81,7 +81,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
-      images: group.imageUrl ? [{ url: group.imageUrl, width: 120, height: 120, alt: group.title }] : undefined,
+      // Adult directive: no image alt text on adult groups.
+      images: group.imageUrl ? [{ url: group.imageUrl, width: 120, height: 120, alt: group.isAdult ? "" : group.title }] : undefined,
     },
     twitter: {
       card: "summary",
@@ -100,7 +101,10 @@ export default async function GroupPage({ params }: PageProps) {
   touchGroupActivity(group.id).catch(() => {});
 
   const [related, ratingsBatch, ratingEntries, activity] = await Promise.all([
-    getRelatedGroups(group.id, group.category?.name ?? "", group.country?.name ?? "", 10),
+    // Siloed linking: adult groups only see adult related, clean only clean.
+    getRelatedGroups(group.id, group.category?.name ?? "", group.country?.name ?? "", 10, {
+      isAdult: group.isAdult,
+    }),
     getRatingsBatch([group.id]),
     query<ReviewEntryRow>(
       "SELECT `id`, `rating`, `createdAt` FROM `group_reviews` WHERE `groupId` = ? ORDER BY `createdAt` DESC LIMIT 10",
@@ -122,7 +126,8 @@ export default async function GroupPage({ params }: PageProps) {
     : false;
 
   // JSON-LD @graph (like competitor)
-  const jsonLd = {
+  // ADULT DIRECTIVE: adult groups emit NO structured data of any type.
+  const jsonLd = group.isAdult ? null : {
     "@context": "https://schema.org",
     "@graph": [
       {
@@ -169,7 +174,9 @@ export default async function GroupPage({ params }: PageProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      )}
       <RecentTracker group={group} />
       <SiteHeader />
 
@@ -193,9 +200,14 @@ export default async function GroupPage({ params }: PageProps) {
         <section className="border-b bg-background">
           <div className="container mx-auto px-4 py-4 sm:py-6">
             <div className="flex items-center gap-3 sm:gap-4">
-              <GroupImage src={group.imageUrl} alt={group.title} title={group.title} size={64} className="rounded-xl" fallbackEmoji={group.category?.icon} />
+              <GroupImage src={group.imageUrl} alt={group.isAdult ? "" : group.title} title={group.isAdult ? undefined : group.title} size={64} className="rounded-xl" fallbackEmoji={group.category?.icon} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1">
+                  {group.isAdult && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                      18+
+                    </span>
+                  )}
                   {group.isVerified && (
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                       <BadgeCheck className="h-3 w-3" /> Verificado
@@ -380,7 +392,8 @@ export default async function GroupPage({ params }: PageProps) {
                 </dl>
               </div>
 
-              {/* Internal linking */}
+              {/* Internal linking — SILOED: adult groups only cross-link to
+                  adult content (category); country/city links are clean-only. */}
               <div className="rounded-2xl border bg-card p-5 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Explora más</h3>
                 <div className="space-y-2">
@@ -390,13 +403,13 @@ export default async function GroupPage({ params }: PageProps) {
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   )}
-                  {group.country && (
+                  {!group.isAdult && group.country && (
                     <Link href={`/pais/${group.country.code}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
                       <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span>{group.country.flag} {group.country.name}</span></span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   )}
-                  {group.city && (
+                  {!group.isAdult && group.city && (
                     <Link href={`/ciudad/${citySlug(group.city)}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
                       <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /><span>{group.city}</span></span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />

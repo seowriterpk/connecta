@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Wand2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { generateSlugClient } from "@/lib/slug-client";
+import { SmartSuggest, TagSuggest, type SuggestOption, type TagOption } from "@/components/admin/smart-suggest";
 
 type GroupData = {
   id: string;
@@ -32,13 +32,14 @@ type GroupData = {
   isAdult: boolean;
 };
 
-type CategoryOpt = { id: string; name: string; isAdult: boolean };
-type CountryOpt = { id: string; name: string };
+type CategoryOpt = { id: string; name: string; icon: string; isAdult: boolean; groupCount: number };
+type CountryOpt = { id: string; name: string; flag: string; code: string };
 
 interface Props {
   group: GroupData;
   categories: CategoryOpt[];
   countries: CountryOpt[];
+  tagSuggestions: TagOption[];
   csrfToken: string;
 }
 
@@ -57,7 +58,7 @@ function parseArrayField(s: string): string[] {
   return s.split(",").map((x) => x.trim()).filter(Boolean);
 }
 
-export function AdminGroupEditForm({ group, categories, countries, csrfToken }: Props) {
+export function AdminGroupEditForm({ group, categories, countries, tagSuggestions, csrfToken }: Props) {
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -69,13 +70,29 @@ export function AdminGroupEditForm({ group, categories, countries, csrfToken }: 
     countryId: group.countryId,
     city: group.city || "",
     keywords: parseArrayField(group.keywords).join(", "),
-    tags: parseArrayField(group.tags).join(", "),
+    tags: parseArrayField(group.tags),
     profileImage: group.profileImage || "",
     language: group.language,
     status: group.status,
     linkStatus: group.linkStatus,
     isAdult: group.isAdult,
   });
+
+  // SmartSuggest option banks — pick by NAME, never by raw ID.
+  const categoryOptions: SuggestOption[] = React.useMemo(
+    () =>
+      categories.map((c) => ({
+        value: c.id,
+        label: c.name,
+        icon: c.icon || undefined,
+        badge: c.isAdult ? "18+" : c.groupCount > 0 ? `${c.groupCount}` : undefined,
+      })),
+    [categories]
+  );
+  const countryOptions: SuggestOption[] = React.useMemo(
+    () => countries.map((c) => ({ value: c.id, label: c.name, icon: c.flag || undefined, badge: c.code?.toUpperCase() })),
+    [countries]
+  );
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -96,10 +113,7 @@ export function AdminGroupEditForm({ group, categories, countries, csrfToken }: 
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        tags: form.tags
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        tags: form.tags,
         csrf: csrfToken,
       };
       const res = await fetch(`/api/admin/grupos/${group.id}`, {
@@ -205,35 +219,25 @@ export function AdminGroupEditForm({ group, categories, countries, csrfToken }: 
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="categoryId">Categoría</Label>
-          <select
+          <Label htmlFor="categoryId-input">Categoría</Label>
+          {/* Smart auto-suggest — search by name, no manual IDs */}
+          <SmartSuggest
             id="categoryId"
-            value={form.categoryId}
-            onChange={(e) => update("categoryId", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.isAdult ? " 🔞" : ""}
-              </option>
-            ))}
-          </select>
+            options={categoryOptions}
+            value={form.categoryId || null}
+            onChange={(v) => update("categoryId", v)}
+            placeholder="Ej. Tecnología, Humor…"
+          />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="countryId">País</Label>
-          <select
+          <Label htmlFor="countryId-input">País</Label>
+          <SmartSuggest
             id="countryId"
-            value={form.countryId}
-            onChange={(e) => update("countryId", e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
-          >
-            {countries.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            options={countryOptions}
+            value={form.countryId || null}
+            onChange={(v) => update("countryId", v)}
+            placeholder="Ej. España, México…"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="city">Ciudad</Label>
@@ -247,13 +251,15 @@ export function AdminGroupEditForm({ group, categories, countries, csrfToken }: 
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="tags">Etiquetas (separadas por coma, mín. 3)</Label>
-          <Input
+          <Label htmlFor="tags">Etiquetas (mín. 3)</Label>
+          <TagSuggest
             id="tags"
+            suggestions={tagSuggestions}
             value={form.tags}
-            onChange={(e) => update("tags", e.target.value)}
-            placeholder="futbol, amigos, ligauropa"
+            onChange={(t) => update("tags", t)}
+            placeholder="futbol, amigos…"
           />
+          <p className="text-xs text-muted-foreground">Escribe y pulsa Enter — se sugieren las etiquetas más usadas.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="keywords">Palabras clave (separadas por coma, mín. 3)</Label>

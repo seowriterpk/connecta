@@ -3227,3 +3227,52 @@ Stage Summary:
 - QA artifacts: seeded 14-day history for top-12 groups is demo data (deterministic, stable); rate-limit test rows cleaned (click rows from the dedup test remain and expire naturally).
 - KNOWN RISKS: dev-server OOM under heavy tooling (run lint/tsc/browser sequentially; restart ./start-dev.sh). Seeded history is static — as real traffic accrues it blends in; movers accuracy improves with time. GROUP_CONCAT default max_len (1024) is plenty for 14 numbers.
 - Next-phase candidates: (1) image CDN/self-host for group images, (2) mobile deep-linking for share lists, (3) admin dashboard "movers" widget + per-group time-series charts (data now exists), (4) command palette compare quick-action on group items, (5) homepage hero mini "En ascenso" teaser, (6) newsletter digest of weekly movers.
+
+---
+Task ID: ADULT-SEPARATION-ADMIN-UX-2026-10-06
+Agent: orchestrator (main)
+Task: MariaDB environment restore + fresh reseed; Part1 stability patches; Part2A strict 18+ adult content separation (clean-by-default, opt-in age gate); Part2B admin UX overhaul (smart-suggest + bulk tools); ampersand → "and" slug fix.
+
+Current project status (assessment):
+- IMPORTANT: the environment was RE-PROVISIONED MID-SESSION — the MariaDB runtime directory was wiped. The DB was restored from the official tarball (scripts/patches/setup-mariadb.sh, socket: mysql-runtime/tmp/mysql.sock) and re-seeded.
+- Current DB data is FRESH DEMO DATA, NOT the previous production dataset: 20 countries (incl. España), 22 categories, 38 groups (incl. 6 adult groups + "Digital Accounts Buy & Sell", whose title contains "&" → slug "digital-accounts-buy-and-sell").
+- App was otherwise stable entering the session; this phase focused on runtime stability hardening, 18+ separation, and admin tooling.
+
+Work Log:
+ENVIRONMENT / DATABASE RESTORE:
+- MariaDB runtime wiped mid-session → restored from official tarball + re-seeded fresh demo data (counts above). Demo seed is SMALLER than the original production dataset.
+
+PART 1 — STABILITY PATCHES:
+- TranslationFix component mounted in the root layout.
+- db.ts pool: aggressive idle recycling (prevents stale pooled connections after DB restarts/reprovisions).
+- error.tsx: dev diagnostics surfaced in development builds.
+- Dependency bumps: sharp 0.35.4, js-yaml 4.3.2, prismjs 1.30.0.
+
+PART 2A — STRICT 18+ ADULT SEPARATION (clean by default, explicit opt-in):
+- State: src/lib/adult-store.ts — zustand + localStorage key "cg-adult-18" (persists user consent across sessions; OFF by default).
+- Gate UI: src/components/site/adult-toggle.tsx (18+ toggle + age-gate confirmation); src/components/site/adult-zone.tsx (AdultCategoryFeed + AdultCountryZone) — adult content renders ONLY inside these gated zones.
+- Data layer clean-by-default (src/lib/data.ts): buildGroupWhere gained an adult param; getCategories/getCountries/getStats return clean (non-adult) counts; adult rows excluded unless explicitly requested.
+- APIs: adult param added to /api/groups, /api/groups/count, /api/categories; search (/buscar) allows adult results only when the mode is enabled; sitemap excludes all adult URLs.
+- Siloed related-groups.ts: adult group pages only recommend adult groups (no cross-leak into clean pages).
+- SEO/schema hygiene: entity-specific JSON-LD suppressed on adult group/category pages + blank alt/title on adult images (no adult text leaking into clean DOM/crawlers).
+
+PART 2B — ADMIN UX OVERHAUL:
+- smart-suggest.tsx: SmartSuggest (category/country autocomplete) + TagSuggest components.
+- bulk-visual-editor.tsx + bulk-update-tool.tsx + /api/admin/bulk-update endpoint (mass field updates with visual feedback).
+- Group edit form refactored onto the new suggest components.
+- Bulk-upload page with 4 tabs (add/update workflows).
+
+SLUG FIX (& → "and"):
+- slug.ts + slug-client.ts: "&" now normalizes to "and" (verified: "Digital Accounts Buy & Sell" → /grupo/digital-accounts-buy-and-sell, 200).
+
+Verification:
+- All 22 routes return 200 (incl. adult category page /categoria/citas-18).
+- Homepage DOM 100% clean (zero adult content leakage without opt-in).
+- E2E passes: 18+ toggle, age gate modal, localStorage persistence, country adult zone, adult category gate, admin bulk update.
+- lint: 0 errors. tsc: 0 errors.
+- VLM review 7/10 — cookie-banner notes were false positives (measured, not clipped).
+
+Stage Summary:
+- Status: STABLE + strict 18+ opt-in separation shipped + admin bulk tooling + hardened runtime/deps.
+- UNRESOLVED / RISKS: (1) global layout JSON-LD (WebSite/Organization/FAQ) still renders on adult pages — entity-specific schemas ARE suppressed, but global site-level ones are kept; acceptable per directive intent (site-level schema is not adult content), flagged for review. (2) dev server OOM under concurrent compile — restart with ./start-dev.sh; run heavy tooling sequentially. (3) agent-browser `type` appends instead of replacing — use `fill` for form inputs. (4) demo seed data is smaller than the original production dataset (38 groups, no accumulated per-group stats/history).
+- Next-phase candidates: (1) adult-mode toggle in command palette, (2) favorites/compare pages adult badges, (3) per-group view time-series dashboards, (4) submit-ugc rate limit tuning, (5) image CDN.

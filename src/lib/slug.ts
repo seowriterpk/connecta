@@ -5,7 +5,9 @@
  * Rules:
  * 1. Lowercase
  * 2. Replace accented Spanish chars (á→a, ñ→n, etc.)
- * 3. Replace & with "y", % with "por", @ with "en"
+ * 3. Replace & with "and", % with "por", @ with "en"
+ *    (& → "and" per production directive: "Digital Accounts Buy & Sell"
+ *     must slug to "digital-accounts-buy-and-sell", never blank/404)
  * 4. Replace spaces with hyphens
  * 5. Remove everything not a-z, 0-9, or hyphen
  * 6. Collapse multiple hyphens
@@ -34,8 +36,10 @@ export function generateSlug(text: string): string {
   // Step 1: Lowercase
   s = s.toLowerCase();
 
-  // Step 3: Replace special symbols with Spanish words
-  s = s.replace(/&/g, "y");
+  // Step 3: Replace special symbols with words
+  // & → "and" (never "y", never dropped): keeps slug non-empty and readable
+  s = s.replace(/\s*&\s*/g, " and ");
+  s = s.replace(/&/g, "and");
   s = s.replace(/%/g, "por");
   s = s.replace(/@/g, "en");
 

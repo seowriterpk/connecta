@@ -19,7 +19,9 @@ export function generateSlugClient(text: string): string {
     s = s.split(from).join(to);
   }
   s = s.toLowerCase();
-  s = s.replace(/&/g, "y");
+  // & → "and" — mirrors server slug.ts (directive: "&" names must slug with "and")
+  s = s.replace(/\s*&\s*/g, " and ");
+  s = s.replace(/&/g, "and");
   s = s.replace(/%/g, "por");
   s = s.replace(/@/g, "en");
   s = s.replace(/\s+/g, "-");

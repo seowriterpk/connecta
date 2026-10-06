@@ -5,6 +5,7 @@ import { Search, ShieldCheck, Users, Globe2, Sparkles } from "lucide-react";
 import { useGroupsFilter } from "@/lib/store";
 import type { StatsDTO } from "@/lib/types";
 import { RandomGroupButton } from "@/components/site/random-group-button";
+import { AdultModeToggle } from "@/components/site/adult-toggle";
 
 function Stat({ value, label, icon: Icon }: { value: string; label: string; icon: React.ElementType }) {
   return (
@@ -103,6 +104,13 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
               Buscar
             </button>
           </form>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <AdultModeToggle variant="hero" />
+            <span className="hidden text-[11px] text-muted-foreground/80 sm:inline">
+              Contenido adulto separado · solo si lo activas
+            </span>
+          </div>
 
           <div className="mt-8 border-t border-border/40 pt-6 [mask-image:linear-gradient(to_bottom,transparent,black_18px)] sm:mt-9">
             <div className="flex flex-wrap items-center justify-center gap-2.5">
