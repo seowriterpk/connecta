@@ -10,10 +10,11 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart } from "lucide-react";
+import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart, History, Flame } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { useGroupsFilter } from "@/lib/store";
+import { useRecent } from "@/lib/recent";
 
 interface Props {
   categories: CategoryDTO[];
@@ -28,6 +29,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
   const setCountry = useGroupsFilter((s) => s.setCountry);
   const setSearch = useGroupsFilter((s) => s.setSearch);
   const setFavoritesOnly = useGroupsFilter((s) => s.setFavoritesOnly);
+  const recentItems = useRecent((s) => s.items);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -95,7 +97,34 @@ export function CommandPalette({ categories, countries, groups }: Props) {
               <BookOpen className="h-4 w-4" />
               Ver guías prácticas
             </CommandItem>
+            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => router.push("/populares"), 60); }}>
+              <Flame className="h-4 w-4 text-orange-500" />
+              Ver grupos populares
+            </CommandItem>
           </CommandGroup>
+
+          {recentItems.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Vistos recientemente">
+                {recentItems.slice(0, 4).map((g) => (
+                  <CommandItem
+                    key={`recent-${g.id}`}
+                    value={`recent ${g.title} ${g.description} ${g.category?.name ?? ""}`}
+                    onSelect={() => pickGroup(g)}
+                  >
+                    <History className="h-4 w-4 text-teal-500" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{g.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {g.country?.flag} {g.category?.name ?? "Grupo"}
+                      </span>
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
 
           {groups.length > 0 && (
             <>

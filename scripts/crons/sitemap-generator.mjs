@@ -92,6 +92,7 @@ async function main() {
     // Static pages
     writeSitemap("estaticas.xml", [
       urlEntry(`${BASE_URL}/`, undefined, "daily", "1.0"),
+      urlEntry(`${BASE_URL}/populares`, undefined, "daily", "0.9"),
       urlEntry(`${BASE_URL}/agregar-grupo`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/sobre-nosotros`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),

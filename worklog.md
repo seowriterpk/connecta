@@ -3107,3 +3107,31 @@ Stage Summary:
 - Admin dashboard now leads with stats grid → analytics charts → quick actions/activity → share lists overview.
 - KNOWN RISKS: dev-server OOM under concurrent heavy tooling bursts (restart ./start-dev.sh; avoid running lint/tsc/browser-sweeps simultaneously). Growth chart is sparse (2 months of demo data) — fills automatically as data accrues.
 - Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) more SEO landing pages, (4) mobile deep-linking for share lists, (5) per-group view/click time-series for richer trends, (6) command palette integration for recently-viewed groups.
+
+---
+Task ID: POPULARES-PALETTE
+Agent: orchestrator (main)
+Task: Phase QA + new /populares SEO ranking page + recently-viewed groups in command palette.
+
+Work Log:
+- QA: 27-route sweep all 200 (/enviar-grupo 308 = intentional permanentRedirect to /agregar-grupo; /agregar-grupo 000 was cold-compile, 200 on retry). Verify interstitial flow re-tested: JoinButton routes to /verificar/:slug by design, VerifyClient runs 5s check animation then enables the WhatsApp redirect button (btnFound/enabled/ready all true). Earlier agent-browser /favoritos timeout was transient (curl 200 in 1.5s). Fresh-browser errors: 0.
+- FEATURE A — /populares ranking page (new SEO landing, closes next-phase candidate #3):
+  * NEW src/app/populares/page.tsx: 4 server-side ranking tabs via ?orden= — vistos (views DESC), clics (clicks DESC), valorados (getTopRatedGroups padded with populares when <8), recientes (createdAt DESC).
+  * Premium design: orange/amber "hot" hero (Flame badge, gradient wash), 4 stats chips (vistas/clics/miembros/publicados computed from the ranked set), pill filter tabs with gradient active state + icons (Eye/MousePointerClick/Star/Clock), ranked grid with RankBadge overlay — gold Trophy/silver Medal/bronze Award gradient medals for top 3, subtle #N pills beyond, aria-labels "Puesto N".
+  * SEO: index/follow, canonical /populares, OG+Twitter cards, keyword set, JSON-LD @graph (ItemList top-20 + BreadcrumbList), long-form "Cómo medimos la popularidad" section with internal links (buscar/categorias/paises/agregar-grupo), RecentlyViewed strip, empty state with CTA.
+  * Nav integration: NAV_LINKS (constants.ts) + header nav now includes "Populares" (8 links); footer EXPLORE_LINKS + "Grupos populares" (Flame icon imported).
+  * Sitemap: estaticas.xml +/populares (daily, 0.9) → regenerated live (11 URLs in estaticas, index 6 sub-sitemaps, 34 groups).
+- FEATURE B — recently-viewed in command palette (closes next-phase candidate #6):
+  * command-palette.tsx: new "Vistos recientemente" CommandGroup (top 4 from useRecent store, History icon, country flag + category subtitle, value prefixed "recent " to avoid clashing with popular-group matches) rendered between Acciones and Grupos populares; new "Ver grupos populares" action item (Flame, routes /populares).
+  * E2E: Ctrl+K → palette shows section + item for Test Group → click navigates to /grupo/test-group. (First eval wrongly matched the cookie-consent dialog — both dialogs open; checking [cmdk-root] shows both new features present.)
+- BUGLET FIXED during QA: transient "ReferenceError: Flame is not defined" was a stale mid-edit webpack state (footer EXPLORE_LINKS edit compiled before the Flame import edit); fresh browser session → 0 errors, footer renders /populares link server-side (curl HTML contains "Grupos populares").
+- Type fixes: sortMap Record values typed to the literal union (TS2322), stats.total → stats.groups (StatsDTO has groups/categories/countries/members/featured).
+- E2E VERIFIED: /populares renders title/h1/tabs/24 cards/3 podium medals/24 rank badges/stats/long-form/RV strip; all 4 tabs return different first results (clics→Memes Diario, valorados→DIGITAL ACCOUNTS, recientes→Test Group); zero page errors. VLM desktop: "highly polished... no observable overlapping... badges create visual hierarchy... clean horizontal line of Unirme buttons". VLM mobile 390px: 8/10, tabs wrap cleanly, no overflow (firstCardWidth 358px, no horizontal scroll).
+- Verification: lint 0, tsc 0, 22-route final sweep 200, dev.log clean, fresh-browser errors 0, header nav 8 links with Populares present. Dev server OOM'd 2× under cumulative heavy tooling (restart ./start-dev.sh each time — known ceiling).
+
+Stage Summary:
+- Status: STABLE + 1 new SEO surface + 1 UX integration. Mandates fulfilled: features (/populares full ranking page + palette recently-viewed) and styling (medal podium system, gradient tabs, stats chips, hero).
+- /populares is fully SEO-indexable unlike /favoritos — good landing page for "grupos de WhatsApp populares" keywords; sitemap updated.
+- Recently-viewed now surfaces in 6 places: homepage, /buscar (2 views), /favoritos (2 states), /populares, and ⌘K palette.
+- KNOWN RISKS: dev-server OOM under cumulative heavy tooling bursts (restart ./start-dev.sh; run lint/tsc/browser sequentially with pauses). Top-rated tab depends on review volume (5 reviews in demo data — pads with popular groups when thin).
+- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) /populares country/category filter combos, (4) per-group view/click time-series, (5) mobile deep-linking for share lists, (6) trending "movers" (rank deltas) on /populares.

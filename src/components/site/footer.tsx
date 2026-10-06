@@ -17,11 +17,13 @@ import {
   ScrollText,
   Cookie,
   UserRound,
+  Flame,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { NewsletterSection } from "@/components/site/newsletter-section";
 
 const EXPLORE_LINKS = [
+  { href: "/populares", label: "Grupos populares", icon: Flame },
   { href: "/categorias", label: "Categorías", icon: Compass },
   { href: "/paises", label: "Países", icon: MapPin },
   { href: "/ciudades", label: "Ciudades", icon: Building2 },
