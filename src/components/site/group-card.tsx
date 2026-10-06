@@ -5,6 +5,7 @@ import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRi
 import type { GroupDTO } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { useFavorites } from "@/lib/favorites";
+import { CompareIconButton } from "@/components/site/compare-button";
 import { Highlight } from "@/components/site/highlight";
 import { GroupImage } from "@/components/site/group-image";
 import { useGroupsFilter } from "@/lib/store";
@@ -205,14 +206,17 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
               </Badge>
             )}
           </div>
-          {/* Solid pill CTA (visual affordance; whole card is a link) */}
-          <span
-            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-emerald-500/40 group-hover:brightness-110"
-            aria-hidden
-          >
-            Unirme
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-          </span>
+          {/* Compare + solid pill CTA (visual affordance; whole card is a link) */}
+          <div className="flex shrink-0 items-center gap-1">
+            <CompareIconButton slug={group.slug} title={group.title} />
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-emerald-500/40 group-hover:brightness-110"
+              aria-hidden
+            >
+              Unirme
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+            </span>
+          </div>
         </div>
       </motion.article>
     </Link>

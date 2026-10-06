@@ -14,7 +14,6 @@ import { FaqSection } from "@/components/site/faq-section";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { CookieConsent } from "@/components/site/cookie-consent";
-import { CommandPalette } from "@/components/site/command-palette";
 import { ShortcutsHelp } from "@/components/site/shortcuts-help";
 import { GPrefixShortcuts } from "@/components/site/g-prefix-shortcuts";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
@@ -40,9 +39,6 @@ export default async function HomePage() {
     getMetrics(),
     getAllCities(),
   ]);
-
-  // Groups for command palette (popular ones)
-  const paletteGroups = await getGroups({ sort: "populares", limit: 8 });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -84,11 +80,6 @@ export default async function HomePage() {
       <CookieConsent />
       <ShortcutsHelp />
       <GPrefixShortcuts />
-      <CommandPalette
-        categories={categories}
-        countries={countries}
-        groups={paletteGroups}
-      />
     </div>
   );
 }

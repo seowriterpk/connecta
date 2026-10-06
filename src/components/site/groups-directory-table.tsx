@@ -8,6 +8,7 @@ import { useGroupsFilter } from "@/lib/store";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
 import { useFavorites } from "@/lib/favorites";
+import { CompareIconButton } from "@/components/site/compare-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -426,9 +427,12 @@ function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string
           </div>
         </div>
 
-        {/* Actions: heart + join CTA */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2.5">
-          <RowHeartButton id={group.id} />
+        {/* Actions: heart + compare + join CTA */}
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2 sm:pl-2">
+          <div className="flex flex-row items-center gap-0.5 sm:gap-1">
+            <RowHeartButton id={group.id} />
+            <CompareIconButton slug={group.slug} title={group.title} />
+          </div>
           <span
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
             aria-hidden

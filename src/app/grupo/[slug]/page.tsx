@@ -23,6 +23,7 @@ import { StarRating } from "@/components/site/star-rating";
 import { ReportDialog } from "@/components/site/report-dialog";
 import { ShareMenu } from "@/components/site/share-menu";
 import { JoinButton, ClickCount } from "@/components/site/join-button";
+import { ComparePillButton } from "@/components/site/compare-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
 import { RecentTracker } from "@/components/site/recent-tracker";
@@ -231,6 +232,7 @@ export default async function GroupPage({ params }: PageProps) {
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center gap-2">
               <div className="flex-1"><JoinButton group={group} /></div>
+              <ComparePillButton slug={group.slug} title={group.title} />
               <ShareMenu group={group} />
             </div>
           </div>

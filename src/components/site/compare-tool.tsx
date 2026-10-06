@@ -512,13 +512,17 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
       {/* Empty state */}
       {!loading && shownGroups.length === 0 && activeSlot === null && (
         <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-14">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-muted">
-            <Scale className="h-8 w-8 text-muted-foreground" aria-hidden />
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-teal-500/15 to-emerald-500/10 ring-1 ring-teal-500/25">
+            <Scale className="h-8 w-8 text-teal-600 dark:text-teal-300" aria-hidden />
           </div>
           <h2 className="text-lg font-bold">Elige dos o tres grupos para comparar</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Añade grupos con el buscador o toca una de las sugerencias populares. Verás
             miembros, vistas, clics y valoraciones lado a lado, con el mejor de cada métrica destacado.
+          </p>
+          <p className="mx-auto mt-4 inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/5 px-3.5 py-1.5 text-xs font-medium text-teal-700 dark:text-teal-300">
+            <Scale className="h-3.5 w-3.5" aria-hidden />
+            Consejo: el icono de balanza en cualquier tarjeta de grupo lo añade aquí al instante
           </p>
         </div>
       )}

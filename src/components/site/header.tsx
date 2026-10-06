@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu, Moon, Sun, MessageCircle, Search, Heart } from "lucide-react";
+import { Menu, Moon, Sun, MessageCircle, Search, Heart, Scale } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { useScrollSpy } from "@/hooks/use-scroll-spy";
 import { useFavorites } from "@/lib/favorites";
+import { useCompare } from "@/lib/compare";
 import { motion } from "framer-motion";
 
 const SECTION_IDS = NAV_LINKS.map((l) => l.href.replace("#", ""));
@@ -19,6 +20,7 @@ export function SiteHeader() {
   const [open, setOpen] = React.useState(false);
   const activeId = useScrollSpy(SECTION_IDS);
   const favCount = useFavorites((s) => s.ids.length);
+  const compareCount = useCompare((s) => s.slugs.length);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -46,16 +48,19 @@ export function SiteHeader() {
                 key={l.href}
                 href={l.href}
                 suppressHydrationWarning
-                className={`relative rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                className={`group relative rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
                 <span suppressHydrationWarning>{l.label}</span>
-                {isActive && (
-                  <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary" aria-hidden />
-                )}
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-3 -bottom-px h-0.5 origin-left rounded-full bg-primary transition-transform duration-300 ease-out ${
+                    isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`}
+                />
               </Link>
             );
           })}
@@ -77,6 +82,25 @@ export function SiteHeader() {
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
+          {/* Compare selection with live count badge (teal) */}
+          {mounted && compareCount > 0 && (
+            <Link
+              href="/comparar"
+              aria-label={`Comparación en curso (${compareCount} grupos)`}
+              className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-teal-500/10 hover:text-teal-600 dark:hover:text-teal-300"
+            >
+              <Scale className="h-[18px] w-[18px] transition-transform duration-200 hover:scale-110" />
+              <motion.span
+                key={compareCount}
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-teal-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+              >
+                {compareCount}
+              </motion.span>
+            </Link>
+          )}
           {/* Favorites with live count badge */}
           {mounted && (
             <Link

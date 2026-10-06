@@ -10,11 +10,12 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Search, Users, Globe2, ArrowUp, Home, Send, BookOpen, Heart, History, Flame, Scale } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Search, Users, Globe2, Home, Send, BookOpen, Heart, History, Flame, Scale } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { useGroupsFilter } from "@/lib/store";
 import { useRecent } from "@/lib/recent";
+import { useCompare, MAX_COMPARE } from "@/lib/compare";
 
 interface Props {
   categories: CategoryDTO[];
@@ -24,14 +25,17 @@ interface Props {
 
 export function CommandPalette({ categories, countries, groups }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const isAdmin = pathname.startsWith("/admin");
   const [open, setOpen] = React.useState(false);
-  const setCategory = useGroupsFilter((s) => s.setCategory);
-  const setCountry = useGroupsFilter((s) => s.setCountry);
   const setSearch = useGroupsFilter((s) => s.setSearch);
   const setFavoritesOnly = useGroupsFilter((s) => s.setFavoritesOnly);
   const recentItems = useRecent((s) => s.items);
+  const compareCount = useCompare((s) => s.slugs.length);
 
   React.useEffect(() => {
+    if (isAdmin) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -40,7 +44,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [isAdmin]);
 
   function goAndClose(fn: () => void) {
     fn();
@@ -55,14 +59,25 @@ export function CommandPalette({ categories, countries, groups }: Props) {
     setTimeout(() => router.push(`/grupo/${g.slug}`), 60);
   }
 
-  const query = open ? "" : "";
+  function scrollOrGo(anchorId: string, fallbackPath: string) {
+    setOpen(false);
+    setTimeout(() => {
+      if (isHome) {
+        document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        router.push(fallbackPath);
+      }
+    }, 60);
+  }
+
+  if (isAdmin) return null;
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         aria-label="Abrir búsqueda rápida (Cmd+K)"
-        className="fixed bottom-5 left-5 z-40 hidden items-center gap-2 rounded-full border bg-background/90 px-3.5 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur transition hover:bg-accent hover:text-foreground sm:inline-flex"
+        className="fixed bottom-5 left-5 z-40 hidden items-center gap-2 rounded-full border bg-background/90 px-3.5 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur transition hover:border-teal-500/40 hover:bg-teal-500/5 hover:text-teal-700 dark:hover:text-teal-300 sm:inline-flex"
       >
         <Search className="h-3.5 w-3.5" />
         <span>Búsqueda rápida</span>
@@ -77,7 +92,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
           <CommandEmpty>No encontramos resultados.</CommandEmpty>
 
           <CommandGroup heading="Acciones">
-            <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(false); })}>
+            <CommandItem onSelect={() => scrollOrGo("grupos", "/#grupos")}>
               <Home className="h-4 w-4" />
               Ver todos los grupos
             </CommandItem>
@@ -85,15 +100,26 @@ export function CommandPalette({ categories, countries, groups }: Props) {
               <Heart className="h-4 w-4 text-rose-500" />
               Ir a mis favoritos
             </CommandItem>
-            <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(true); })}>
-              <Users className="h-4 w-4" />
-              Filtrar solo favoritos aquí
-            </CommandItem>
-            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => document.getElementById("enviar")?.scrollIntoView({ behavior: "smooth" }), 60); }}>
+            {isHome && (
+              <CommandItem onSelect={() => goAndClose(() => { setSearch(""); setFavoritesOnly(true); })}>
+                <Users className="h-4 w-4" />
+                Filtrar solo favoritos aquí
+              </CommandItem>
+            )}
+            {compareCount > 0 && (
+              <CommandItem onSelect={() => { setOpen(false); setTimeout(() => router.push("/comparar"), 60); }}>
+                <Scale className="h-4 w-4 text-teal-500" />
+                Continuar comparación
+                <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-teal-500/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-teal-700 dark:text-teal-300">
+                  {compareCount}/{MAX_COMPARE}
+                </span>
+              </CommandItem>
+            )}
+            <CommandItem onSelect={() => scrollOrGo("enviar", "/agregar-grupo")}>
               <Send className="h-4 w-4" />
               Enviar un grupo
             </CommandItem>
-            <CommandItem onSelect={() => { setOpen(false); setTimeout(() => document.getElementById("guias")?.scrollIntoView({ behavior: "smooth" }), 60); }}>
+            <CommandItem onSelect={() => scrollOrGo("guias", "/guias")}>
               <BookOpen className="h-4 w-4" />
               Ver guías prácticas
             </CommandItem>

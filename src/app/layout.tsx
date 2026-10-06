@@ -1,9 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cache } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/site/theme-provider";
+import { CommandPalette } from "@/components/site/command-palette";
+import { CompareBar } from "@/components/site/compare-bar";
+import { getCategories, getCountries, getGroups } from "@/lib/data";
 import { SITE } from "@/lib/constants";
+
+// Per-request dedupe: the homepage fetches the same lists for its own sections.
+const getCategoriesCached = cache(getCategories);
+const getCountriesCached = cache(getCountries);
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -157,11 +165,18 @@ const orgJsonLd = {
   sameAs: [],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Command palette data — mounted globally so ⌘K works on every public route.
+  const [categories, countries, paletteGroups] = await Promise.all([
+    getCategoriesCached(),
+    getCountriesCached(),
+    getGroups({ sort: "populares", limit: 8 }),
+  ]);
+
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
@@ -190,6 +205,12 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster />
+          <CommandPalette
+            categories={categories}
+            countries={countries}
+            groups={paletteGroups}
+          />
+          <CompareBar />
         </ThemeProvider>
       </body>
     </html>
