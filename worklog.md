@@ -3276,3 +3276,50 @@ Stage Summary:
 - Status: STABLE + strict 18+ opt-in separation shipped + admin bulk tooling + hardened runtime/deps.
 - UNRESOLVED / RISKS: (1) global layout JSON-LD (WebSite/Organization/FAQ) still renders on adult pages — entity-specific schemas ARE suppressed, but global site-level ones are kept; acceptable per directive intent (site-level schema is not adult content), flagged for review. (2) dev server OOM under concurrent compile — restart with ./start-dev.sh; run heavy tooling sequentially. (3) agent-browser `type` appends instead of replacing — use `fill` for form inputs. (4) demo seed data is smaller than the original production dataset (38 groups, no accumulated per-group stats/history).
 - Next-phase candidates: (1) adult-mode toggle in command palette, (2) favorites/compare pages adult badges, (3) per-group view time-series dashboards, (4) submit-ugc rate limit tuning, (5) image CDN.
+
+---
+Task ID: FINAL-LAUNCH-READY-2026-10-07
+Agent: orchestrator (main)
+Task: Final live test, debugging, and launch readiness pass (user: "perform final live test, updates, debugging, and make it fully ready to be launched").
+
+Current project status (assessment):
+- Sandbox was RE-PROVISIONED again (Oct 7 12:45): mysql-runtime + /tmp wiped, dev server down. Full stack restored this session: MariaDB 11.8.6 tarball re-downloaded → setup-mariadb.sh → schema guard (tables auto-created on first request) → seed.sql applied → dates/stats staggered.
+- All Part1 stability patches re-verified present after reprovision: TranslationFix (layout.tsx:207), db.ts pool (maxIdle 2 / idleTimeout 30s / keepAlive 15s), error.tsx dev diagnostics, span-wrapped Button/TabsTrigger text (zero bare-text matches), deps sharp 0.35.4 + js-yaml 4.3.2 + prismjs 1.30.0, countries seed incl. España.
+- Admin auth is env-based (ADMIN_USER/ADMIN_PASS in .env = admin / Grupos2024!, SESSION_SECRET rotated to a strong random).
+
+Work Log:
+ENVIRONMENT RESTORE:
+- Re-downloaded MariaDB 11.8.6 tarball (archive.mariadb.org, 434MB) → scripts/patches/setup-mariadb.sh → db+user created, socket up.
+- Applied scripts/patches/seed.sql (20 countries / 22 categories / 38 groups / 6 uploaders; incl. digital-accounts-buy-and-sell and 6 adult groups).
+- .env: added DB_HOST/DB_PORT/DB_USER/DB_NAME + ADMIN_USER=admin + ADMIN_PASS=Grupos2024! + strong SESSION_SECRET.
+- NEW scripts/patches/stagger-dates.py (idempotent): fixes all-identical createdAt from seed — staggered 44 groups across ~85 days (adult groups 40-61d old, never dominating "recientes"), lastActiveAt within 72h, and 168 rows of 14-day group_daily_stats for 12 trend groups (factors 3.2→0.55). BEFORE: orden=recientes was non-deterministic and movers/activity cards had no data. AFTER: verified top risers (Fe y Reflexión 567 wv) and activity cards render.
+
+BUGS FOUND & FIXED (live testing):
+1. next.config.ts: added 127.0.0.1/localhost/21.0.12.133 to allowedDevOrigins (Next 16 was blocking cross-origin /_next/* requests → HMR/asset failures in dev).
+2. MISSING FEATURE: group detail hero had NO favorite action for the viewed group (only related-card hearts). NEW src/components/site/favorite-pill-button.tsx (rose heart pill, hydration-safe, FAVORITES_MAX full-state) mounted in the sticky action bar → E2E verified: click adds the CORRECT group id (g-demo-002 on its page), toggles label "Quitar de favoritos", persists.
+3. CompareBar floating bar rendered on /admin/* pages and COVERED admin controls (blocked "Añadir grupo" click in bulk editor). Fixed: hidden on all /admin routes (same rule as command palette).
+4. CookieConsent banner was mounted ONLY on the homepage — every other page skipped the cookie notice (ePrivacy compliance gap for EU traffic). Moved to root layout.tsx (next to CompareBar), removed duplicate from page.tsx. Verified: banner shows on inner pages, "Solo esenciales" persists 'rejected', banner dismisses.
+5. 404 page was chrome-less (no header/footer/nav) — dead end for users and crawlers. Rebuilt not-found.tsx with SiteHeader + SiteFooter + 6 escape-route cards (populares/categorías/países/buscar/favoritos/enviar). Verified on /pagina-inexistente-xyz.
+6. Data realism bug (above): stagger-dates.py.
+7. Touch targets below 44px on mobile sticky bar (favorite/compare pills 36px, join 40px, share 42px). Bumped: FavoritePillButton + ComparePillButton min-h-11 sm:min-h-9; JoinButton + ShareMenu min-h-11. Re-measured: [44,44,44,44] ✓.
+8. Cookie banner buttons → h-11 (44px) on mobile per touch standard.
+9. Related-groups section on detail page lacked visual separation (VLM nit) → framed with rounded-3xl border + muted gradient wash.
+
+QA / VERIFICATION (agent-browser E2E):
+- Route sweep: 29 routes → all 200 except intentional /enviar-grupo 308→/agregar-grupo and /verificar (indexless by design, [slug] works). APIs: health (DB ok, 11.8.6-MariaDB), groups, categories, countries, stats all 200.
+- Homepage DOM 100% clean: 30 group links, 0 adult links, cg-adult-18 null by default.
+- 18+ flow: toggle → age gate → confirm → localStorage persists across reload → client refetches with adult=1 (network-verified) → API returns 38 groups (6 adult) with flag. OFF: re-fetches without flag, aria-checked=false. Country page: clean by default, hint "2 grupos 18+ disponibles en España" (anonymous count), zone cards render only when enabled (pais=co-es&adult=only). Sitemap: 0 adult URLs (grep-verified both index and groups sitemap).
+- /populares: "En ascenso" movers section renders 6 sparkline rows from seeded stats. Group detail: activity card renders (254 views/7d on top seed group). /verificar interstitial: link verified state + join CTA.
+- Search: /buscar?q=memes → 3 results; tecnologia → 2. Command palette: Ctrl+K opens, search works, Escape closes.
+- Favorites: /favoritos renders cards + sort select + export/import toolbar. Compare: 2 groups added from homepage, /comparar renders both side-by-side (grid).
+- Admin: login (admin/Grupos2024!) → dashboard 14 stat cards; /admin/grupos 38 rows; categorías/reportes/ugc/seo/listas/contribuidores/json-builder/bulk-upload all load, 0 errors. Bulk editor: "Añadir grupo" → row with 2 SmartSuggest fields; typed "Hum" → listbox "😂 Humor" → click fills "Humor". Zero manual IDs.
+- Mobile 390px: no horizontal overflow, footer flush at page end (gap=0 after smooth-scroll settles), sticky bar 44px targets, 404 escape grid 2-col.
+- Console: 0 errors / 0 warnings on every page tested.
+- lint: 0 errors. tsc --noEmit: exit 0. dev.log: clean.
+- VLM audits: homepage desktop 9/8/9/6/8 (NEEDS-FIX verdict driven by first-visit cookie banner overlay — expected/dismissible, reserves body space; touch targets since fixed), detail desktop strong, mobile detail 8/7/9/9 (cookie touch nits fixed).
+
+Stage Summary:
+- Status: LAUNCH-READY (dev parity). All Part1 patches survived reprovision; all directive features verified live; 9 real defects fixed; data made launch-realistic.
+- Production deploy note: DEPLOYMENT.md (Hostinger) — set ADMIN_USER/ADMIN_PASS/SESSION_SECRET/DB_* env vars, run `bun run build` + standalone start. The self-initializing schema guard creates tables on first request; seed + stagger-dates.py reproduce demo data if needed.
+- KNOWN RISKS: (1) Dev server OOM under browser+VLM+compile concurrency (4GB cgroup; killed 3× this session) — run tools sequentially, restart ./start-dev.sh; production `next start` is far lighter. (2) Sandbox cannot reach chat.whatsapp.com — submit-ugc full E2E and live link revalidation are environment-blocked (verified at module level in earlier sessions). (3) Demo join links (chat.whatsapp.com/Demo-XXX) pass the validator by design; replace with real links in production. (4) VLM "cookie banner overlaps content" — expected first-visit overlay, dismissible, body space reserved.
+- Next-phase candidates: (1) per-group admin time-series charts (data accumulating in group_daily_stats), (2) 18+ toggle quick-action in command palette, (3) favorites/compare adult badges, (4) image CDN/self-host, (5) newsletter weekly movers digest.

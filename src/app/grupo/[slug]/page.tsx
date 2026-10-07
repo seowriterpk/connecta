@@ -26,6 +26,7 @@ import { ReportDialog } from "@/components/site/report-dialog";
 import { ShareMenu } from "@/components/site/share-menu";
 import { JoinButton, ClickCount } from "@/components/site/join-button";
 import { ComparePillButton } from "@/components/site/compare-button";
+import { FavoritePillButton } from "@/components/site/favorite-pill-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
 import { RecentTracker } from "@/components/site/recent-tracker";
@@ -247,6 +248,7 @@ export default async function GroupPage({ params }: PageProps) {
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center gap-2">
               <div className="flex-1"><JoinButton group={group} /></div>
+              <FavoritePillButton id={group.id} />
               <ComparePillButton slug={group.slug} title={group.title} />
               <ShareMenu group={group} />
             </div>
@@ -316,7 +318,7 @@ export default async function GroupPage({ params }: PageProps) {
 
               {/* === RELATED GROUPS (BELOW join button) === */}
               {related.length > 0 && (
-                <section className="mt-10">
+                <section className="mt-10 rounded-3xl border bg-gradient-to-b from-muted/40 to-transparent p-4 sm:p-6">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h2 className="flex items-center gap-2 text-lg font-bold">

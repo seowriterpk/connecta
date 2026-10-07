@@ -13,7 +13,6 @@ import { LongFormSection } from "@/components/site/long-form-section";
 import { FaqSection } from "@/components/site/faq-section";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
-import { CookieConsent } from "@/components/site/cookie-consent";
 import { ShortcutsHelp } from "@/components/site/shortcuts-help";
 import { GPrefixShortcuts } from "@/components/site/g-prefix-shortcuts";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
@@ -77,7 +76,6 @@ export default async function HomePage() {
       </main>
       <SiteFooter />
       <BackToTop />
-      <CookieConsent />
       <ShortcutsHelp />
       <GPrefixShortcuts />
     </div>

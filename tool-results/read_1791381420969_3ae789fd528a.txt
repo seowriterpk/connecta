@@ -1,0 +1,280 @@
+  3000→- BUG FIX 1 (sticky): body { overflow-x: hidden } in globals.css created a scrollport that broke position:sticky → changed to overflow-x: clip (documented note). Favorites sticky toolbar verified sticking at top:64 under 64px header (measured after paint settles — same-tick evals catch mid-animation layouts and lie).
+  3001→- BUG FIX 2 (Next warning): added data-scroll-behavior="smooth" to <html> (silences route-transition warning).
+  3002→- FEATURE — Favorites export/import:
+  3003→  * src/lib/favorites.ts: importIds(ids) action (regex-validated, dedup, FAVORITES_MAX=120 cap) + FAVORITES_MAX export.
+  3004→  * favorites-client.tsx: Export downloads conectagrupos-favoritos-YYYY-MM-DD.json {app,version,exportedAt,groups:[{id,slug,title}]}; Import accepts both our shape and plain {ids:[...]}; empty-state also has "Importar copia" button (device-switching recovery). E2E verified: export → file downloaded with 4 groups → cleared localStorage → uploaded file → 4 favorites restored + 4 cards rendered.
+  3005→- FEATURE — Favorites sorting: native <select> in sticky toolbar (Añadidos recientemente / Más miembros / Mejor valorados), client-side stable sort (recent = saved order newest-first, rating uses ratings-batch data, unrated sink). Verified all 3 modes reorder cards correctly.
+  3006→- FEATURE — Sticky action toolbar (top-16, backdrop-blur, -mx-4 full-bleed): count chip + total members chip + sort + Exportar/Importar/Compartir/Vaciar(icon-only <sm, labels ≥sm). AlertDialog "Vaciar" now mentions export-first. FAVORITES_MAX notice banner when full. Hero decluttered to stats only.
+  3007→- STYLING — GroupImage consistency (VLM's prior "avatar aspect-ratio inconsistency" fixed):
+  3008→  * All 3 render paths share identical square wrapper (fixed size, overflow-hidden, caller className).
+  3009→  * NEW deterministic gradient+initials fallback (16 pastel gradient palette hashed from alt, initials from first 2 significant words skipping Spanish stopwords, size-relative font, textShadow) — replaces default-group.svg path. Emoji fallback keeps bg-primary/10 with size-relative font.
+  3010→  * admin-groups-table.tsx: replaced raw <img>/📱 fallback with GroupImage (gets CDN proxy + gradient initials, consistent rounded-full border). Report page search results + autor page automatically get gradient initials (verified: 3 avatars "RC" amber gradient on /reportar-grupo; 29 gradient avatars in admin table; VLM: "consistent, professional, no broken images").
+  3011→- OOM MITIGATION: dev server OOM-killed 3× during QA bursts. Added experimental.webpackMemoryOptimizations to next.config.ts + raised NODE_OPTIONS max-old-space 1536→1792 in start-dev.sh. Post-fix: full 23-route paced sweep survived, RSS 1956MB, available 1113MB. (Turbopack remains unusable; webpack dev with .next cache preserved is the mode.)
+  3012→- Verification: bun run lint exit 0, bunx tsc --noEmit exit 0, all routes 200, zero console/page errors, VLM audits pass ("professional and well-structured", toolbar "correctly rendered and polished", mobile "clean and highly usable", no overlaps).
+  3013→
+  3014→Stage Summary:
+  3015→- Status: STABLE + enhanced. QA found no production-code bugs (server OOMs are the sandbox-only memory ceiling; mitigation applied).
+  3016→- New user-facing surface: favorites export/import round-trip, 3-mode sorting, persistent sticky toolbar, deterministic gradient initial avatars everywhere GroupImage renders.
+  3017→- Data notes: 4 pending UGC submissions remain in DB (2 DIGITAL ACCOUNTS + 1 Test Group + 1 UNIQUE TEST); ugc_contributors table is EMPTY → /autor/[slug] correctly 404s (data state, not a bug); 33→34 live groups after approving Test Group.
+  3018→- KNOWN RISKS: dev-server OOM under heavy parallel compiles (restart ./start-dev.sh; cache preserved; config now more resilient). Fake pps.whatsapp.net demo URLs 403 upstream → fallbacks render (by design).
+  3019→- Next-phase candidates: (1) rate-limit tuning, (2) sitemap regen with real BASE_URL, (3) more SEO landing pages, (4) seed ugc_contributors to light up autor pages, (5) image CDN/self-host for group images, (6) favorites public share links (server-side list storage).
+  3020→
+  3021→---
+  3022→Task ID: SHARE-LISTS-AUTORES
+  3023→Agent: orchestrator (main)
+  3024→Task: Phase QA + public favorites share lists + community contributor profiles + autores sitemap.
+  3025→
+  3026→Work Log:
+  3027→- QA pre-check: health 200 (MariaDB alive, dev alive, dev.log clean), 6-route sweep 200, homepage 30 links, zero console/page errors → STABLE → feature phase.
+  3028→- FEATURE — Public favorites share lists (server-side):
+  3029→  * src/lib/db.ts: new `fav_lists` table in Schema Guard (id PK, shareCode VARCHAR(24) UNIQUE, title, groupIdsJson TEXT, viewCount, creatorIpHash, createdAt/lastViewedAt; auto-created on next query — no migration needed).
+  3030→  * src/lib/fav-lists.ts (new): generateShareCode() (10-char unambiguous alphabet), parseListIds() (defensive JSON parse, regex-validated, dedup, cap 120), createFavList() (validates, 3-attempt collision retry), getFavListByCode(), bumpFavListView(), countFavLists().
+  3031→  * POST /api/favorites/share (new route): rate-limited 10/IP/hour via ugc_rate_limits (action 'fav_share'), returns {shareCode, shareUrl}. Verified: 9×201 then 429s; test rows cleaned after.
+  3032→  * /lista/[code] page (new): server component — hero (badge, title, stats chips: grupos/miembros/fecha/visitas), GroupCard grid with ratings, empty-state when all groups dead, viewCount bump per visit, noindex (personal share links, not evergreen SEO pages). SharedListActions client: "Guardar lista en mis favoritos" (importIds merge) + "Reemplazar mis favoritos" (clear+import), hydration-guarded allSaved state.
+  3033→  * Favorites toolbar: new "Enlace público" button (Link2 icon; creating→copied states, clipboard + toast) in front of Exportar.
+  3034→  * E2E VERIFIED: toolbar click → fav_lists row (shareCode y4a49ejmeu, 4 ids) → /lista/y4a49ejmeu renders 4 cards + stats → all-saved state shows disabled "Lista guardada" → cleared localStorage → "Guardar lista en mis favoritos" → 4 favorites imported. /lista/nonexistent → 404.
+  3035→- FEATURE — Community contributor public profiles:
+  3036→  * getUploaderBySlug() now falls back to ugc_contributors (displaySlug lookup; blocked/removed excluded; jobTitle "Contribuidor de la comunidad", description generated from publishedCount, avatarUrl mapped) — /autor/[slug] serves BOTH staff uploaders and UGC contributors.
+  3037→  * getGroupsByUploader()/getUploaderCategories() now match uploaderId OR ugcContributorId; getAllUploaderSlugs() UNIONs contributor slugs.
+  3038→  * Seeded 2 demo contributors (ana-torres, luis-caminos) + linked the 3 UGC-published groups. Verified: /autor/ana-torres 200 with h1, contributor badge, 2 cards; /autor/luis-caminos 200.
+  3039→- SEO — autores sitemap: sitemap-generator.mjs writes new sitemaps/autores.xml (uploaders ∪ contributors, monthly/0.5) + index entry. Regenerated live: autores.xml (6 URLs), sitemap.xml index (6 sub-sitemaps), grupos total 34.
+  3040→- Verification: lint exit 0, tsc exit 0, full 10-route sweep 200 (incl. /lista/y4a49ejmeu, /autor/ana-torres), toolbar renders with Enlace público, zero console/page errors, dev.log clean, VLM audits pass ("polished, high-quality... excellent information architecture"; "clean and well-structured" profile). Mobile 390px: no horizontal scroll.
+  3041→- Dev server OOM'd once during /autor compile burst → restarted via ./start-dev.sh (known sandbox ceiling; webpackMemoryOptimizations already in place).
+  3042→
+  3043→Stage Summary:
+  3044→- Status: STABLE + 2 new feature surfaces. Favorites now have a full sharing model: text share, JSON export/import, AND public always-up-to-date /lista/ links (view-counted, rate-limited, noindex).
+  3045→- Community loop closed: UGC contributors get real public profiles at /autor/[slug] with their published groups + sitemap coverage.
+  3046→- Data notes: fav_lists has 1 demo list (y4a49ejmeu, viewCount≥3); ugc_contributors has 2 demo profiles (passkey = bcrypt hash of demo value); 3 UGC groups linked; 34 live groups total.
+  3047→- KNOWN RISKS: dev OOM under heavy compile bursts (restart ./start-dev.sh); share lists are unlisted-by-obscurity (10-char code ≈ 10^5·10^7.8 keyspace) — fine for personal lists, not secrets; no share-list GC yet (lists persist forever, viewCount growth is slow).
+  3048→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) share-list GC cron (delete viewCount=0 lists older than 90d), (3) fav_lists admin visibility in /admin dashboard, (4) image CDN/self-host for group images, (5) /autor index page listing all authors, (6) more SEO landing pages.
+  3049→
+  3050→---
+  3051→Task ID: QA-BUGFIX-RECENT-ADMINLISTAS
+  3052→Agent: orchestrator (main)
+  3053→Task: Phase QA (agent-browser) + fix rating 404 bug + "Vistos recientemente" feature + admin shared-lists management page with GC.
+  3054→
+  3055→Work Log:
+  3056→- Environment verified: MariaDB 11.8.6 alive, Next dev (webpack) alive, /api/health 200 (db ok). Read full worklog history first; dev.log had ONE anomaly: `GET /api/groups/rate/user?id=...` returning 404 on every group page load.
+  3057→- BUG FIX (real user-facing): star-rating.tsx called `/api/groups/rate/user?id=` (path segment) but the route only exists as `/api/groups/rate` with a `?user` query param → every group page fired a 404 and the user's saved rating ("Tu voto: N★") never restored on reload. Fixed client to `/api/groups/rate?user=1&id=` — verified 200 live + agent-browser network log shows new pattern only. Also systematically diffed ALL client fetch paths vs existing routes (rg sweep) — no other mismatches.
+  3058→- QA sweep: 22 public routes + admin routes all 200 (307s for unauthenticated /admin/* = expected login redirect). Zero page/console errors on /, /grupo/*, /lista/*, /autores. Dev server OOM'd once during compile burst (known sandbox ceiling) → restarted via ./start-dev.sh.
+  3059→- FEATURE A — "Vistos recientemente" (Recently viewed, user-facing):
+  3060→  * Discovered `src/lib/recent.ts` zustand store (cg-recent, slim GroupDTO snapshots, max 8) was DEAD infrastructure — defined but never imported by any component (only mentioned in legal pages).
+  3061→  * NEW `src/components/site/recent-tracker.tsx`: invisible client island on group detail pages (grupo/[slug]/page.tsx) that pushes a slim snapshot to the store once per visit (deps: [group.id, push]).
+  3062→  * NEW `src/components/site/recently-viewed.tsx`: homepage strip rendered after Hero — teal theme, History icon with ping dot, desktop chevron scroll-controls (disabled at edges), "Vaciar" clear button, horizontal snap-scroll row (240/264px cards) with GroupImage avatars, title, country flag + members, category chip, ArrowUpRight hover CTA, corner-glow hover effect, framer-motion staggered entry. Hydration-guarded: hidden for first-time visitors (SSR-safe), hidden until store hydrated.
+  3063→  * E2E VERIFIED: fresh localStorage → section absent; visit 2 groups → homepage shows 2 cards with correct links; "Vaciar" → section hides + storage cleared. Mobile 390px: cards 240px, snap=x mandatory, no document horizontal overflow, scroll arrows correctly hidden (CSS hidden sm:flex). VLM audits: desktop "clean, modern, well-integrated... no overlaps"; mobile "highly polished... standard scrollable container behavior".
+  3064→- FEATURE B — Admin shared-lists management (/admin/listas):
+  3065→  * `src/lib/fav-lists.ts`: +deleteFavList(id) (typed ExecResult.affectedRows), +STALE_DAYS=90, +countStaleFavLists(), +gcFavLists() (DELETE WHERE viewCount=0 AND createdAt < NOW()-90d).
+  3066→  * API: NEW `src/app/api/admin/lists/[id]/route.ts` DELETE (guard + CSRF via x-csrf-token header + audit log "favlist.delete"); NEW `src/app/api/admin/lists/gc/route.ts` POST (CSRF via body/header, runs GC, audit "favlist.gc"). Static "gc" segment beats dynamic [id] — standard Next behavior.
+  3067→  * PAGE `/admin/listas` (server): 4 stat cards (Total/Visitas/Obsoletas/Resultado), filter chips (Todas/Con visitas/Sin visitas/Obsoletas 90d — teal active state), GET-form search by code/title (LIKE, capped 60 chars), paginated table (25/page) with code link (target=_blank), title + "Obsoleta" badge, groups count, views badge (teal when >0), created/last-viewed dates, actions (copy public link → clipboard, delete w/ AlertDialog showing code+impact), GC banner (amber, only when staleCount>0) with "Limpiar ahora" → AlertDialog → runs GC. Empty states for filter/search misses.
+  3068→  * Dashboard integration: new QUICK_ACTIONS tile "Listas compartidas" + "Gestionar listas" button on the share-lists overview card header.
+  3069→  * Opportunistic GC: POST /api/favorites/share now sweeps stale lists on ~10% of creates (fire-and-forget) — keeps fav_lists bounded without a cron worker.
+  3070→  * E2E VERIFIED: seeded 95-day-old 0-view list via SQL → obsoletas filter shows it + banner "1 lista obsoleta" → clicked Limpiar ahora → confirm → DB row gone + admin_activity_log "favlist.gc | 1 listas" + banner gone. Search: q=<code> finds 1 row w/ title; q=zzzz → "No hay listas..." message. Single delete: created list via public API (3qauxmjhww) → trash → dialog shows code → confirm → DB row gone + "favlist.delete" logged. Share API regression: still 201 + creates row. Dashboard: tile + Gestionar link present, stats "2 Listas compartidas".
+  3071→- Verification: bun run lint exit 0, bunx tsc --noEmit exit 0, full 15-route final sweep 200/307-expected, dev.log clean (only fake pps.whatsapp.net 403s by design), VLM audits pass on desktop + mobile + admin page ("clean, modern, professional... no issues detected").
+  3072→
+  3073→Stage Summary:
+  3074→- Status: STABLE. One real bug fixed (rating user-state never restoring + 404 noise on every group page). Two mandates fulfilled: new features (recently-viewed full loop + admin list management with GC) + styling (premium teal strip w/ snap-scroll + consistent admin design language).
+  3075→- Both prev-phase next-candidates CLOSED: "share-list GC" (admin action + opportunistic 10% sweep) and "fav_lists admin visibility" (dedicated management page).
+  3076→- Data notes: fav_lists back to 2 demo lists (QA artifacts cleaned: teststale001 deleted by GC itself, 3qauxmjhww/m9tc5uhwyz test lists removed); cg-recent key now actively used by visitors.
+  3077→- KNOWN RISKS: dev-server OOM under heavy compile bursts (restart ./start-dev.sh; mitigation already in place from prev phase). GC definition (viewCount=0 AND >90d) never deletes lists that got even 1 view — share links keep working as long as they're used.
+  3078→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) more SEO landing pages, (4) recently-viewed on /buscar + /favoritos pages, (5) favorites public share links from mobile deep-linking, (6) admin dashboard graph/trend of fav_list views over time.
+  3079→
+  3080→---
+  3081→Task ID: RECENT-EXPANSION-ANALYTICS
+  3082→Agent: orchestrator (main)
+  3083→Task: Phase QA + expand "Vistos recientemente" to /buscar and /favoritos + admin dashboard analytics charts (data-viz).
+  3084→
+  3085→Work Log:
+  3086→- Environment/QA: MariaDB alive, dev alive, health 200. 27-route sweep all healthy — /agregar-grupo & /enviar-grupo initially 000/308: the 000 was cold-compile delay (200 on retry); the 308 is an INTENTIONAL permanentRedirect (enviar-grupo → agregar-grupo, documented in page source). Fresh-load console/errors clean (a prior "Fast Refresh advisory" was dev-only HMR noise from previous session's edits — not present on clean reload).
+  3087→- FEATURE A — "Vistos recientemente" expansion (was homepage-only, now on 3 surfaces):
+  3088→  * /buscar results view: strip between search hero and results grid (before results ✓ verified via compareDocumentPosition).
+  3089→  * /buscar landing (no q): strip before "Sugerencias para tu búsqueda" ✓.
+  3090→  * /favoritos EMPTY state: strip between hero and "Quizá te gustan estos" trending suggestions ✓ (returning users get their history + trending).
+  3091→  * /favoritos POPULATED state: strip AFTER the favorites grid (inside FavoritesShell, after the lista-heading section) ✓. First test attempt had malformed localStorage ids (shell quoting wrote "id1 id2" as one string → empty state) — retested with proper JSON array: DOM order HEADER → SECTION lista → SECTION recently-viewed, sticky toolbar intact, 2 fav cards + 2 RV cards.
+  3092→  * Self-hiding component makes all placements zero-cost for first-time visitors (no layout shift when empty).
+  3093→- FEATURE B — Admin dashboard analytics (NEW admin-analytics.tsx client component + server aggregation in /admin/page.tsx):
+  3094→  * Chart 1 "Grupos por categoría": horizontal BarChart (top 8), per-bar colored by the category's own DB color name (mapped name→hex palette), YAxis tickFormatter truncates long names, footer note "Categoría más activa: X (N grupos)".
+  3095→  * Chart 2 "Crecimiento del catálogo": cumulative AreaChart by month (DATE_FORMAT %Y-%m, prefix-sum totals — mutation-free for react-compiler), gradient fill, dots/activeDots; graceful empty-state card when <2 months of data ("aparecerá cuando haya al menos dos meses").
+  3096→  * Chart 3 "Embudo de contribuciones UGC" (full-width): horizontal funnel bars Enviados/Pendientes/Aprobados/Rechazados (teal/amber/emerald/rose) + color legend row. needs_review merged into Pendientes.
+  3097→  * Uses existing shadcn ChartContainer/ChartTooltip/ChartTooltipContent (recharts 2.15.4), --chart-* CSS vars where applicable, aspect-auto + fixed heights (h-[260px]/h-[180px]).
+  3098→  * 3 new SQL queries added to the existing Promise.all batch (categories JOIN groups live counts; groups per month; ugc status counts).
+  3099→- FIXES during build: YAxis `formatter` → `tickFormatter` (recharts 2.x typing); react-hooks/immutability error on IIFE accumulator → prefix-sum map; removed now-unused logAdminAction import; comma-expression lint warning → braces.
+  3100→- VLM polish note applied: UGC funnel YAxis width 170→185 so "Pendientes de revisión" no longer wraps.
+  3101→- E2E VERIFIED: /admin shows 3 chart surfaces, 12 bar rectangles, area curve, funnel legend, "34 grupos publicados hasta hoy" — zero page errors. VLM audit: "clean labels and distinct colors... no visible rendering bugs, overlapping elements, or cut-off labels" (after width fix). /favoritos populated VLM: strip "well-integrated... clean layout... High polish".
+  3102→- Verification: lint 0, tsc 0, route sweep 200 (admin 307 = unauth redirect), dev.log clean. Dev server OOM'd 2× during heavy QA bursts (lint+tsc+browser concurrent) — restarted via ./start-dev.sh each time (known sandbox ceiling, cache preserved).
+  3103→
+  3104→Stage Summary:
+  3105→- Status: STABLE + 2 feature surfaces. Mandates fulfilled: features (analytics data-viz section + recently-viewed on 5 page-views across 3 routes) and styling (chart cards, per-category colors, funnel legend, graceful chart empty-states).
+  3106→- The recently-viewed loop now covers: homepage, /buscar (2 views), /favoritos (2 states), tracked from every group detail page.
+  3107→- Admin dashboard now leads with stats grid → analytics charts → quick actions/activity → share lists overview.
+  3108→- KNOWN RISKS: dev-server OOM under concurrent heavy tooling bursts (restart ./start-dev.sh; avoid running lint/tsc/browser-sweeps simultaneously). Growth chart is sparse (2 months of demo data) — fills automatically as data accrues.
+  3109→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) more SEO landing pages, (4) mobile deep-linking for share lists, (5) per-group view/click time-series for richer trends, (6) command palette integration for recently-viewed groups.
+  3110→
+  3111→---
+  3112→Task ID: POPULARES-PALETTE
+  3113→Agent: orchestrator (main)
+  3114→Task: Phase QA + new /populares SEO ranking page + recently-viewed groups in command palette.
+  3115→
+  3116→Work Log:
+  3117→- QA: 27-route sweep all 200 (/enviar-grupo 308 = intentional permanentRedirect to /agregar-grupo; /agregar-grupo 000 was cold-compile, 200 on retry). Verify interstitial flow re-tested: JoinButton routes to /verificar/:slug by design, VerifyClient runs 5s check animation then enables the WhatsApp redirect button (btnFound/enabled/ready all true). Earlier agent-browser /favoritos timeout was transient (curl 200 in 1.5s). Fresh-browser errors: 0.
+  3118→- FEATURE A — /populares ranking page (new SEO landing, closes next-phase candidate #3):
+  3119→  * NEW src/app/populares/page.tsx: 4 server-side ranking tabs via ?orden= — vistos (views DESC), clics (clicks DESC), valorados (getTopRatedGroups padded with populares when <8), recientes (createdAt DESC).
+  3120→  * Premium design: orange/amber "hot" hero (Flame badge, gradient wash), 4 stats chips (vistas/clics/miembros/publicados computed from the ranked set), pill filter tabs with gradient active state + icons (Eye/MousePointerClick/Star/Clock), ranked grid with RankBadge overlay — gold Trophy/silver Medal/bronze Award gradient medals for top 3, subtle #N pills beyond, aria-labels "Puesto N".
+  3121→  * SEO: index/follow, canonical /populares, OG+Twitter cards, keyword set, JSON-LD @graph (ItemList top-20 + BreadcrumbList), long-form "Cómo medimos la popularidad" section with internal links (buscar/categorias/paises/agregar-grupo), RecentlyViewed strip, empty state with CTA.
+  3122→  * Nav integration: NAV_LINKS (constants.ts) + header nav now includes "Populares" (8 links); footer EXPLORE_LINKS + "Grupos populares" (Flame icon imported).
+  3123→  * Sitemap: estaticas.xml +/populares (daily, 0.9) → regenerated live (11 URLs in estaticas, index 6 sub-sitemaps, 34 groups).
+  3124→- FEATURE B — recently-viewed in command palette (closes next-phase candidate #6):
+  3125→  * command-palette.tsx: new "Vistos recientemente" CommandGroup (top 4 from useRecent store, History icon, country flag + category subtitle, value prefixed "recent " to avoid clashing with popular-group matches) rendered between Acciones and Grupos populares; new "Ver grupos populares" action item (Flame, routes /populares).
+  3126→  * E2E: Ctrl+K → palette shows section + item for Test Group → click navigates to /grupo/test-group. (First eval wrongly matched the cookie-consent dialog — both dialogs open; checking [cmdk-root] shows both new features present.)
+  3127→- BUGLET FIXED during QA: transient "ReferenceError: Flame is not defined" was a stale mid-edit webpack state (footer EXPLORE_LINKS edit compiled before the Flame import edit); fresh browser session → 0 errors, footer renders /populares link server-side (curl HTML contains "Grupos populares").
+  3128→- Type fixes: sortMap Record values typed to the literal union (TS2322), stats.total → stats.groups (StatsDTO has groups/categories/countries/members/featured).
+  3129→- E2E VERIFIED: /populares renders title/h1/tabs/24 cards/3 podium medals/24 rank badges/stats/long-form/RV strip; all 4 tabs return different first results (clics→Memes Diario, valorados→DIGITAL ACCOUNTS, recientes→Test Group); zero page errors. VLM desktop: "highly polished... no observable overlapping... badges create visual hierarchy... clean horizontal line of Unirme buttons". VLM mobile 390px: 8/10, tabs wrap cleanly, no overflow (firstCardWidth 358px, no horizontal scroll).
+  3130→- Verification: lint 0, tsc 0, 22-route final sweep 200, dev.log clean, fresh-browser errors 0, header nav 8 links with Populares present. Dev server OOM'd 2× under cumulative heavy tooling (restart ./start-dev.sh each time — known ceiling).
+  3131→
+  3132→Stage Summary:
+  3133→- Status: STABLE + 1 new SEO surface + 1 UX integration. Mandates fulfilled: features (/populares full ranking page + palette recently-viewed) and styling (medal podium system, gradient tabs, stats chips, hero).
+  3134→- /populares is fully SEO-indexable unlike /favoritos — good landing page for "grupos de WhatsApp populares" keywords; sitemap updated.
+  3135→- Recently-viewed now surfaces in 6 places: homepage, /buscar (2 views), /favoritos (2 states), /populares, and ⌘K palette.
+  3136→- KNOWN RISKS: dev-server OOM under cumulative heavy tooling bursts (restart ./start-dev.sh; run lint/tsc/browser sequentially with pauses). Top-rated tab depends on review volume (5 reviews in demo data — pads with popular groups when thin).
+  3137→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) /populares country/category filter combos, (4) per-group view/click time-series, (5) mobile deep-linking for share lists, (6) trending "movers" (rank deltas) on /populares.
+  3138→
+  3139→---
+  3140→Task ID: POPULARES-FILTERS-COMPARAR
+  3141→Agent: orchestrator (main)
+  3142→Task: Phase QA + /populares country/category filters + /comparar group comparison tool + styling polish.
+  3143→
+  3144→Work Log:
+  3145→- QA SWEEP (stable, no bugs found): 17-route sweep all 200 (admin 307 = unauth redirect by design; earlier 404s on /categorias/humor etc. were wrong slug guesses — real routes are /categoria/[slug] singular and /pais/[ISO-code] e.g. /pais/ar). Admin login + dashboard (3 charts, 12 bars, funnel) + /admin/listas table all OK. Console errors 0. Homepage mobile 390px: no horizontal overflow. Dev server OOM'd once mid-round during concurrent lint+tsc (restarted ./start-dev.sh — known ceiling, cache preserved).
+  3146→- FEATURE A — /populares filter combos (closes candidate #3):
+  3147→  * NEW client component src/components/site/populares-filters.tsx: two chip rows (País with flags, Tema with per-category colored dots + counts), active chip = orange gradient matching orden tabs, collapsed to top-10 chips with "+N países/temas" toggle (active chip always stays visible), "Quitar filtros" pill, aria-live summary line.
+  3148→  * Page changes (src/app/populares/page.tsx): parse ?pais= (ISO code) + ?cat= (category slug); resolve via getCountries/getCategories lookups (no extra queries — lists already fetched for chips); filters feed getGroups({...filters}) for vistos/clics/recientes; valorados fetches wide set (60) then filters by g.country.code/g.category.slug locally + pads with filtered populares; orden tabs preserve filters in their hrefs; contextual <title> ("...más populares en Mexico — ..."); robots noindex,follow when filters active (canonical stays /populares — avoids thin duplicates); stats chips + footer note reflect filtered set; empty state variant with "Ver el ranking completo" CTA.
+  3149→  * E2E: pais=mx → 9 cards + summary + noindex meta; combo orden=clics&pais=mx&cat=humor → grid correctly narrows to 1 Mexico+Humor group (earlier "wrong card" scare was the recently-viewed strip outside the grid — verified by scoping to section[aria-labelledby=ranking-heading]); cat=videojuegos → 3 cards; expand/collapse toggle works (10→20 countries, 30 chips with dots); valorados+cat=religion 200.
+  3150→- FEATURE B — /comparar group comparison tool (NEW page, new distinctive feature):
+  3151→  * NEW src/lib/compare.ts: zustand store (persist "cg-compare") with slugs (max 3), add/remove/setAll/clearAll + hydrated flag (follows recent.ts pattern).
+  3152→  * NEW API GET /api/groups/compare?slugs=a,b,c: returns { groups (caller order), ratings batch } — backed by NEW data.ts fn getGroupsBySlugs() (slug IN + order-preserving map).
+  3153→  * NEW src/components/site/compare-tool.tsx: 3 slot picker (filled slots = mini cards w/ GroupImage + remove X; empty = dashed "+ Grupo N" buttons); inline search picker with 250ms debounce against /api/groups?q= (results w/ image, flag, category, views; already-added disabled); one-tap "Populares:" quick-pick chips (server-prefetched); comparison grid table — header row (avatars + linked titles), 8 attribute rows (Miembros/Vistas/Clics/Valoración/Categoría/País/Antigüedad/Enlace verificado), "Mejor" winner badges (emerald bg + Trophy) on unique max of each numeric row, Unirme CTA row (→ /verificar/[slug]); shareable URLs via ?g=slug1,slug2 (replaceState sync, URL wins over localStorage on mount); empty state + "Añadir otro grupo" + "Limpiar comparación".
+  3154→  * Lint compliance: NO sync setState inside effects (react-hooks/set-state-in-effect) — zustand store actions for state, async-callback-only setState, derived loading (loadedKey !== activeKey) and derived searching (resultsQuery !== trimmedQuery); input focus via setTimeout; picker resets happen in click handlers.
+  3155→  * NEW src/app/comparar/page.tsx: teal hero (Scale badge), SEO metadata + JSON-LD WebApplication + BreadcrumbList, long-form "Cómo elegir el mejor grupo" with internal links, RecentlyViewed strip.
+  3156→  * Mobile: comparison table wrapped in overflow-x-auto + min-w-[480px] inner (3-col comparisons scroll horizontally at 390px; slots stack via grid-cols-1).
+  3157→  * INTEGRATIONS (5): command palette "Comparar grupos" action (Scale icon, teal) — verified navigates; footer EXPLORE_LINKS "Comparar grupos"; /populares long-form now links comparator; group detail "Grupos similares" header gets "Comparar grupos" CTA pill; sitemaps/estaticas.xml +/comparar (weekly, 0.8).
+  3158→  * E2E: quick-pick add → table renders (verified all 9 grid row labels via DOM extraction); 3 groups → 3 winner badges + 3 Unirme buttons + ?g= synced; reload → state persists (localStorage + URL); search picker: remove slot → open "Grupo 3" → input autofocus → type "futbol" → 1 debounced result → click → 3 columns with fútbol group. VLM desktop audit: table clean, winner badges clearly visible, slot cards OK (minor line-clamp truncation by design; "dark badge" = BackToTop button).
+  3159→- STYLING POLISH: group detail "Grupos similares" section header redesigned (Users icon + singular/plural count + Compare CTA aligned right, wraps on mobile); filter chips with hover ring/border transitions; compare picker bordered card with primary/30 ring + shadow.
+  3160→- VERIFICATION: lint 0 errors, tsc 0 errors, 17-route sweep 200, palette action verified end-to-end (cookie banner dismissed first — known QA step), footer link renders server-side, 0 console/page errors, VLM audits: populares-filters 8.5/10, comparar desktop + mobile pass, final populares pass.
+  3161→
+  3162→Stage Summary:
+  3163→- Status: STABLE + 2 new feature surfaces. Mandates fulfilled: features (/populares filter combos + /comparar comparison tool with 5 integration points) and styling (filter chip system, redesigned similares header, winner-badge table, mobile scroll UX).
+  3164→- /populares now supports orden × país × tema combos server-side (SEO-safe: noindex on filtered views, canonical to /populares).
+  3165→- /comparar is a fully interactive tool with persisted state + shareable ?g= URLs — a distinctive feature vs. typical group directories.
+  3166→- KNOWN RISKS: dev-server OOM under concurrent heavy tooling (restart ./start-dev.sh; run lint/tsc/browser sequentially). Filtered combos can be sparse with demo data (empty state handles 0). Command palette only mounted on homepage (pre-existing design, not a bug).
+  3167→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) per-group view/click time-series (enables trending "movers" on /populares), (4) mobile deep-linking for share lists, (5) mount command palette globally (all routes) + add compare actions from palette items, (6) "add to compare" button directly on GroupCard.
+  3168→
+  3169→---
+  3170→Task ID: COMPARE-EVERYWHERE-GLOBALPALETTE
+  3171→Agent: orchestrator (main)
+  3172→Task: Phase QA (agent-browser) + close last-phase candidates #5/#6: compare-everywhere (card/row/detail buttons + floating compare bar) + command palette mounted globally on all routes + styling polish.
+  3173→
+  3174→Work Log:
+  3175→- QA SWEEP (stable, no user-facing bugs found): full route sweep all 200 (real autor page 200; invented slug 404 = correct; /enviar-grupo 308 = intentional redirect; /lista/<real code> 200 with 4 cards). Share-list page, /populares filters (noindex,follow on filtered views), /comparar full table, admin login + 3-chart dashboard, group detail (h1/rating/JSON-LD) all OK; 0 console errors. Dev server OOM'd 2x during the round (first during my own route-sweep cold compiles, second during lint+tsc+browser concurrency — known sandbox ceiling; restarted via ./start-dev.sh each time, cache preserved). My initial "table missing on /comparar" scare was a false positive — the comparison grid uses divs, not a <table> element.
+  3176→- FEATURE A — Compare everywhere (closes prev candidate #6, deep /comparar integration):
+  3177→  * NEW src/components/site/compare-button.tsx: useCompareToggle shared hook (zustand cg-compare store + toast "Añadido a la comparación · N de 3" with teal ToastAction "Comparar →" that routes to /comparar) + two exports:
+  3178→    - CompareIconButton (32px circular, Scale icon → Check when active, teal ring state, aria-pressed, disabled+title when full at 3/3) — used in GroupCard footer (before "Unirme" pill) and directory table rows (next to RowHeartButton, wrapped in a flex cluster).
+  3179→    - ComparePillButton (labeled pill "Comparar" ↔ "En comparación N/3", teal states) — used in group detail sticky join bar between JoinButton and ShareMenu.
+  3180→  * NEW src/components/site/compare-bar.tsx: floating bottom-center island mounted GLOBALLY in root layout — appears (AnimatePresence spring slide-up) whenever compare store has 1+ slugs AND not on /comparar; teal gradient icon + N/3 counter + group chips (18px GroupImage avatars + truncated titles + per-chip X remove, titles fetched from /api/groups/compare) + "+ Añadir" dashed chip while < 3 + primary "Comparar →" CTA + X clear-all; hydration-guarded.
+  3181→  * Viewport-safety fix after VLM flagged potential overlap: wrapper now reserves corner zones (mobile pr-[5rem] for BackToTop; sm:pl-[15rem] for the palette trigger + pr-[5.5rem]; lg:px-3 free-centering since 560px pill leaves ≥232px/side) — DOM-box-verified no overlap at 390/640/800/1024/1280px; inner pill w-full max-w-[560px].
+  3182→  * /comparar empty state upgraded: teal-gradient icon tile + new hint pill "Consejo: el icono de balanza en cualquier tarjeta de grupo lo añade aquí al instante" (teaches the new affordance).
+  3183→  * Because GroupCard is used on 11+ pages (buscar/verificar/ciudad/pais/lista/favoritos/autor/categoria/etiqueta/grupo detail/populares/homepage rows), compare affordance now exists across the whole site.
+  3184→- FEATURE B — Global command palette (closes prev candidate #5):
+  3185→  * command-palette.tsx made route-aware: usePathname; scrollOrGo(anchor, fallback) — homepage actions scroll to #grupos/#enviar/#guias, non-home routes navigate to /#grupos, /agregar-grupo, /guias; "Filtrar solo favoritos aquí" rendered homepage-only; NEW conditional "Continuar comparación N/3" action (teal chip) when store non-empty; isAdmin guard returns null (palette + ⌘K listener disabled on /admin); trigger button hover restyled teal; removed dead unused vars (setCategory/setCountry/query/ArrowUp/ArrowRight imports).
+  3186→  * Root layout (server) now fetches categories/countries/paletteGroups (React cache() wrappers for cats/countries dedupe) and mounts <CommandPalette> + <CompareBar> inside ThemeProvider — ⌘K + compare bar on every public route; homepage mount removed (prevents double ⌘K listeners).
+  3187→- STYLING POLISH (mandate): header desktop nav animated underline (origin-left scale-x-0 → group-hover:scale-x-100, active stays 100); NEW header compare indicator — Scale icon + teal count badge with spring pop animation (mirrors favorites heart badge, teal vs rose) linking to /comparar, only when selection > 0; compare state color system (teal-500/15 fills, ring-teal-500/40, Check swap) across icon/pill buttons; CompareBar premium treatment (teal border+shadow+glow, backdrop-blur, gradient avatar chips).
+  3188→- E2E VERIFIED: card compare click → toast + bar appears (1/3, correct title chip, store persisted); bar CTA → /comparar?g=<3 slugs> with COMPARATIVA table + bar hidden there; detail pill toggles "En comparación 3/3" ↔ "Comparar" and removes from store; Ctrl+K on /grupo/* opens palette with "Continuar comparación 2/3" + recent items + no homepage-only filter item; chip X removal decrements counter (2→1); "Vaciar comparación" clears store+bar; full state (3/3) → 27 buttons aria-disabled + 3 active remove states; /populares renders 27 compare buttons; /buscar 3 buttons; 0 page/console errors throughout.
+  3189→- VERIFICATION: lint exit 0, tsc exit 0, 24-route sweep 200 (only intentional 404/308), dev.log clean (expected pps.whatsapp.net fake 403s only). VLM audits: group detail w/ bar+pill "well-integrated, perfectly aligned, no overlap"; mobile 390px compare bar 8.5/10 (no overlap with BackToTop — box-verified 310 < 326); final homepage 9/10 ("polished, high-fidelity... no visual bugs").
+  3190→
+  3191→Stage Summary:
+  3192→- Status: STABLE + compare feature now a first-class site-wide loop + ⌘K everywhere. Mandates fulfilled: features (compare-everywhere + global palette + header indicator) and styling (teal state system, animated nav underlines, premium floating bar, empty-state hint).
+  3193→- Compare loop: pick groups from ANY card/row/detail → persistent selection (cg-compare localStorage) → floating bar + header badge + palette action as constant affordances → /comparar tool (slots auto-fill from store).
+  3194→- KNOWN RISKS: dev-server OOM under concurrent lint+tsc+browser tooling (run sequentially; restart ./start-dev.sh). CompareBar fetches /api/groups/compare on every selection change (tiny, ≤3 slugs). Palette data fetched in root layout per request (React cache dedupes cats/countries per request; fine at this scale).
+  3195→- Next-phase candidates: (1) rate-limit tuning for submit-ugc, (2) image CDN/self-host for group images, (3) per-group view/click time-series → trending "movers" on /populares, (4) mobile deep-linking for share lists, (5) "comparar" quick-action inside command palette group items (add current group from palette), (6) animate CompareBar chips layout (framer layout animations).
+  3196→
+  3197→---
+  3198→Task ID: MOVERS-TIMESERIES-RATELIMIT
+  3199→Agent: orchestrator (main)
+  3200→Task: Phase QA (agent-browser) + close prev candidates #1/#3: view/click time-series with "En ascenso" trending movers on /populares + group detail activity card + rate-limit tuning (real logic fixes) + styling polish.
+  3201→
+  3202→Work Log:
+  3203→- QA SWEEP (stable, no user-facing bugs): homepage 30 group links/30 compare buttons/palette trigger OK, /populares 24 cards + filters, share-list + admin + group detail OK, 0 console errors. Dev server OOM'd 1x during cold-compile route sweep burst (known ceiling; restarted ./start-dev.sh).
+  3204→- FEATURE A — View/click time-series + trending movers (closes prev candidate #3):
+  3205→  * DB: NEW `group_daily_stats` table (groupId, day, views, clicks; PK (groupId,day), idx day) added to the schema-guard CREATE_TABLES in src/lib/db.ts (self-initializing for Hostinger deploys) + created live via mariadb CLI.
+  3206→  * Tracking: incrementViews()/incrementClicks() now also fire an INSERT…ON DUPLICATE KEY UPDATE upsert into the daily row (CURDATE()) — live-verified: visiting /grupo/test-group bumped today's row 9→10.
+  3207→  * Seeded 14 days of deterministic demo history for the top-12 live groups (trend factors 3.2→0.55 so risers/decliners are stable; 168 rows via python-generated SQL, day window CURDATE()-13..0, idempotent DELETE-then-INSERT).
+  3208→  * Query: getTrendingMovers(limit) — subquery aggregates weekViews (last 7d incl today) vs prevViews (previous 7d) + GROUP_CONCAT 14-day series; join groups (live, non-adult); ORDER BY delta DESC, weekViews DESC; graceful [] on error. getGroupActivity(groupId) — same window for a single group, day-normalized 14-slot series (fills gaps with 0).
+  3209→  * UI A — /populares "En ascenso esta semana": NEW src/components/site/movers-section.tsx (server): Rocket badge + h2 + sub, 6 ranked rows (emerald rank chip, GroupImage avatar, title + flag/category meta, SVG sparkline (sm+ only), weekViews stat, DeltaBadge "+171 · +209%" emerald/rose/flat, CompareIconButton shortcut, arrow hover CTA, emerald left accent + corner wash, Reveal stagger). Section rendered ONLY on unfiltered /populares (movers are a global signal; pais/cat views skip fetch+render — verified hidden on ?pais=mx). Long-form "Cómo medimos" gained an "En ascenso" paragraph (SEO content explaining the 7d-vs-prev-7d methodology).
+  3210→  * UI B — group detail "Actividad reciente" sidebar card: NEW src/components/site/group-activity.tsx (server): 228x44 sparkline, 2 stat tiles (Últimos 7 días vs Semana anterior), delta badge, explanatory footnote; FIRST card in the aside (before Publicado por); self-hides when <2 non-zero history days (verified: unseeded group renders no card). getGroupActivity added to the detail page's Promise.all batch.
+  3211→  * Shared component: src/components/site/sparkline.tsx (server SVG, gradient area fill + end dot, aria-label) — movers-section refactored to import it.
+  3212→- FEATURE B — Rate-limit tuning (real logic fixes, closes prev candidate #1):
+  3213→  * src/lib/rate-limiter.ts fixes:
+  3214→    1. STUCK-BLOCK BUG: hitRateLimit upsert never reset `attempts`, so a counter could only ever grow — a device submitting 1 group/day for 10+ days would hit attempts>=10 and then loop in 1h-blocks for a full day. New smart upsert: attempts = IF(lastAttemptAt < DATE_SUB(NOW(), INTERVAL ? SECOND), 1, attempts+1) — window-local counters (direct-tested: attempts=10 aged 25h → allowed, hit re-baselines to 1, remaining 9).
+  3215→    2. BLOCK DURATION: fixed 1h block on a 24h-window limit re-blocked immediately after expiring (429 loop). Now blockedUntil = remaining window time (block ends exactly when quota resets). Burst layer (below) blocks ~10 min the same way.
+  3216→    3. NEW BURST LAYER: checkUgcRateLimits now checks submit_burst (3 per 10 min per device) BEFORE the daily caps — stops rapid-fire spam early (direct-tested: seeded attempts=3 → denied "Demasiados envíos seguidos…" with blockedUntil = +10min).
+  3217→    4. NEW hitUgcRateLimits(ip, device) — bumps all three layers atomically; submit-ugc route now calls it (replaces hand-built keys).
+  3218→  * src/app/api/groups/click/route.ts DEAD-CHECK FIX: the 5-clicks/hour/IP/group limit was checked but NEVER recorded (hitRateLimit was never called → the check could not trigger; clicks were infinitely inflatable per IP). Now records the hit after passing — live-verified: 3 POSTs → ugc_rate_limits row attempts=3 (block NULL under limit of 5).
+  3219→  * Note: full submit-ugc 429 E2E is impossible in sandbox (WhatsApp link fetch always "revoked" at Step 6, before the Step-9 rate check) — verified via direct module tests instead.
+  3220→- STYLING POLISH (mandate): movers rows premium design (emerald growth color system distinct from the orange /populares hero, sparkline gradient fills, delta badges with icons, rank chips with ring); group detail activity card (chart + tiles + badge, matches sidebar card design language); long-form content expansion.
+  3221→- E2E VERIFIED: /populares renders 6 mover rows + 26 SVGs (6 sparklines viewBox 0 0 92 28; first row "Fe y Reflexión" +171·+209% matching DB); sparklines hidden on mobile 390px (w=0, `hidden sm:block`), rows 358px wide, no doc overflow, delta + compare visible; filtered view hides section; detail card renders (254/82, +172 +210%, sparkline polyline) on top-12 groups and self-hides on unseeded; movers SQL verified against seeded ranking (Fe y Reflexión 253/82/+171 top).
+  3222→- VERIFICATION: lint 0, tsc 0, 16-route sweep 200, dev.log clean, fresh-load console errors 0. VLM audits: movers section 9/9/8 ("exceptionally clean... trends visually match the growth percentages... modern polished feel"); activity card pass ("clean emerald gradient... perfectly aligned... immediate visual impact"). One VLM mobile audit returned an unusable HTML mockup instead of a review — replaced by DOM-box checks (all pass).
+  3223→
+  3224→Stage Summary:
+  3225→- Status: STABLE + time-series data layer + 2 new analytics surfaces + hardened anti-spam. Mandates fulfilled: features (movers ranking + activity card + burst limiting + click dedup) and styling (growth color system, sparklines, premium rows/cards).
+  3226→- New data asset: group_daily_stats now accumulates real traffic (every group-page view + join click) — future analytics features (admin trends, per-group charts, "movers" historical accuracy) get richer automatically.
+  3227→- QA artifacts: seeded 14-day history for top-12 groups is demo data (deterministic, stable); rate-limit test rows cleaned (click rows from the dedup test remain and expire naturally).
+  3228→- KNOWN RISKS: dev-server OOM under heavy tooling (run lint/tsc/browser sequentially; restart ./start-dev.sh). Seeded history is static — as real traffic accrues it blends in; movers accuracy improves with time. GROUP_CONCAT default max_len (1024) is plenty for 14 numbers.
+  3229→- Next-phase candidates: (1) image CDN/self-host for group images, (2) mobile deep-linking for share lists, (3) admin dashboard "movers" widget + per-group time-series charts (data now exists), (4) command palette compare quick-action on group items, (5) homepage hero mini "En ascenso" teaser, (6) newsletter digest of weekly movers.
+  3230→
+  3231→---
+  3232→Task ID: ADULT-SEPARATION-ADMIN-UX-2026-10-06
+  3233→Agent: orchestrator (main)
+  3234→Task: MariaDB environment restore + fresh reseed; Part1 stability patches; Part2A strict 18+ adult content separation (clean-by-default, opt-in age gate); Part2B admin UX overhaul (smart-suggest + bulk tools); ampersand → "and" slug fix.
+  3235→
+  3236→Current project status (assessment):
+  3237→- IMPORTANT: the environment was RE-PROVISIONED MID-SESSION — the MariaDB runtime directory was wiped. The DB was restored from the official tarball (scripts/patches/setup-mariadb.sh, socket: mysql-runtime/tmp/mysql.sock) and re-seeded.
+  3238→- Current DB data is FRESH DEMO DATA, NOT the previous production dataset: 20 countries (incl. España), 22 categories, 38 groups (incl. 6 adult groups + "Digital Accounts Buy & Sell", whose title contains "&" → slug "digital-accounts-buy-and-sell").
+  3239→- App was otherwise stable entering the session; this phase focused on runtime stability hardening, 18+ separation, and admin tooling.
+  3240→
+  3241→Work Log:
+  3242→ENVIRONMENT / DATABASE RESTORE:
+  3243→- MariaDB runtime wiped mid-session → restored from official tarball + re-seeded fresh demo data (counts above). Demo seed is SMALLER than the original production dataset.
+  3244→
+  3245→PART 1 — STABILITY PATCHES:
+  3246→- TranslationFix component mounted in the root layout.
+  3247→- db.ts pool: aggressive idle recycling (prevents stale pooled connections after DB restarts/reprovisions).
+  3248→- error.tsx: dev diagnostics surfaced in development builds.
+  3249→- Dependency bumps: sharp 0.35.4, js-yaml 4.3.2, prismjs 1.30.0.
+  3250→
+  3251→PART 2A — STRICT 18+ ADULT SEPARATION (clean by default, explicit opt-in):
+  3252→- State: src/lib/adult-store.ts — zustand + localStorage key "cg-adult-18" (persists user consent across sessions; OFF by default).
+  3253→- Gate UI: src/components/site/adult-toggle.tsx (18+ toggle + age-gate confirmation); src/components/site/adult-zone.tsx (AdultCategoryFeed + AdultCountryZone) — adult content renders ONLY inside these gated zones.
+  3254→- Data layer clean-by-default (src/lib/data.ts): buildGroupWhere gained an adult param; getCategories/getCountries/getStats return clean (non-adult) counts; adult rows excluded unless explicitly requested.
+  3255→- APIs: adult param added to /api/groups, /api/groups/count, /api/categories; search (/buscar) allows adult results only when the mode is enabled; sitemap excludes all adult URLs.
+  3256→- Siloed related-groups.ts: adult group pages only recommend adult groups (no cross-leak into clean pages).
+  3257→- SEO/schema hygiene: entity-specific JSON-LD suppressed on adult group/category pages + blank alt/title on adult images (no adult text leaking into clean DOM/crawlers).
+  3258→
+  3259→PART 2B — ADMIN UX OVERHAUL:
+  3260→- smart-suggest.tsx: SmartSuggest (category/country autocomplete) + TagSuggest components.
+  3261→- bulk-visual-editor.tsx + bulk-update-tool.tsx + /api/admin/bulk-update endpoint (mass field updates with visual feedback).
+  3262→- Group edit form refactored onto the new suggest components.
+  3263→- Bulk-upload page with 4 tabs (add/update workflows).
+  3264→
+  3265→SLUG FIX (& → "and"):
+  3266→- slug.ts + slug-client.ts: "&" now normalizes to "and" (verified: "Digital Accounts Buy & Sell" → /grupo/digital-accounts-buy-and-sell, 200).
+  3267→
+  3268→Verification:
+  3269→- All 22 routes return 200 (incl. adult category page /categoria/citas-18).
+  3270→- Homepage DOM 100% clean (zero adult content leakage without opt-in).
+  3271→- E2E passes: 18+ toggle, age gate modal, localStorage persistence, country adult zone, adult category gate, admin bulk update.
+  3272→- lint: 0 errors. tsc: 0 errors.
+  3273→- VLM review 7/10 — cookie-banner notes were false positives (measured, not clipped).
+  3274→
+  3275→Stage Summary:
+  3276→- Status: STABLE + strict 18+ opt-in separation shipped + admin bulk tooling + hardened runtime/deps.
+  3277→- UNRESOLVED / RISKS: (1) global layout JSON-LD (WebSite/Organization/FAQ) still renders on adult pages — entity-specific schemas ARE suppressed, but global site-level ones are kept; acceptable per directive intent (site-level schema is not adult content), flagged for review. (2) dev server OOM under concurrent compile — restart with ./start-dev.sh; run heavy tooling sequentially. (3) agent-browser `type` appends instead of replacing — use `fill` for form inputs. (4) demo seed data is smaller than the original production dataset (38 groups, no accumulated per-group stats/history).
+
+[showing lines 3000-3277 of 3279; use offset=3278 with limit to continue reading]

@@ -51,7 +51,7 @@ export function ShareMenu({ group, children }: { group: GroupDTO; children?: Rea
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {children ?? (
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition hover:bg-accent">
+          <button className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition hover:bg-accent">
             <Share2 className="h-4 w-4" /> Compartir
           </button>
         )}

@@ -43,7 +43,10 @@ export function CompareBar() {
     };
   }, [slugs]);
 
-  const visible = hydrated && slugs.length > 0 && pathname !== "/comparar";
+  // Hidden on /comparar (the tool itself) and on all admin routes (admin
+  // pages are a workspace — the public compare bar only obscures controls).
+  const isAdmin = pathname.startsWith("/admin");
+  const visible = hydrated && slugs.length > 0 && pathname !== "/comparar" && !isAdmin;
 
   return (
     <AnimatePresence>

@@ -13,7 +13,7 @@ export function JoinButton({ group, className }: { group: GroupDTO; className?: 
   return (
     <Link
       href={`/verificar/${group.slug}`}
-      className={`flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:px-5 sm:py-3.5 ${className ?? ""}`}
+      className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:px-5 sm:py-3.5 ${className ?? ""}`}
     >
       <span className="sm:hidden">Unirse</span>
       <span className="hidden sm:inline">Unirme al grupo en WhatsApp</span>

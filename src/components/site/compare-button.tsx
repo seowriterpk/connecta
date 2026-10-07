@@ -90,7 +90,7 @@ export function ComparePillButton({ slug, title }: { slug: string; title: string
         if (!full) toggle();
       }}
       whileTap={full ? undefined : { scale: 0.96 }}
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-3.5 ${
+      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:min-h-9 sm:px-3.5 ${
         active
           ? "border-teal-500/40 bg-teal-500/10 text-teal-700 ring-1 ring-teal-500/30 hover:bg-teal-500/15 dark:text-teal-300"
           : full

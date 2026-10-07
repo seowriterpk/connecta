@@ -69,17 +69,24 @@ export function CookieConsent() {
               </a>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => decide("rejected")}>
+              {/* 44px touch targets on mobile (min touch size); sm on desktop */}
+              <Button
+                variant="outline"
+                onClick={() => decide("rejected")}
+                className="h-11 px-4 text-xs sm:h-9 sm:px-3"
+              >
                 Solo esenciales
               </Button>
-              <Button size="sm" onClick={() => decide("accepted")} className="shadow-sm">
+              <Button
+                onClick={() => decide("accepted")}
+                className="h-11 px-4 text-xs shadow-sm sm:h-9 sm:px-4"
+              >
                 Entendido
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
                 aria-label="Cerrar"
-                className="h-8 w-8"
+                className="h-11 w-11 sm:h-8 sm:w-8"
                 onClick={() => decide("rejected")}
               >
                 <X className="h-4 w-4" />
