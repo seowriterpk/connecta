@@ -1,0 +1,18 @@
+{
+  "name": "ConectaGrupos",
+  "short_name": "ConectaGrupos",
+  "description": "Tu directorio de grupos de WhatsApp en español",
+  "lang": "es",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7fdf9",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
