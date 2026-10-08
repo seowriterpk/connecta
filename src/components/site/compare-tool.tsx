@@ -21,6 +21,7 @@ import {
 import type { GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
 import { useCompare, MAX_COMPARE } from "@/lib/compare";
+import { CountryFlag } from "@/components/site/country-flag";
 
 type Ratings = Record<string, { avg: number; count: number }>;
 
@@ -217,7 +218,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
                         {group.title}
                       </Link>
                       <p className="truncate text-xs text-muted-foreground">
-                        <span aria-hidden>{group.country?.flag}</span> {group.country?.name} · {group.category?.name}
+                        {group.country && <CountryFlag code={group.country.code} />} {group.country?.name} · {group.category?.name}
                       </p>
                     </div>
                     <button
@@ -261,7 +262,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
                   className="inline-flex max-w-[220px] items-center gap-1.5 whitespace-nowrap rounded-full border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-foreground disabled:opacity-40"
                   title={s.title}
                 >
-                  <span aria-hidden>{s.country?.flag}</span>
+                  {s.country && <CountryFlag code={s.country.code} />}
                   <span className="truncate">{s.title}</span>
                 </button>
               );
@@ -329,7 +330,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{g.title}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        <span aria-hidden>{g.country?.flag}</span> {g.country?.name} · {g.category?.name} ·{" "}
+                        {g.country && <CountryFlag code={g.country.code} />} {g.country?.name} · {g.category?.name} ·{" "}
                         {formatNum(g.views)} vistas
                       </span>
                     </span>
@@ -433,7 +434,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
                 icon: Globe2,
                 value: (g: GroupDTO) => (
                   <span className="text-[13px]">
-                    <span aria-hidden>{g.country?.flag}</span> {g.country?.name ?? "—"}
+                    {g.country && <CountryFlag code={g.country.code} />} {g.country?.name ?? "—"}
                   </span>
                 ),
                 winnerId: null,

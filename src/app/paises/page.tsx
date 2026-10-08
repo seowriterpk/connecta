@@ -9,6 +9,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { REGIONS } from "@/lib/constants";
 import { jsonLdScript } from "@/lib/jsonld";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +86,7 @@ export default async function PaisesPage() {
                         href={`/pais/${c.code}`}
                         className="group flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <span className="text-2xl leading-none">{c.flag}</span>
+                        <CountryFlag code={c.code} name={c.name} className="h-8 w-12 rounded-[3px]" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">{c.name}</span>
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

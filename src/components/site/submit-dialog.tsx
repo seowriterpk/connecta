@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, Loader2, CheckCircle2, AlertCircle, ShieldAlert } from "lucide-react";
 import type { CategoryDTO, CountryDTO } from "@/lib/types";
 import {
   Dialog,
@@ -16,10 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { CountryFlag } from "@/components/site/country-flag";
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -37,6 +41,13 @@ export function SubmitDialog({
   const [loading, setLoading] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // 18+ gate: adult categories are hidden in the category select until the
+  // user opts in — mirrors the step-3 gate of the full AddGroupForm. Adult
+  // taxonomy is fetched ON DEMAND from /api/categories?adult=only so SSR
+  // props stay clean-only.
+  const [showAdult, setShowAdult] = React.useState(false);
+  const [adultCats, setAdultCats] = React.useState<CategoryDTO[]>([]);
+  const [adultCatsLoaded, setAdultCatsLoaded] = React.useState(false);
   const [form, setForm] = React.useState({
     title: "",
     description: "",
@@ -46,6 +57,30 @@ export function SubmitDialog({
     contactName: "",
     tags: "",
   });
+
+  const cleanCategories = categories.filter((c) => !c.isAdult);
+  const propAdults = categories.filter((c) => !!c.isAdult);
+  const adultCategories = [
+    ...propAdults,
+    ...adultCats.filter((a) => !propAdults.some((p) => p.id === a.id)),
+  ];
+  const selectedCat = categories.find((c) => c.id === form.categoryId) ?? adultCategories.find((c) => c.id === form.categoryId);
+  const selectedIsAdult = !!selectedCat?.isAdult;
+
+  async function handleAdultToggle(v: boolean) {
+    setShowAdult(v);
+    if (v && !adultCatsLoaded) {
+      setAdultCatsLoaded(true);
+      try {
+        const res = await fetch("/api/categories?adult=only&XTransformPort=3000");
+        const json = await res.json();
+        if (json.ok && Array.isArray(json.data)) setAdultCats(json.data);
+      } catch {
+        setAdultCatsLoaded(false);
+      }
+    }
+    if (!v && selectedIsAdult) update("categoryId", "");
+  }
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -143,8 +178,8 @@ export function SubmitDialog({
                   id="title"
                   value={form.title}
                   onChange={(e) => update("title", e.target.value)}
-                  placeholder="Ej: Amigos del Café ☕ Mañanas sin prisa"
-                  maxLength={80}
+                  placeholder="Ej: Amigos del Café ☕ Mañanas sin prisa — se admiten fuentes estilizadas y emojis"
+                  maxLength={200}
                 />
               </div>
 
@@ -177,18 +212,49 @@ export function SubmitDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Categoría *</Label>
+                  {/* 18+ gate */}
+                  <div className="mb-1 flex items-center justify-between gap-2 rounded-lg border border-rose-200/70 bg-rose-50/60 px-2.5 py-2 dark:border-rose-900/50 dark:bg-rose-950/25">
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                      <span className="grid h-4 shrink-0 place-items-center rounded bg-rose-500/15 px-1 text-[10px] font-extrabold text-rose-600 dark:text-rose-400">18+</span>
+                      <span className="truncate">Contenido adulto</span>
+                    </span>
+                    <Switch
+                      checked={showAdult}
+                      onCheckedChange={handleAdultToggle}
+                      aria-label="Mostrar categorías 18+"
+                      className="data-[state=checked]:bg-rose-500"
+                    />
+                  </div>
                   <Select value={form.categoryId} onValueChange={(v) => update("categoryId", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Elige…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64">
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.icon} {c.name}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        <SelectLabel>Categorías generales</SelectLabel>
+                        {cleanCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.icon} {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      {showAdult && (
+                        <SelectGroup>
+                          <SelectLabel className="text-rose-600 dark:text-rose-400">Contenido 18+</SelectLabel>
+                          {adultCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-rose-700 dark:text-rose-300">
+                              {c.icon} {c.name} · 18+
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )}
                     </SelectContent>
                   </Select>
+                  {selectedIsAdult && (
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">
+                      <ShieldAlert className="h-3.5 w-3.5 shrink-0" /> Se publicará en la zona 18+.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>País *</Label>
@@ -199,7 +265,9 @@ export function SubmitDialog({
                     <SelectContent className="max-h-64">
                       {countries.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.flag} {c.name}
+                          <span className="flex items-center gap-2">
+                            <CountryFlag code={c.code} name={c.name} /> {c.name}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -321,9 +321,13 @@ export async function submitGroup(payload: {
   contactName?: string;
   tags?: string[];
 }): Promise<GroupDTO> {
-  // Resolve category/country names for the denormalized columns
-  const cat = await queryOne<Row>("SELECT `name` FROM `categories` WHERE `id` = ? LIMIT 1", [payload.categoryId]);
+  // Resolve category/country names for the denormalized columns.
+  // isAdult is derived from the CATEGORY (never trusted from the client):
+  // a group submitted into an 18+ category is stored as an adult group so it
+  // never leaks into the clean, indexable surface.
+  const cat = await queryOne<Row>("SELECT `name`, `isAdult` FROM `categories` WHERE `id` = ? LIMIT 1", [payload.categoryId]);
   const country = await queryOne<Row>("SELECT `name` FROM `countries` WHERE `id` = ? LIMIT 1", [payload.countryId]);
+  const isAdult = !!(cat as any)?.isAdult;
 
   // Generate unique slug from title
   const baseSlug = generateSlug(payload.title);
@@ -337,8 +341,8 @@ export async function submitGroup(payload: {
   const id = newId();
   await exec(
     `INSERT INTO \`groups\`
-      (\`id\`, \`groupName\`, \`slug\`, \`joinLink\`, \`description\`, \`category\`, \`categoryId\`, \`country\`, \`countryId\`, \`city\`, \`tags\`, \`profileImage\`, \`status\`, \`contactName\`, \`submitSource\`)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'staff')`,
+      (\`id\`, \`groupName\`, \`slug\`, \`joinLink\`, \`description\`, \`category\`, \`categoryId\`, \`country\`, \`countryId\`, \`city\`, \`tags\`, \`profileImage\`, \`status\`, \`isAdult\`, \`contactName\`, \`submitSource\`)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, 'staff')`,
     [
       id,
       payload.title.trim(),
@@ -352,6 +356,7 @@ export async function submitGroup(payload: {
       payload.city?.trim() || null,
       JSON.stringify(payload.tags ?? []),
       payload.imageUrl?.trim() || null,
+      isAdult ? 1 : 0,
       payload.contactName?.trim() || null,
     ]
   );
@@ -376,18 +381,18 @@ export async function getMetrics() {
   const r: any = row ?? {};
 
   const activeGroups = await query<Row>(
-    `SELECT co.\`name\`, co.\`flag\`, co.\`region\`
+    `SELECT co.\`name\`, co.\`code\`, co.\`flag\`, co.\`region\`
      FROM \`groups\` g JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
      WHERE g.\`status\` = 'live'`
   );
   const regionMap = new Map<string, number>();
-  const countryMap = new Map<string, { name: string; flag: string; count: number }>();
+  const countryMap = new Map<string, { name: string; code: string; flag: string; count: number }>();
   for (const g of activeGroups as any[]) {
     if (!g.region) continue;
     regionMap.set(g.region, (regionMap.get(g.region) ?? 0) + 1);
     const existing = countryMap.get(g.name);
     if (existing) existing.count += 1;
-    else countryMap.set(g.name, { name: g.name, flag: g.flag, count: 1 });
+    else countryMap.set(g.name, { name: g.name, code: g.code ?? "", flag: g.flag, count: 1 });
   }
   const regions = [...regionMap.entries()]
     .map(([region, count]) => ({ region, count }))

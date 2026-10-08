@@ -3530,3 +3530,56 @@ Stage Summary:
 - Risks: none new. Turbopack remains the dev default on the platform if they ever run `next dev` there, but production builds are webpack now.
 - Next-phase candidates: after deploy works — import sql.md demo data on the production DB, replace demo invite links via /admin, regenerate sitemaps, then blog covers + per-group admin charts.
 
+
+---
+Task ID: 4-b
+Agent: general-purpose (flag sweep)
+Task: Replace emoji country flags with self-hosted PNG CountryFlag component across public display components.
+
+Work Log:
+- countries-section.tsx: grid flag emoji span → <CountryFlag code name className="h-8 w-12 rounded-[3px]"> (large grid preset).
+- paises/page.tsx: same large-grid conversion in the by-region country cards.
+- pais/[code]/page.tsx: hero box (aria-hidden, text-4xl emoji → img h-8 w-12), empty-state box (h-8 w-12), CTA badge inline after MapPin (default h-3.5 w-5); <title>/meta strings with country.flag left untouched on purpose.
+- grupo/[slug]/page.tsx: country Link in header meta + "Explora más" country info row → CountryFlag default size, inline-flex wrappers for baseline alignment (guards already present).
+- verificar/[slug]/page.tsx: subtitle line under group title → conditional {group.country && <>flag + name</>} adapted to the centered sentence.
+- groups-directory-table.tsx: country SelectItem option label + group row country chip → CountryFlag default.
+- command-palette.tsx: recents line, popular-groups line (both guarded g.country &&), and Países command item (replaced text-base emoji span) → CountryFlag default.
+- compare-tool.tsx: 4 spots (slot card meta, suggestion chip, search result line, comparison "País" row) — all were aria-hidden emoji spans → conditional CountryFlag WITHOUT name (keeps decorative/aria-hidden semantics, alt="").
+- recently-viewed.tsx: {g.country?.flag && <span>…} → {g.country && <CountryFlag code name/>}.
+- movers-section.tsx: mover row country chip → CountryFlag default + name.
+- metrics-section.tsx: topCountries emoji → CountryFlag h-6 w-9 rounded-[2px]; added `code: string` to the local Metrics.topCountries item type (getMetrics() already returns code).
+- populares-filters.tsx: country chip emoji (aria-hidden) → <CountryFlag code name/>; FilterCountry props type already had code, populares/page.tsx already passes it.
+- ciudades/page.tsx: city card text-2xl flag → <CountryFlag code={c.countryCode} className="h-8 w-12 rounded-[3px]"/> (no name — decorative, alt="").
+- ciudad/[slug]/page.tsx: hero box + empty-state box → h-8 w-12 rounded-[3px]; countryCode badge next to Building2 and CTA inline after MapPin → default size; metadata strings (lines ~59/~130) left untouched.
+- cities-section.tsx: city grid card emoji → h-8 w-12 rounded-[3px]; local CityDTO interface already had countryCode (getAllCities provides it; homepage passes cities directly, no mapping change needed; grep confirmed CitiesSection used only by src/app/page.tsx).
+- testimonials-section.tsx: replaced flag emoji fields with code fields (🇨🇱→cl, 🇨🇴→co, 🇻🇪→ve, 🇲🇽→mx, 🇸🇻→sv, 🇲🇽→mx; removed the now-unused `flag` fields — no other consumer of TESTIMONIALS), figcaption renders <CountryFlag code={t.code} name={t.role}/> + t.role.
+- lint: `bun run lint` → 0 errors, 1 warning (unused eslint-disable directive in country-flag.tsx — pre-existing, file owned by task 4-a, left alone). `bunx tsc --noEmit` → 0 errors.
+- Smoke test on live dev server: flag <img src="/flags/xx.png" alt="Bandera de …"> renders on / (76), /paises, /pais/es, /grupo/…, /verificar/…, /populares (40), /ciudades, /ciudad/madrid, /comparar; zero raw emoji flags left anywhere in src (python regional-indicator sweep: only the doc comment in country-flag.tsx).
+
+Stage Summary:
+- 16 files changed, 30 emoji render spots converted (2 large grids, 6 hero/large boxes, rest inline default). No spots skipped except by design: emoji inside <title>/meta strings (pais ~59, ciudad ~59/~130) left as emoji — invisible-renderer issue does not apply to text metadata.
+- Interface/type additions: metrics-section Metrics.topCountries + code (required — data always provides); cities-section CityDTO already had countryCode (no change needed); testimonials flag→code (removed dead field).
+- Untouched per rules: admin components (emoji flags remain there by design), add-group-form/submit-dialog/group-card/country-flag (done by 4-a), lib/data.ts (already extended by 4-a), API routes.
+- Risks: none — component degrades to null on invalid/empty code and never breaks layout (inline-block shrink-0).
+
+---
+Task ID: UX-FIXES-4-2026-10-08
+Agent: orchestrator (main) + general-purpose subagent (Task 4-b flag sweep)
+Task: Four production fixes from user report: (1) styled/gaming Unicode group names broken as "&#x1d431;" entities + name length limit; (2) no 18+ toggle in the add-group category step; (3) group cards too content-heavy — collapse país/ciudad/categoría/descripción behind a click dropdown while Google sees full HTML; (4) country flags not rendering (Windows shows emoji as letter pairs).
+
+Work Log:
+- FIX A (Unicode names): root cause = whatsapp-validator decodeEntities only handled named entities, but WhatsApp og:title encodes styled fonts as NUMERIC entities (&#x1d431;); html.slice(0,8192) could also cut an entity mid-way (the "&#x1" fragment). Fix: full hex/decimal entity decode with safeFromCodePoint guards (surrogates/invalid cps dropped, never throws), preview buffer 8KB→64KB, zero-width/directional/C0 control chars stripped. Limits now count CODE POINTS ([...s].length): client NAME_MAX_CP=120 with live counter + onChange clamp, server TITLE_MAX=120 in both submit routes + cleanName() invisible-char strip. DB columns already VARCHAR(255) utf8mb4 — no migration. slug.ts: NFKD normalization FIRST so "𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊" slugs to "x-adil-pubg-shop" instead of "grupo"; middle dots/bullets map to hyphens.
+- FIX B (18+ gate): add-group-form step 3 + submit-dialog now have a rose-styled 18+ Switch ("Contenido para adultos — confirmas 18+"). Adult categories are fetched ON DEMAND from /api/categories?adult=only only when toggled (SSR props stay clean-only — silo preserved; getCategories() defaults to exclude, which was why the first attempt showed an empty adult list). Gate-off auto-deselects an adult category. Server defense-in-depth: submitGroup() now derives isAdult from the category on INSERT (dialog path previously never set it); submit-ugc already did.
+- FIX C (collapsible cards): group-card.tsx + groups-directory-table.tsx (homepage 30-row listing) restructured: ALWAYS VISIBLE = image, name, verify/featured/hot icons, 18+ badge, rating star, members count, heart, compare, Unirme. COLLAPSED behind native <details>/<summary> chevron row ("País, ciudad, categoría y descripción") = country+flag, city, category badge, views, trending, full description, member bar. Content stays in server HTML (30 details + 30 descriptions verified in / HTML — Googlebot sees everything; we only minimize visually). Stretched-link overlay (z-[1]) keeps whole card clickable; summary + actions z-[2]; chevron rotates via group-open/details.
+- FIX D (flags): Windows does not render Unicode flag emoji → downloaded 20 optimized w160 PNGs from flagcdn to public/flags/ (84KB total, self-hosted). New src/components/site/country-flag.tsx (server+client safe, alt="Bandera de X", lazy loading, emoji fallback). Subagent Task 4-b swept 16 display files (countries-section, paises, pais/[code], grupo/[slug], verificar, command-palette, compare-tool, recently-viewed, movers-section, metrics-section, populares-filters, ciudades, ciudad/[slug], cities-section, testimonials + directory table); admin tools intentionally left with emoji (staff-only). data.ts: getMetrics topCountries now includes co.code; submitGroup isAdult fix; entity-decode + NFKD slug as above.
+- E2E VERIFIED with agent-browser on /agregar-grupo using the EXACT user name: verify-invite (sandbox WhatsApp=429 → fail-safe "unknown" path, preview + warning toast) → España + Madrid (20 country pills with PNG flags) → step 3: toggle 18+ → both adult categories lazy-load ("Citas y Encuentros 18+", "Contenido Exclusivo 18+"), rose note "Se publicará en la zona 18+" → step 4: styled name accepted, counter 19/120 (UTF-16 would be 33) → submit → AUTO-PUBLISHED to /grupo/x-adil-pubg-shop: DB row groupName=𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊ (utf8mb4 glyphs, 19 chars), isAdult=1 (server-derived), slug=x-adil-pubg-shop, excluded from clean feeds (silo verified). Test group + ugc_submissions row deleted afterwards.
+- Homepage verified: 30/30 rows render collapsed <details> in SSR HTML (Google-visible), toggle click expands description+meta+flag, VLM 2-pass visual check clean (compact rows, chevrons aligned, Mexico flag renders). /categoria/videojuegos card toggle verified too.
+- One dev-only artifact: form froze once mid-test due to HMR fast-refresh during sequential edits (clean reload → full flow passes; NOT a code bug). Dev server OOM-killed once under compile+browser+VLM load (known 4GB sandbox limit) — ./start-dev.sh recovered; production build unaffected.
+- Gates: tsc --noEmit 0 errors, eslint exit 0, /api/health 200 (db ok).
+- Pushed all changes + public/flags to seowriterpk/connecta.
+
+Stage Summary:
+- Status: STABLE. All four user-reported issues fixed and E2E-verified. Styled names fetch, display, store, slug and publish correctly; 18+ submissions now have a proper gated path + server-side enforcement; cards/rows are compact with Google-visible collapsed content; real flag images render on every OS.
+- User impact: Windows/Android/iOS all see real PNG flags; adult groups can be published correctly instead of leaking into clean categories; long styled names (120 code points) accepted everywhere; directory is visually minimal but content-complete for SEO.
+- Risks: WhatsApp fetch behavior on production (numeric entities) verified by code-level decode test — real-link re-test recommended after deploy; flag PNGs need to ship with the repo (done — public/flags committed).
+- Next-phase candidates: blog cover images; per-group admin charts; sitemap regeneration after new groups; consider batching flag img preload on paises page.

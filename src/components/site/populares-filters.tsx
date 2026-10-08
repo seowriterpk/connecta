@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Globe2, LayoutGrid, SlidersHorizontal, X } from "lucide-react";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export interface FilterCountry {
   code: string;
@@ -165,7 +166,7 @@ export function PopularesFilters({ countries, categories, orden, pais, cat }: Po
               active={c.code === pais}
               srLabel={`${c.name}: ${c.groupCount} grupos`}
             >
-              <span aria-hidden>{c.flag}</span>
+              <CountryFlag code={c.code} name={c.name} />
               <span className="truncate">{c.name}</span>
               <span className={`text-[10px] tabular-nums ${c.code === pais ? "text-white/80" : "text-muted-foreground/70"}`}>
                 {c.groupCount}

@@ -31,6 +31,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
 import { RecentTracker } from "@/components/site/recent-tracker";
 import { jsonLdScript } from "@/lib/jsonld";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -235,7 +236,7 @@ export default async function GroupPage({ params }: PageProps) {
                 </div>
                 <h1 className="mt-1 text-lg font-bold leading-tight sm:text-xl">{group.title}</h1>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {group.country && (<Link href={`/pais/${group.country.code}`} className="hover:text-primary">{group.country.flag} {group.country.name}</Link>)}
+                  {group.country && (<Link href={`/pais/${group.country.code}`} className="inline-flex items-center gap-1 hover:text-primary"><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</Link>)}
                   {group.city && (<span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" /> {group.city}</span>)}
                   {group.category && (<span>· <Link href={`/categoria/${group.category.slug}`} className="hover:text-primary">{group.category.name}</Link></span>)}
                 </div>
@@ -415,7 +416,7 @@ export default async function GroupPage({ params }: PageProps) {
                   )}
                   {!group.isAdult && group.country && (
                     <Link href={`/pais/${group.country.code}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
-                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span>{group.country.flag} {group.country.name}</span></span>
+                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span className="inline-flex items-center gap-1"><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</span></span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   )}

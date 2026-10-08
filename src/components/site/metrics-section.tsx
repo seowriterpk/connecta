@@ -4,6 +4,7 @@ import * as React from "react";
 import { useInView } from "framer-motion";
 import { Users, Star, Globe2, CheckCircle2, BarChart3, MapPin } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
+import { CountryFlag } from "@/components/site/country-flag";
 
 interface Metrics {
   groups: number;
@@ -15,7 +16,7 @@ interface Metrics {
   featured: number;
   members: number;
   regions: { region: string; count: number }[];
-  topCountries: { name: string; flag: string; count: number }[];
+  topCountries: { name: string; code: string; flag: string; count: number }[];
 }
 
 function useCountUp(target: number, inView: boolean, duration = 1200) {
@@ -152,7 +153,7 @@ export function MetricsSection({ metrics }: { metrics: Metrics }) {
                     <span className="text-xs font-bold text-muted-foreground tabular-nums">
                       {i + 1}
                     </span>
-                    <span className="text-lg">{c.flag}</span>
+                    <CountryFlag code={c.code} name={c.name} className="h-6 w-9 rounded-[2px]" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-medium">{c.name}</span>
                       <span className="block text-xs text-muted-foreground">{c.count} grupos</span>

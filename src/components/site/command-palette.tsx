@@ -16,6 +16,7 @@ import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { useGroupsFilter } from "@/lib/store";
 import { useRecent } from "@/lib/recent";
 import { useCompare, MAX_COMPARE } from "@/lib/compare";
+import { CountryFlag } from "@/components/site/country-flag";
 
 interface Props {
   categories: CategoryDTO[];
@@ -147,7 +148,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{g.title}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {g.country?.flag} {g.category?.name ?? "Grupo"}
+                        {g.country && <CountryFlag code={g.country.code} name={g.country.name} />} {g.category?.name ?? "Grupo"}
                       </span>
                     </span>
                   </CommandItem>
@@ -170,7 +171,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{g.title}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {g.country?.flag} {g.country?.name} · {g.members.toLocaleString("es-ES")} miembros
+                        {g.country && (<><CountryFlag code={g.country.code} name={g.country.name} /> {g.country.name}</>)} · {g.members.toLocaleString("es-ES")} miembros
                       </span>
                     </span>
                   </CommandItem>
@@ -209,7 +210,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                     onSelect={() => { setOpen(false); setTimeout(() => router.push(`/pais/${c.code}`), 60); }}
                   >
                     <Globe2 className="h-4 w-4" />
-                    <span className="text-base">{c.flag}</span>
+                    <CountryFlag code={c.code} name={c.name} />
                     <span className="text-sm">{c.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">{c.groupCount}</span>
                   </CommandItem>

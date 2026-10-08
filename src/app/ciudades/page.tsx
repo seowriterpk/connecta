@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { jsonLdScript } from "@/lib/jsonld";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export default async function CiudadesPage() {
                   href={`/ciudad/${c.slug}`}
                   className="group flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <span className="text-2xl leading-none">{c.countryFlag}</span>
+                  <CountryFlag code={c.countryCode} className="h-8 w-12 rounded-[3px]" />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{c.city}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

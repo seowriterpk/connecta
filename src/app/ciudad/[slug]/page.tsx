@@ -27,6 +27,7 @@ import { Reveal } from "@/components/site/reveal";
 import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
 import { jsonLdScript } from "@/lib/jsonld";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -218,10 +219,10 @@ export default async function CityPage({
             <div className="mx-auto flex max-w-4xl flex-col items-start gap-5">
               <div className="flex items-start gap-4">
                 <span
-                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 text-4xl sm:h-20 sm:w-20 sm:text-5xl"
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 sm:h-20 sm:w-20"
                   aria-hidden
                 >
-                  {city.countryFlag}
+                  <CountryFlag code={city.countryCode} className="h-8 w-12 rounded-[3px]" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -247,7 +248,7 @@ export default async function CityPage({
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
-                  {city.countryFlag} {city.countryCode.toUpperCase()}
+                  <CountryFlag code={city.countryCode} /> {city.countryCode.toUpperCase()}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <MessageCircle className="h-3.5 w-3.5 text-primary" />
@@ -292,8 +293,8 @@ export default async function CityPage({
 
             {groups.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
-                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-3xl">
-                  {city.countryFlag}
+                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+                  <CountryFlag code={city.countryCode} className="h-8 w-12 rounded-[3px]" />
                 </div>
                 <h3 className="text-lg font-semibold">
                   Aún no hay grupos publicados en {city.city}
@@ -428,7 +429,7 @@ export default async function CityPage({
           <div className="container mx-auto px-4 py-12 sm:py-14">
             <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 text-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-                <MapPin className="h-3.5 w-3.5" /> {city.countryFlag} ¿Administras un grupo en{" "}
+                <MapPin className="h-3.5 w-3.5" /> <CountryFlag code={city.countryCode} /> ¿Administras un grupo en{" "}
                 {city.city}?
               </span>
               <h2 className="text-balance text-2xl font-extrabold tracking-tight sm:text-3xl">

@@ -42,7 +42,10 @@ export const dynamic = "force-dynamic";
 const CSRF_COOKIE = "cg_ugc_csrf";
 
 const TITLE_MIN = 5;
-const TITLE_MAX = 80;
+// Length is counted in UNICODE CODE POINTS (not UTF-16 units): styled/gaming
+// names use SMP glyphs ("𝐀" = 2 UTF-16 units), so a unit-based limit cut
+// them in half. 120 code points fits any real WhatsApp group name.
+const TITLE_MAX = 120;
 const DESC_MIN = 20;
 const DESC_MAX = 600;
 const TAG_MIN = 3;
@@ -50,6 +53,18 @@ const TAG_MAX = 6;
 const KW_MIN = 3;
 const KW_MAX = 6;
 const MIN_SUBMIT_SECONDS = 3;
+
+// Zero-width / directional / soft-hyphen characters — invisible junk that
+// WhatsApp titles sometimes carry; stripped before validation + storage.
+const INVISIBLE_RE = /[\u200b-\u200f\u202a-\u202e\u2060\ufeff\u00ad]/g;
+
+function cleanName(s: string): string {
+  return s.replace(INVISIBLE_RE, "").trim();
+}
+
+function cpLength(s: string): number {
+  return [...s].length;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -179,11 +194,14 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Parse the rest of the payload ---
-    const fetchedGroupName = meta.groupName || String(body.fetchedGroupName ?? "");
-    const editedGroupName = String(body.groupName ?? "").trim();
+    // Clean the fetched name first: entity-decoded styled names may still
+    // carry invisible characters, and the 5–120 limit counts CODE POINTS so
+    // SMP glyphs (𝐀𝐃𝐈𝐋 = math bold) aren't double-counted.
+    const fetchedGroupName = cleanName(meta.groupName || String(body.fetchedGroupName ?? ""));
+    const editedGroupName = cleanName(String(body.groupName ?? ""));
     const groupName = editedGroupName || fetchedGroupName;
 
-    if (groupName.length < TITLE_MIN || groupName.length > TITLE_MAX) {
+    if (cpLength(groupName) < TITLE_MIN || cpLength(groupName) > TITLE_MAX) {
       return NextResponse.json(
         { ok: false, error: `El nombre del grupo debe tener entre ${TITLE_MIN} y ${TITLE_MAX} caracteres.` },
         { status: 400 }

@@ -1,5 +1,6 @@
 import { Quote } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
+import { CountryFlag } from "@/components/site/country-flag";
 
 const TESTIMONIALS = [
   {
@@ -7,7 +8,7 @@ const TESTIMONIALS = [
       "Llevaba semanas buscando un grupo de running en Santiago que no fuera un caos. Aquí lo encontré en dos clics y ya tengo con quién salir a correr los sábados.",
     name: "Javiera",
     role: "Running Chile",
-    flag: "🇨🇱",
+    code: "cl",
     initials: "J",
   },
   {
@@ -15,7 +16,7 @@ const TESTIMONIALS = [
       "Publiqué mi grupo de programadores y al día siguiente ya tenía 30 personas nuevas. Lo mejor: gente que de verdad aporta, no solo lurkers.",
     name: "Sebastián",
     role: "Programadores Latam",
-    flag: "🇨🇴",
+    code: "co",
     initials: "S",
   },
   {
@@ -23,7 +24,7 @@ const TESTIMONIALS = [
       "Lo que más me gustó fue el filtro por país. Encontré un grupo de cocina venezolana con gente de mi zona horaria y se siente como estar en casa.",
     name: "María",
     role: "Cocina Casera Venezuela",
-    flag: "🇻🇪",
+    code: "ve",
     initials: "M",
   },
   {
@@ -31,7 +32,7 @@ const TESTIMONIALS = [
       "El directorio está ordenado, sin spam. Se nota que revisan los grupos antes de publicarlos. Eso hoy en día vale oro.",
     name: "Diego",
     role: "Mexico Lindo — CDMX",
-    flag: "🇲🇽",
+    code: "mx",
     initials: "D",
   },
   {
@@ -39,7 +40,7 @@ const TESTIMONIALS = [
       "Usé la búsqueda rápida con ⌘K y encontré justo el grupo de inglés que necesitaba. Práctica conversacional con nativos, justo lo que buscaba.",
     name: "Elena",
     role: "Practica Inglés",
-    flag: "🇸🇻",
+    code: "sv",
     initials: "E",
   },
   {
@@ -47,7 +48,7 @@ const TESTIMONIALS = [
       "Como administrador de un grupo grande, tener un sitio donde publicarlo sin complicaciones me ahorra un montón de tiempo. Y sin pagar nada.",
     name: "Patricia",
     role: "Compra-Venta CDMX",
-    flag: "🇲🇽",
+    code: "mx",
     initials: "P",
   },
 ];
@@ -86,7 +87,7 @@ export function TestimonialsSection() {
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold">{t.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {t.flag} {t.role}
+                      <CountryFlag code={t.code} name={t.role} /> {t.role}
                     </span>
                   </span>
                 </figcaption>

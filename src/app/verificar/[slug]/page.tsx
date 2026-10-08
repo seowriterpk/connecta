@@ -11,6 +11,7 @@ import { GroupImage } from "@/components/site/group-image";
 import { GroupCard } from "@/components/site/group-card";
 import { BackToTop } from "@/components/site/back-to-top";
 import { VerifyClient } from "@/components/site/verify-client";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +69,8 @@ export default async function VerifyPage({ params }: PageProps) {
               <div className="flex flex-col items-center text-center">
                 <GroupImage src={group.imageUrl} alt={group.title} title={group.title} size={80} className="rounded-2xl" fallbackEmoji={group.category?.icon} />
                 <h1 className="mt-4 text-xl font-bold sm:text-2xl">{group.title}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {group.country?.flag} {group.country?.name}{group.city ? ` · ${group.city}` : ""}
+                <p className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground">
+                  {group.country && (<><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</>)}{group.city ? ` · ${group.city}` : ""}
                 </p>
               </div>
 

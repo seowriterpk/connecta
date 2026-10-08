@@ -2,14 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle, Send, Link2, Globe2, Tag, MessageCircle, User, ShieldCheck } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Send, Link2, Tag, User, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { CategoryDTO, CountryDTO } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { GroupImage } from "@/components/site/group-image";
+import { CountryFlag } from "@/components/site/country-flag";
 
 interface Props {
   categories: CategoryDTO[];
@@ -18,6 +20,12 @@ interface Props {
 
 const DESC_MIN = 20;
 const DESC_MAX = 600;
+// Code-point based limit (styled "𝐀𝐃𝐈𝐋" glyphs count once, not twice).
+const NAME_MAX_CP = 120;
+
+function cpLen(s: string): number {
+  return [...s].length;
+}
 
 export function AddGroupForm({ categories, countries }: Props) {
   const router = useRouter();
@@ -45,6 +53,32 @@ export function AddGroupForm({ categories, countries }: Props) {
   // Step 3 state
   const [selectedCategory, setSelectedCategory] = React.useState<string>("");
   const [catSearch, setCatSearch] = React.useState("");
+  // 18+ gate: adult categories stay hidden until the user flips this switch.
+  // Without it, adult-group owners had nowhere to put their groups and would
+  // submit them into clean categories (production directive: strict silo).
+  const [showAdult, setShowAdult] = React.useState(false);
+  // Adult categories are fetched ON DEMAND (only when the gate is flipped on)
+  // from /api/categories?adult=only — pages keep passing clean-only props, so
+  // adult taxonomy never renders in SSR/SEO surfaces.
+  const [adultCats, setAdultCats] = React.useState<CategoryDTO[]>([]);
+  const [adultCatsLoaded, setAdultCatsLoaded] = React.useState(false);
+
+  async function handleAdultToggle(v: boolean) {
+    setShowAdult(v);
+    if (v && !adultCatsLoaded) {
+      setAdultCatsLoaded(true);
+      try {
+        const res = await fetch("/api/categories?adult=only&XTransformPort=3000");
+        const json = await res.json();
+        if (json.ok && Array.isArray(json.data)) setAdultCats(json.data);
+      } catch {
+        setAdultCatsLoaded(false);
+      }
+    }
+    // Turning the gate off un-selects any adult category so a clean group
+    // can never be published as adult by accident.
+    if (!v && selectedIsAdult) setSelectedCategory("");
+  }
 
   // Step 4 state
   const [groupName, setGroupName] = React.useState("");
@@ -75,9 +109,21 @@ export function AddGroupForm({ categories, countries }: Props) {
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
   const cleanCategories = categories.filter((c) => !c.isAdult);
+  // Merge (dedupe) any adult categories passed via props with the lazy-fetched
+  // ones, so the gate works on pages that pass the full taxonomy too.
+  const propAdults = categories.filter((c) => !!c.isAdult);
+  const adultCategories = [
+    ...propAdults,
+    ...adultCats.filter((a) => !propAdults.some((p) => p.id === a.id)),
+  ];
   const filteredCategories = cleanCategories.filter((c) =>
     c.name.toLowerCase().includes(catSearch.toLowerCase())
   );
+  const filteredAdultCategories = adultCategories.filter((c) =>
+    c.name.toLowerCase().includes(catSearch.toLowerCase())
+  );
+  const selectedCat = categories.find((c) => c.id === selectedCategory) ?? adultCategories.find((c) => c.id === selectedCategory);
+  const selectedIsAdult = !!selectedCat?.isAdult;
 
 
   // === STEP 1: Fetch invite ===
@@ -204,7 +250,7 @@ export function AddGroupForm({ categories, countries }: Props) {
       case 1: return fetched;
       case 2: return !!selectedCountry;
       case 3: return !!selectedCategory;
-      case 4: return groupName.trim().length >= 3 && description.trim().length >= DESC_MIN;
+      case 4: return cpLen(groupName.trim()) >= 3 && description.trim().length >= DESC_MIN;
       case 5: return true;
       default: return false;
     }
@@ -312,7 +358,7 @@ export function AddGroupForm({ categories, countries }: Props) {
                   selectedCountry === c.id ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent"
                 }`}
               >
-                <span>{c.flag}</span>
+                <CountryFlag code={c.code} name={c.name} />
                 <span>{c.name}</span>
               </button>
             ))}
@@ -342,13 +388,34 @@ export function AddGroupForm({ categories, countries }: Props) {
       {step === 3 && (
         <div className="space-y-4">
           <h2 className="text-lg font-bold">Selecciona la categoría</h2>
+
+          {/* 18+ gate — adult categories hidden until the user opts in.
+              Prevents adult groups landing in clean categories. */}
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200/70 bg-rose-50/60 p-3.5 dark:border-rose-900/50 dark:bg-rose-950/25">
+            <div className="flex min-w-0 items-start gap-2.5">
+              <span className="mt-0.5 grid h-6 shrink-0 place-items-center rounded-md bg-rose-500/15 px-1.5 text-[11px] font-extrabold text-rose-600 dark:text-rose-400">18+</span>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">Contenido para adultos</div>
+                <div className="text-xs text-muted-foreground">Actívalo para publicar tu grupo en la zona 18+. Confirmas tener 18 años o más.</div>
+              </div>
+            </div>
+            <Switch
+              checked={showAdult}
+              onCheckedChange={handleAdultToggle}
+              aria-label="Mostrar categorías de contenido adulto (18+)"
+              className="data-[state=checked]:bg-rose-500"
+            />
+          </div>
+
           <Input
             value={catSearch}
             onChange={(e) => setCatSearch(e.target.value)}
             placeholder="Buscar categoría..."
             className="mb-2"
           />
-          <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto cg-scroll">
+
+          {/* Clean categories */}
+          <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto cg-scroll">
             {filteredCategories.map((c) => (
               <button
                 key={c.id}
@@ -362,6 +429,52 @@ export function AddGroupForm({ categories, countries }: Props) {
               </button>
             ))}
           </div>
+
+          {/* Adult categories — only rendered when the 18+ gate is on */}
+          {showAdult && (
+            <div className="space-y-2 rounded-xl border border-rose-200/70 bg-rose-50/40 p-3.5 dark:border-rose-900/50 dark:bg-rose-950/20">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+                <ShieldAlert className="h-3.5 w-3.5" /> Categorías 18+ · zona para adultos
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {filteredAdultCategories.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Cargando categorías 18+…</span>
+                )}
+                {filteredAdultCategories.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCategory(c.id)}
+                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
+                      selectedCategory === c.id
+                        ? "border-rose-500 bg-rose-500 text-white"
+                        : "border-rose-200 text-rose-700 hover:bg-rose-100 dark:border-rose-900/60 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                    }`}
+                  >
+                    <span>{c.icon}</span>
+                    <span>{c.name}</span>
+                    <span className="grid h-4 place-items-center rounded bg-rose-500/20 px-1 text-[10px] font-extrabold">18+</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Los grupos 18+ se publican en una zona separada, no aparecen en el directorio público ni en Google, y solo son visibles para usuarios que activan el modo adulto.
+              </p>
+            </div>
+          )}
+
+          {selectedCategory && (
+            <div className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
+              selectedIsAdult
+                ? "border-rose-200 bg-rose-50/60 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-300"
+                : "border-primary/30 bg-primary/5 text-primary"
+            }`}>
+              {selectedIsAdult ? <ShieldAlert className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+              {selectedIsAdult
+                ? "Tu grupo se publicará en la zona 18+ (contenido para adultos)."
+                : `Categoría: ${selectedCat?.icon} ${selectedCat?.name}`}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep(2)}>Atrás</Button>
             <Button onClick={() => setStep(4)} disabled={!selectedCategory} className="flex-1">Continuar</Button>
@@ -380,12 +493,23 @@ export function AddGroupForm({ categories, countries }: Props) {
             <div className="min-w-0 flex-1">
               <Input
                 value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
+                onChange={(e) => {
+                  // Code-point clamp: styled glyphs (𝐀 = 2 UTF-16 units)
+                  // must not hit the limit twice as fast as plain text.
+                  const v = e.target.value;
+                  if (cpLen(v) <= NAME_MAX_CP) setGroupName(v);
+                }}
                 className="border-0 bg-transparent px-0 text-base font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
-                maxLength={80}
+                placeholder="Nombre del grupo (se admite cualquier estilo: 𝐀𝐃𝐈𝐋, emojis, símbolos…)"
+                maxLength={200}
               />
-              <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" /> Verificado desde WhatsApp
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-3 w-3" /> Verificado desde WhatsApp
+                </span>
+                <span className={`tabular-nums ${cpLen(groupName) > NAME_MAX_CP ? "text-destructive" : "text-muted-foreground"}`}>
+                  {cpLen(groupName)}/{NAME_MAX_CP}
+                </span>
               </div>
             </div>
           </div>
@@ -500,10 +624,15 @@ export function AddGroupForm({ categories, countries }: Props) {
           {/* Summary */}
           <div className="rounded-xl border bg-muted/30 p-4 space-y-2 text-sm">
             <div className="font-semibold">Resumen</div>
+            {selectedIsAdult && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/60 px-2.5 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/25 dark:text-rose-300">
+                <ShieldAlert className="h-3.5 w-3.5" /> Se publicará en la zona 18+ (contenido para adultos)
+              </div>
+            )}
             <div className="flex justify-between"><span className="text-muted-foreground">Enlace:</span> <span className="truncate ml-2">{inviteUrl.slice(0, 40)}...</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Grupo:</span> <span className="truncate ml-2">{groupName}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">País:</span> <span className="ml-2">{countries.find(c => c.id === selectedCountry)?.flag} {countries.find(c => c.id === selectedCountry)?.name}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Categoría:</span> <span className="ml-2">{categories.find(c => c.id === selectedCategory)?.icon} {categories.find(c => c.id === selectedCategory)?.name}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">País:</span> <span className="ml-2 inline-flex items-center gap-1.5">{(() => { const c = countries.find((x) => x.id === selectedCountry); return c ? <><CountryFlag code={c.code} name={c.name} /> {c.name}</> : "—"; })()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Categoría:</span> <span className="ml-2">{selectedCat?.icon} {selectedCat?.name}{selectedIsAdult ? " · 18+" : ""}</span></div>
             {city && <div className="flex justify-between"><span className="text-muted-foreground">Ciudad:</span> <span className="ml-2">{city}</span></div>}
             {tags.length > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Etiquetas:</span> <span className="ml-2">{tags.join(", ")}</span></div>}
           </div>
