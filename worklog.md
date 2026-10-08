@@ -3488,3 +3488,24 @@ Stage Summary:
 - Repo layout: 2 commits (source + worklog update), branch main.
 - Risks: none identified; PAT never persisted in repo/config.
 - Next-phase candidates: blog cover image upload + per-post og:image; blog tag pages; per-group admin time-series charts; newsletter digest; keep 15-min webDevReview cron running QA.
+
+---
+Task ID: SQL-MD-DEMO-IMPORT-2026-10-08
+Agent: orchestrator (main)
+Task: (1) Provide correct production .env variables for the new Hostinger DB (localhost, same server); (2) create sql.md — a complete, production-ready, SEO-optimized SQL import for the new empty DB (u824913874_connector) with realistic unique demo data.
+
+Work Log:
+- Read app truth sources before writing a single INSERT: src/lib/db.ts (18-table Schema Guard, exact columns/keys), live DB taxonomy (20 países co-*, 22 categorías cat-* incl. cat-citas-18/cat-exclusivo-18), live data formats (status='live', linkStatus='active', tags/keywords as JSON array strings, submitSource, uploader ids, popularityBadge='featured'), queries filters (status='live', tags LIKE '%"t"%', city = exact match).
+- Built generator /home/z/scratch/gen-sql.py with handcrafted content: 104 groups (92 clean + 12 adult), each with unique name/slug/description/tags/keywords; 12 groups reassigned to under-covered countries with culturally adapted copy (Bolivia, CR, Cuba, Ecuador, Honduras, Nicaragua, Panamá, PR, Paraguay, El Salvador, Uruguay); city hygiene (no city with a single group); 76 reviews consistent with avgRating/ratingCount; 2 published blog posts (existing safety guide reused + new "Cómo moderar un grupo de WhatsApp exitoso: 6 reglas de oro" with internal links).
+- Anti-thin-content system: tag normalization pass (core category tag + country tag + city tag + curated pairs; auto-drop any tag with <2 occurrences → 124 tags all >=2; every category 4-7 groups; every country >=2; 104 distinct tag sets). Validation asserts uniqueness of names/slugs/ids, country/category coverage, adult-silo integrity, review targets.
+- Schema block extracted programmatically from db.ts (unescaped template backticks) — 18 CREATE TABLE IF NOT EXISTS, identical to the app's Schema Guard.
+- LIVE END-TO-END TEST: created scratch DB u824913874_connector on local MariaDB → imported SQL → 104/104 unique slugs, all counts exact → granted app user → pointed .env DB_NAME at it → restarted dev server → verified: homepage renders clean demo groups (0 adult on clean surface), /categoria/humor (5 groups incl. reassigned Bolivian/Salvadoran), /pais/bolivia (2), /ciudad/madrid (4), /etiqueta/memes (5), group detail page, /blog + new article, adult category (client-side silo, noindex), /autor/ana-torres, /populares, /rss (valid XML, new slugs, 0 adult).
+- Restored sandbox: .env back to gruposwhatsapp, dev server healthy (200), scratch DB dropped.
+- Wrote /home/z/my-project/sql.md (220KB): instructions (phpMyAdmin + SSH, idempotency notes, post-import checklist: replace demo invite links via /admin, regenerate sitemaps, run verification queries) + full SQL in one ```sql block. Roundtrip-verified: SQL extracted from the md is byte-identical to the tested import.sql.
+- Secret scan: sql.md contains 0 secrets (env section uses placeholders). Pushed sql.md to seowriterpk/connecta (commit d8f0f65). 15-min webDevReview cron #444623 still active from earlier this session.
+
+Stage Summary:
+- Status: STABLE. sql.md is production-ready and triple-verified (generator assertions → scratch-DB import → live app rendering). Repo connecta now includes the full build + import file.
+- User env vars (Hostinger, same server): DB_HOST=localhost, DB_PORT=3306, DB_USER=u824913874_connector, DB_PASSWORD=mh/iW=O0, DB_NAME=u824913874_connector, ADMIN_USER=admin, ADMIN_PASS=Grupos2024!, SESSION_SECRET=cg-2026-strong-secret-kj4n9f2m8v7xq1w6z3r5t8y0u. (Delivered in chat; NOT committed anywhere.)
+- Remaining user actions on their server: import sql.md via phpMyAdmin, set .env, replace demo WhatsApp invite links with real ones, run sitemap generator.
+- Next-phase candidates: blog cover images; tag pages for blog; per-group admin charts; replace demo invite links with real ones as they come.
