@@ -3509,3 +3509,24 @@ Stage Summary:
 - User env vars (Hostinger, same server): DB_HOST=localhost, DB_PORT=3306, DB_USER=u824913874_connector, DB_PASSWORD=mh/iW=O0, DB_NAME=u824913874_connector, ADMIN_USER=admin, ADMIN_PASS=Grupos2024!, SESSION_SECRET=cg-2026-strong-secret-kj4n9f2m8v7xq1w6z3r5t8y0u. (Delivered in chat; NOT committed anywhere.)
 - Remaining user actions on their server: import sql.md via phpMyAdmin, set .env, replace demo WhatsApp invite links with real ones, run sitemap generator.
 - Next-phase candidates: blog cover images; tag pages for blog; per-group admin charts; replace demo invite links with real ones as they come.
+
+---
+Task ID: BUILD-FIX-WEBPACK-2026-10-08
+Agent: orchestrator (main)
+Task: Fix Hostinger build failure — Turbopack panic during `next build` (PostCSS worker child node process exits before connection while processing src/app/globals.css).
+
+Work Log:
+- Diagnosis: platform build (Node 22 / npm / `npm run build`) crashed inside Turbopack's PostCSS worker process-spawn bridge ("creating new process / node process exited before we could connect, status 0") — an environment-specific Turbopack issue on the hosting build runner, not a code defect. Dependency updates were NOT needed: package.json uses caret ranges (next ^16.1.1, tailwindcss ^4, @tailwindcss/postcss ^4), so the platform's npm install already resolves the latest 16.x/4.x (platform log confirms Next 16.4.0 installed; crash is Turbopack-internal).
+- Fix applied to package.json (both sandbox + repo): build script now `next build --webpack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/` — bypasses Turbopack entirely for production builds. Also hardened start script: `NODE_ENV=production HOSTNAME=0.0.0.0 node .next/standalone/server.js ...` (prevents the classic standalone EADDRNOTAVAIL crash when a container-style HOSTNAME env var makes server.js bind to a nonexistent host).
+- Generated package-lock.json in the stage repo via npm install (922 packages, lockfileVersion 3, resolves next 16.4.0) — makes platform installs deterministic; committed per user request.
+- FULL LOCAL MIRROR of the platform pipeline: verified `--webpack` flag exists in Next 16 CLI → stopped dev server (freed 1.4GB) → `npm install` + `npm run build` in /tmp/connecta-stage → webpack production build SUCCEEDED (▲ Next.js 16.4.0, full route table, .next/standalone/server.js + static + public all copied, build id I3az3pDmemDgTrYzuKHhZ, no OOM).
+- Standalone artifact smoke test: `node --env-file=.env .next/standalone/server.js` on internal port 3100 → GET /api/health 200 {"db":{"ok":true}} + GET / 200 (560KB HTML, correct SEO title). Test server killed afterwards.
+- Restarted sandbox dev server via ./start-dev.sh (PID 14323) → /api/health 200, DB ok.
+- Committed + pushed package.json, package-lock.json, worklog.md to seowriterpk/connecta (main).
+
+Stage Summary:
+- Status: deployment build pipeline FIXED and verified end-to-end with the exact commands the platform runs (npm install → next build --webpack → standalone server boot → live DB queries → rendered HTML). User action: re-trigger the Hostinger build; it should complete and start from .next/standalone/server.js.
+- Note: sandbox dev has been running `next dev --webpack` since earlier sessions (start-dev.sh), so webpack compilation of this codebase was already exercised; the webpack production build confirms the full path.
+- Risks: none new. Turbopack remains the dev default on the platform if they ever run `next dev` there, but production builds are webpack now.
+- Next-phase candidates: after deploy works — import sql.md demo data on the production DB, replace demo invite links via /admin, regenerate sitemaps, then blog covers + per-group admin charts.
+
