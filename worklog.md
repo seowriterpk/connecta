@@ -3464,3 +3464,27 @@ Stage Summary:
 - Status: STABLE. Primary directive (verify-page related = most-recent same-category same-silo) fixed and triple-verified (HTML links, DB rows, VLM visual). 16 real bugs fixed sitewide (safety leaks: random/recent/related-API adult exposure; integrity: rating/share inflation; SEO: RSS discovery, og images, duplicate ?page= canonicals, title/desc lengths; UX: breadcrumb 404, touch targets; hardening: JSON-LD + img proxy).
 - Known dev-only artifacts (documented, no production impact): React 19 dev flight channel serializes mysql2 rows (incl. transient mysql2 "not a promise" warnings on first compile) — production builds emit neither.
 - Next-phase candidates: blog cover images + og:image per post; tag pages for blog; per-group admin time-series charts; newsletter digest; content-type strictness on /api/groups/[id].
+
+---
+Task ID: REPO-PUSH-CONNECTA-2026-10-08
+Agent: orchestrator (main)
+Task: Create new GitHub repo "connecta" and push all build-relevant source files (skip sandbox junk), explicitly keeping md docs including worklog.md.
+
+Work Log:
+- Inspected project root to classify build files vs junk: build = src/, public/, scripts/ (migrate/seed/crons), package.json, bun.lock, next.config.ts, tsconfig.json, postcss.config.mjs, eslint.config.mjs, components.json, .env.example, DEPLOYMENT.md (Hostinger v3.0 mysql2 guide), GROUPIZO_MANUAL.md + VIP_LOGIC.md (engineering manuals for the shipped cron/backend systems), worklog.md (explicit user request). Junk skipped = node_modules/, .next/, .git (sandbox history), .env (SECRETS), mysql-runtime/, db/ binaries, qa-*.png screenshots, dev.log/dev.pid, logs/, .zscripts/, examples/, mini-services/ (empty), download/, Caddyfile, next-env.d.ts, old zips.
+- Secret scan before push: grepped all staged files for PAT (ghp_) / plaintext passwords → ZERO matches; .env.example has placeholders only (change-me).
+- Created repo via API: POST /user/repos → seowriterpk/connecta (public, default branch main, empty).
+- Staged fresh git tree at /tmp/connecta-stage: git init -b main, 297 files committed (369 src files incl. all app routes: public site, admin/blog CRUD, verificar silo-fixed, comparar, guias; lib incl. db.ts, related-groups.ts, jsonld.ts hardening).
+- Fixed .gitignore in both stage + project: `.env*` now has `!.env.example` exception so the env template is committable.
+- Pushed commit 1c6ba9a with token embedded in push URL ONLY (not in git config, not in any committed file).
+- API verification: repo tree = 424 entries; spot-checked 12 must-have paths all OK; junk/secrets scan = NONE; .env.example present; .env absent.
+- Pushed follow-up docs commit (this worklog entry) to the same repo.
+- Recreated the 15-minute webDevReview cron job (list was empty — previous job #443967 no longer exists).
+- Dev server health checked during push: /api/health → 200.
+
+Stage Summary:
+- Status: STABLE. New public repo live at https://github.com/seowriterpk/connecta with the complete buildable source (Next.js 16 + mysql2 + Tailwind 4/shadcn + scripts + docs + worklog). No secrets, no sandbox artifacts.
+- Build from repo: cp .env.example → .env, fill DB/admin/session values, bun install, bun run dev (or build+start per DEPLOYMENT.md); DB schema auto-created by Schema Guard on first request; scripts/patches/seed.sql for demo data.
+- Repo layout: 2 commits (source + worklog update), branch main.
+- Risks: none identified; PAT never persisted in repo/config.
+- Next-phase candidates: blog cover image upload + per-post og:image; blog tag pages; per-group admin time-series charts; newsletter digest; keep 15-min webDevReview cron running QA.
