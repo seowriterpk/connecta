@@ -3743,3 +3743,25 @@ Stage Summary:
 - Root causes identified: cifras zeros = SSR-zero + JS-only count-up (also SEO damage: Googlebot sees 0s); preview slowness = per-route webpack compile (6.9-9.3s) + CPU contention; production slowness = 100% force-dynamic (85 routes, no cache) + 10-11 queries per homepage view + triple data delivery + per-image CDN proxy + shared-CPU queue collapse; bandwidth NOT the bottleneck (843KB ≈ 0.4s at 20mbps)
 - Priority fix list delivered to user in chat; fixes implemented in this batch: initial double-fetch skip (homepage now fetches only the count on default view), search widened + predictive (fast single-query suggest endpoint), related groups reduced to max 2 indexed queries, analytics always-on server-rendered zero-state
 - Still open (next batch): force-dynamic → revalidate caching, /api/img disk mirror, SSR real numbers for metrics (not zeros), SITE.url domain fix
+
+---
+Task ID: BATCH-2-ORCHESTRATOR-2026-10-09
+Agent: main (Z.ai Code)
+Task: Full 10-item user batch (popups→dedicated page, header menu, analytics all pages, related-groups split, search, countries, members formula, expired icon, admin autocomplete + bulk JSON, add-group fixes, reviews, authors) + mid-session sandbox re-provision recovery + remote merge.
+
+Work Log:
+- Dispatched 4 parallel fullstack agents (2-a popups/menu, 2-b reviews+authors+DB+UGC guard, 2-c group/verify/related/activity/expired, 2-d countries+members) + 1 sequenced agent (3-a pais/ciudad taxonomy wiring)
+- Personally implemented: T9 add-group (64KB preview + full entity decode incl. zero-width strip, code-point name limits, 18+ silo in category step), T4 search (new /api/groups/suggest single-query endpoint + reusable SearchPredictive type-ahead with keyboard nav + AbortController + skip initial refetch + wider WHERE: name/desc/tags/keywords/city/country), T8b admin (SEO autocomplete EntityPicker with click-to-add + counts, bulk JSON export empty/with-content + import upsert APIs, taxonomy-intro engine with oldest-groups one-keyword-per-group meta descriptions + top intros + customIntro long-form)
+- Mid-session the sandbox was RE-PROVISIONED (DB wiped+reseeded to 38 groups, /tmp wiped, .env reset, dev server dead, local tree reverted to a pre-5d17ee8 snapshot): restored .env, dev server, paises typing bug, PAÍSES migration in sql.md
+- Discovered remote HEAD 5d17ee8 (previous session's 4-task batch) had been LOST locally by the restore: recovered remote-only files (country-flag.tsx + 20 PNG flags, NFKD slug.ts, blog system, tags API, jsonld.ts, OG_IMAGE, 64KB validator, remote submit-ugc cleanName, remote add-group-form lazy-adult gate) and hand-merged the ~15 doubly-changed files (grupo/verificar/pais/ciudad/paises/data.ts/constants/table/form/layout/db/globals/footer/adult-zone)
+- Fixed form silo per user directive: clean categories HIDDEN when 18+ gate on (remote version showed adult below clean — exactly the user complaint)
+- package.json build fix (next build --webpack + HOSTNAME=0.0.0.0) had been reverted by the restore — restored from remote before push
+- QA: tsc clean, eslint clean, agent-browser verification (menu item gone + corner CTA, 13 reviews 4,2★, predictive dropdown + navigation to group page, 20/20 countries in 5 regions, analytics zero-state always-on, verify-page new section, fetch-skip confirmed in dev.log: homepage loads now fire ONLY /api/groups/count), VLM visual checks, no mobile horizontal overflow (390px)
+- Pushed commit 8c4b1e1 to seowriterpk/connecta main (verified via git fetch); worklog merged with remote history (74 sections) + sql.md = full dump + AUTORES + PAÍSES migrations
+- Recreated missing 15-min webDevReview cron job (new ID 446476)
+
+Stage Summary:
+- All 10 user items implemented and browser-verified; ~75 files changed in 8c4b1e1
+- Perf wins included: homepage initial double-fetch eliminated (1 count API instead of 2 full refetches), search 1 fast query + abortable, related groups 4-5 sequential → max 2 indexed queries, analytics server-rendered zero-state
+- Local DB now differs from production (38 reseeded groups vs 104): production updates via sql.md migrations (AUTORES + PAÍSES) after the user re-imports nothing — migrations run on existing data
+- Risks/next: SITE.url still points to conectagrupos.com (redirects to 3rd-party .com.br) — SEO critical, needs the real domain; metrics "en cifras" still SSR-zeros (perf fix list); force-dynamic caching + /api/img disk mirror still open; user must re-trigger Hostinger build (webpack fix intact in 8c4b1e1)
