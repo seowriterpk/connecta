@@ -76,8 +76,12 @@ export function AddGroupForm({ categories, countries }: Props) {
       }
     }
     // Turning the gate off un-selects any adult category so a clean group
-    // can never be published as adult by accident.
+    // can never be published as adult by accident. Turning it ON un-selects
+    // any clean category: the clean list is hidden while the gate is on, so a
+    // hidden selection would be confusing (user directive: clean categories
+    // stay hidden whenever the 18+ toggle is on).
     if (!v && selectedIsAdult) setSelectedCategory("");
+    if (v && selectedCategory && !selectedIsAdult) setSelectedCategory("");
   }
 
   // Step 4 state
@@ -410,11 +414,13 @@ export function AddGroupForm({ categories, countries }: Props) {
           <Input
             value={catSearch}
             onChange={(e) => setCatSearch(e.target.value)}
-            placeholder="Buscar categoría..."
+            placeholder={showAdult ? "Buscar categoría 18+..." : "Buscar categoría..."}
             className="mb-2"
           />
 
-          {/* Clean categories */}
+          {/* Clean categories — hidden while the 18+ gate is ON (silo switch:
+              the user sees ONLY adult categories when the toggle is on). */}
+          {!showAdult && (
           <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto cg-scroll">
             {filteredCategories.map((c) => (
               <button
@@ -428,9 +434,16 @@ export function AddGroupForm({ categories, countries }: Props) {
                 <span>{c.name}</span>
               </button>
             ))}
+            {filteredCategories.length === 0 && (
+              <p className="w-full rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">
+                No hay categorías que coincidan con la búsqueda.
+              </p>
+            )}
           </div>
+          )}
 
-          {/* Adult categories — only rendered when the 18+ gate is on */}
+          {/* Adult categories — the ONLY list shown while the 18+ gate
+              is on (clean categories hidden above). */}
           {showAdult && (
             <div className="space-y-2 rounded-xl border border-rose-200/70 bg-rose-50/40 p-3.5 dark:border-rose-900/50 dark:bg-rose-950/20">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">

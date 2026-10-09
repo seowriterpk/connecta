@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   Users, Eye, BadgeCheck, Star, CalendarDays, MessageCircle, Flag,
   MapPin, Tag, ChevronRight, Share2, Globe2,
-  Flame, Clock, Scale,
+  Flame, Clock, Scale, Link2Off,
 } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
 import { query, queryOne } from "@/lib/db";
 import {
   getGroupBySlug,
@@ -30,8 +30,6 @@ import { FavoritePillButton } from "@/components/site/favorite-pill-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
 import { RecentTracker } from "@/components/site/recent-tracker";
-import { jsonLdScript } from "@/lib/jsonld";
-import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -65,10 +63,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const group = await getGroupBySlug(slug);
   if (!group) return { title: "Grupo no encontrado" };
 
-  // SERP-safe title: group name (trimmed to 48) + compact suffix ≈ ≤65 chars.
-  const shortTitle = group.title.length > 48 ? group.title.slice(0, 45).trimEnd() + "…" : group.title;
-  const title = `${shortTitle} — Grupo de WhatsApp | ${SITE.name}`;
-  const ogTitle = group.title.length > 60 ? shortTitle : group.title;
+  const title = `${group.title} — Grupo de WhatsApp | ${SITE.name}`;
   const description = group.description.slice(0, 160);
   const robots = group.isAdult
     ? "noindex, nofollow"
@@ -81,23 +76,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: `${SITE.url}/grupo/${group.slug}` },
     robots,
-    // RTA label on adult groups (industry-standard "Restricted To Adults").
-    ...(group.isAdult ? { other: { rating: "RTA-5042-1996-1400-1577-1" } } : {}),
     openGraph: {
-      title: ogTitle, description,
+      title, description,
       url: `${SITE.url}/grupo/${group.slug}`,
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
       // Adult directive: no image alt text on adult groups.
-      images: group.imageUrl
-        ? [{ url: group.imageUrl, width: 120, height: 120, alt: group.isAdult ? "" : group.title }]
-        : [OG_IMAGE],
+      images: group.imageUrl ? [{ url: group.imageUrl, width: 120, height: 120, alt: group.isAdult ? "" : group.title }] : undefined,
     },
     twitter: {
       card: "summary",
       title, description,
-      images: group.imageUrl ? [group.imageUrl] : ["/og.svg"],
+      images: group.imageUrl ? [group.imageUrl] : undefined,
     },
   };
 }
@@ -112,7 +103,8 @@ export default async function GroupPage({ params }: PageProps) {
 
   const [related, ratingsBatch, ratingEntries, activity] = await Promise.all([
     // Siloed linking: adult groups only see adult related, clean only clean.
-    getRelatedGroups(group.id, group.category?.name ?? "", group.country?.name ?? "", 10, {
+    // Deterministic "clicks + old" ordering, max 2 indexed queries.
+    getRelatedGroups(group.id, group.category?.id ?? "", group.country?.id ?? "", 8, {
       isAdult: group.isAdult,
     }),
     getRatingsBatch([group.id]),
@@ -185,7 +177,7 @@ export default async function GroupPage({ params }: PageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       {jsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       )}
       <RecentTracker group={group} />
       <SiteHeader />
@@ -223,6 +215,15 @@ export default async function GroupPage({ params }: PageProps) {
                       <BadgeCheck className="h-3 w-3" /> Verificado
                     </span>
                   )}
+                  {group.linkStatus === "revoked" && (
+                    <span
+                      title="El enlace de invitación parece caducado — verifícalo antes de unirte"
+                      aria-label="El enlace de invitación parece caducado — verifícalo antes de unirte"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400"
+                    >
+                      <Link2Off className="h-3 w-3" aria-hidden /> Enlace caducado
+                    </span>
+                  )}
                   {isHot && (
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">
                       <Flame className="h-3 w-3" /> Popular
@@ -236,7 +237,7 @@ export default async function GroupPage({ params }: PageProps) {
                 </div>
                 <h1 className="mt-1 text-lg font-bold leading-tight sm:text-xl">{group.title}</h1>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {group.country && (<Link href={`/pais/${group.country.code}`} className="inline-flex items-center gap-1 hover:text-primary"><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</Link>)}
+                  {group.country && (<Link href={`/pais/${group.country.code}`} className="hover:text-primary">{group.country.flag} {group.country.name}</Link>)}
                   {group.city && (<span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" /> {group.city}</span>)}
                   {group.category && (<span>· <Link href={`/categoria/${group.category.slug}`} className="hover:text-primary">{group.category.name}</Link></span>)}
                 </div>
@@ -353,8 +354,19 @@ export default async function GroupPage({ params }: PageProps) {
 
             {/* Sidebar */}
             <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
-              {/* 14-day activity trend (server sparkline) */}
-              <GroupActivityCard activity={activity} slug={group.slug} />
+              {/* 14-day activity trend (server sparkline) — always renders:
+                  zero-state (flat sparkline + honest note) for quiet groups. */}
+              <GroupActivityCard
+                activity={
+                  activity ?? {
+                    series: Array<number>(14).fill(0),
+                    weekViews: 0,
+                    prevViews: 0,
+                    totalViews: 0,
+                  }
+                }
+                slug={group.slug}
+              />
 
               {/* Uploader / Author snippet (E-E-A-T) */}
               {uploader && (
@@ -394,6 +406,15 @@ export default async function GroupPage({ params }: PageProps) {
                     <dt className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-4 w-4" /> Visitas</dt>
                     <dd className="font-medium">{group.views.toLocaleString("es-ES")}</dd>
                   </div>
+                  {group.linkStatus === "revoked" && (
+                    <div className="flex items-center justify-between">
+                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Link2Off className="h-4 w-4" /> Enlace</dt>
+                      <dd className="flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" aria-hidden />
+                        caducado (pendiente de verificación)
+                      </dd>
+                    </div>
+                  )}
                   {group.lastActiveAt && (
                     <div className="flex items-center justify-between">
                       <dt className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-4 w-4" /> Última actividad</dt>
@@ -416,7 +437,7 @@ export default async function GroupPage({ params }: PageProps) {
                   )}
                   {!group.isAdult && group.country && (
                     <Link href={`/pais/${group.country.code}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
-                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span className="inline-flex items-center gap-1"><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</span></span>
+                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span>{group.country.flag} {group.country.name}</span></span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   )}

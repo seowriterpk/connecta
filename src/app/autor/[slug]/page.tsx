@@ -16,14 +16,12 @@ import {
   ShieldCheck,
   BadgeCheck,
 } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
 import {
   getUploaderBySlug,
   getGroupsByUploader,
   getUploaderCategories,
   getRatingsBatch,
-  getCategories,
-  getCountries,
   type UploaderDTO,
 } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
@@ -31,9 +29,7 @@ import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { GroupImage } from "@/components/site/group-image";
-import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -99,13 +95,13 @@ export async function generateMetadata({
       siteName: SITE.name,
       ...(uploader.imageUrl
         ? { images: [{ url: uploader.imageUrl, width: 300, height: 300, alt: uploader.name }] }
-        : { images: [OG_IMAGE] }),
+        : {}),
     },
     twitter: {
       card: "summary",
       title,
       description,
-      ...(uploader.imageUrl ? { images: [uploader.imageUrl] } : { images: ["/og.svg"] }),
+      ...(uploader.imageUrl ? { images: [uploader.imageUrl] } : {}),
     },
     keywords: [
       uploader.name,
@@ -124,11 +120,9 @@ export default async function AutorPage({ params }: PageProps) {
   const uploader = await getUploaderBySlug(slug);
   if (!uploader) notFound();
 
-  const [groups, categoriesCovered, categories, countries] = await Promise.all([
+  const [groups, categoriesCovered] = await Promise.all([
     getGroupsByUploader(uploader.id, 60),
     getUploaderCategories(uploader.id),
-    getCategories(),
-    getCountries(),
   ]);
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
   const socials = buildSocialLinks(uploader);
@@ -195,15 +189,15 @@ export default async function AutorPage({ params }: PageProps) {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(personJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(profileJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(profileJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <SiteHeader />
@@ -331,15 +325,12 @@ export default async function AutorPage({ params }: PageProps) {
                     : `Mostrando ${groups.length} ${groups.length === 1 ? "grupo" : "grupos"} curado${groups.length === 1 ? "" : "s"} por este autor.`}
                 </p>
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
             {groups.length === 0 ? (
@@ -402,7 +393,7 @@ export default async function AutorPage({ params }: PageProps) {
                     href="/autores"
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                   >
-                    Ver todos los autores y contribuidores
+                    Ver todos los autores
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>

@@ -8,10 +8,10 @@ import { getRecentRelatedGroups } from "@/lib/related-groups";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { GroupImage } from "@/components/site/group-image";
+import { CountryFlag } from "@/components/site/country-flag";
 import { GroupCard } from "@/components/site/group-card";
 import { BackToTop } from "@/components/site/back-to-top";
 import { VerifyClient } from "@/components/site/verify-client";
-import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +27,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: { absolute: `Verificar — ${group.title} | ${SITE.name}` },
     description: "Verificación del enlace de invitación antes de unirte al grupo de WhatsApp.",
     robots: "noindex, follow",
-    // RTA label on adult verify pages (matches adult group/category pages).
-    ...(group.isAdult ? { other: { rating: "RTA-5042-1996-1400-1577-1" } } : {}),
     alternates: { canonical: `${SITE.url}/verificar/${group.slug}` },
   };
 }
@@ -39,9 +37,8 @@ export default async function VerifyPage({ params }: PageProps) {
   if (!group) notFound();
 
   const [related, ratingsBatch] = await Promise.all([
-    // Related = MOST RECENT groups in the SAME category, same content silo
-    // (adult groups only ever recommend other adult groups — no clean leaks).
-    getRecentRelatedGroups(group.id, group.categoryId, group.isAdult, 10),
+    // Most recent groups in the same category (siloed by adult flag).
+    getRecentRelatedGroups(group.id, group.category?.id, group.isAdult, 9),
     getRatingsBatch([group.id]),
   ]);
 
@@ -69,7 +66,7 @@ export default async function VerifyPage({ params }: PageProps) {
               <div className="flex flex-col items-center text-center">
                 <GroupImage src={group.imageUrl} alt={group.title} title={group.title} size={80} className="rounded-2xl" fallbackEmoji={group.category?.icon} />
                 <h1 className="mt-4 text-xl font-bold sm:text-2xl">{group.title}</h1>
-                <p className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {group.country && (<><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</>)}{group.city ? ` · ${group.city}` : ""}
                 </p>
               </div>
@@ -91,10 +88,10 @@ export default async function VerifyPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Related groups */}
+          {/* Related groups — newest in the same category */}
           {related.length > 0 && (
             <section className="mx-auto mt-12 max-w-5xl">
-              <h2 className="mb-4 text-lg font-bold">Grupos que también te pueden interesar</h2>
+              <h2 className="mb-4 text-lg font-bold">Grupos nuevos de la misma categoría</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((r) => (
                   <GroupCard key={r.id} group={r} rating={ratingsBatch[r.id]} />

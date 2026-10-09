@@ -93,7 +93,6 @@ async function main() {
     writeSitemap("estaticas.xml", [
       urlEntry(`${BASE_URL}/`, undefined, "daily", "1.0"),
       urlEntry(`${BASE_URL}/populares`, undefined, "daily", "0.9"),
-      urlEntry(`${BASE_URL}/blog`, undefined, "daily", "0.8"),
       urlEntry(`${BASE_URL}/agregar-grupo`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/sobre-nosotros`, undefined, "monthly", "0.6"),
       urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),
@@ -105,27 +104,12 @@ async function main() {
       urlEntry(`${BASE_URL}/reportar-grupo`, undefined, "monthly", "0.5"),
     ]);
 
-    // Blog posts (published only)
-    const blogPosts = await q(
-      pool,
-      "SELECT `slug`, `updatedAt`, `publishedAt` FROM `blog_posts` WHERE `status` = 'published' ORDER BY `publishedAt` DESC"
-    );
-    writeSitemap(
-      "blog.xml",
-      blogPosts.map((p) =>
-        urlEntry(
-          `${BASE_URL}/blog/${p.slug}`,
-          new Date(p.updatedAt || p.publishedAt).toISOString().slice(0, 10),
-          "monthly",
-          "0.7"
-        )
-      )
-    );
-
-    // Author profiles — staff uploaders + community contributors (+ index page)
+    // Author profiles — staff uploaders ONLY (+ index page).
+    // UGC contributors never get author pages (they only appear as
+    // "publicado por" credits on group pages), so they must NOT be here.
     const autores = await q(
       pool,
-      "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
+      "SELECT `slug` FROM `uploaders`"
     );
     writeSitemap(
       "autores.xml",
@@ -142,7 +126,6 @@ async function main() {
       { filename: "paises.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "ciudades.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "autores.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "blog.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "estaticas.xml", lastmod: new Date().toISOString().slice(0, 10) },
     ];
 

@@ -5,39 +5,35 @@ import {
   Users,
   BadgeCheck,
   Heart,
-  MessageCircle,
   Layers,
   Sparkles,
   UserRound,
   ArrowRight,
   Send,
 } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
-import { getAllAuthors, getCategories, getCountries, type AuthorIndexDTO } from "@/lib/data";
+import { SITE } from "@/lib/constants";
+import { getAllAuthors, type AuthorIndexDTO } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { GroupImage } from "@/components/site/group-image";
-import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: `Autores y contribuidores — Curadores de grupos | ${SITE.name}` },
+  title: { absolute: `Autores — Curadores de grupos | ${SITE.name}` },
   description:
-    "Conoce al equipo de curación y a los contribuidores de la comunidad que revisan, verifican y publican los grupos de WhatsApp en español del directorio.",
+    "Conoce al equipo detrás del directorio: personas que revisan, verifican y publican los grupos de WhatsApp en español.",
   alternates: { canonical: `${SITE.url}/autores` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Autores y contribuidores — Curadores de grupos | ${SITE.name}`,
+    title: `Autores — Curadores de grupos | ${SITE.name}`,
     description:
-      "El equipo detrás del directorio: curadores y contribuidores que publican grupos verificados.",
+      "El equipo detrás del directorio: curadores que publican grupos verificados.",
     url: `${SITE.url}/autores`,
     locale: "es_ES",
     siteName: SITE.name,
-      images: [OG_IMAGE],
   },
 };
 
@@ -162,26 +158,21 @@ function AuthorSection({
 }
 
 export default async function AutoresPage() {
-  const [authors, categories, countries] = await Promise.all([
-    getAllAuthors(),
-    getCategories(),
-    getCountries(),
-  ]);
+  const authors = await getAllAuthors();
 
   const staff = authors.filter((a) => a.kind === "staff");
-  const community = authors.filter((a) => a.kind === "community");
   const totalPublished = authors.reduce((acc, a) => acc + a.publishedCount, 0);
   const totalMembers = authors.reduce((acc, a) => acc + a.totalMembers, 0);
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: `Autores y contribuidores — ${SITE.name}`,
+    name: `Autores — ${SITE.name}`,
     url: `${SITE.url}/autores`,
     inLanguage: "es",
     isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
     description:
-      "Directorio de autores: equipo de curación y contribuidores de la comunidad que publican grupos de WhatsApp en español.",
+      "Directorio de autores: el equipo que revisa y publica los grupos de WhatsApp en español.",
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: authors.length,
@@ -205,10 +196,10 @@ export default async function AutoresPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <SiteHeader />
@@ -244,9 +235,9 @@ export default async function AutoresPage() {
                 <span className="cg-gradient-text">grupos del directorio</span>
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-                Cada grupo de {SITE.name} pasa por las manos de una persona real: el equipo de
-                curación lo revisa y los contribuidores de la comunidad lo envían. Conoce a
-                quienes mantienen el directorio vivo, grupo a grupo.
+                Cada grupo de {SITE.name} pasa por las manos de una persona real: gente
+                normal, fanática de los grupos de WhatsApp, que revisa cada envío y
+                verifica que los enlaces funcionen. Conoce al equipo.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
                 <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur">
@@ -265,11 +256,6 @@ export default async function AutoresPage() {
                   </span>
                   <span className="text-xs text-muted-foreground">miembros en total</span>
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur">
-                  <MessageCircle className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold tabular-nums">{community.length}</span>
-                  <span className="text-xs text-muted-foreground">contribuidores</span>
-                </span>
               </div>
             </div>
           </div>
@@ -280,16 +266,9 @@ export default async function AutoresPage() {
           <AuthorSection
             id="equipo"
             title="Equipo de curación"
-            description="Revisan cada envío, verifican enlaces y mantienen la calidad del directorio."
+            description="Gente como tú, metida en montones de grupos, que revisa cada envío y verifica que los enlaces funcionen antes de publicar."
             icon={BadgeCheck}
             authors={staff}
-          />
-          <AuthorSection
-            id="comunidad"
-            title="Contribuidores de la comunidad"
-            description="Personas como tú que envían grupos y, tras pasar la revisión, los publican con crédito propio."
-            icon={Heart}
-            authors={community}
           />
 
           {authors.length === 0 && (
@@ -299,8 +278,7 @@ export default async function AutoresPage() {
               </div>
               <h3 className="text-lg font-semibold">Todavía no hay autores públicos</h3>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                En cuanto el equipo publique grupos o los contribuidores envíen los suyos, sus
-                perfiles aparecerán aquí.
+                En cuanto el equipo publique grupos, sus perfiles aparecerán aquí.
               </p>
             </div>
           )}
@@ -315,20 +293,16 @@ export default async function AutoresPage() {
                     ¿Quieres aparecer aquí?
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Envía tu grupo de WhatsApp: si pasa la revisión de calidad, se publicará con tu
-                    nombre de contribuidor y tu perfil público aparecerá en esta página — con
-                    crédito por cada grupo que aportes.
+                    Envía tu grupo de WhatsApp: si pasa la revisión de calidad, se publicará con
+                    tu nombre como crédito en la propia página del grupo.
                   </p>
                 </div>
-                <SubmitDialog
-                  categories={categories}
-                  countries={countries}
-                  trigger={
-                    <button className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                      <Send className="h-4 w-4" /> Enviar un grupo
-                    </button>
-                  }
-                />
+                <Link
+                  href="/agregar-grupo"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                >
+                  <Send className="h-4 w-4" /> Enviar un grupo
+                </Link>
               </div>
             </div>
           </Reveal>
@@ -359,14 +333,14 @@ export default async function AutoresPage() {
                     contribuidores de la comunidad
                   </strong>{" "}
                   son usuarios que envían sus propios grupos o comunidades que conocen. Cuando su
-                  envío se aprueba, reciben crédito público: un perfil con su nombre, los grupos
-                  publicados y las categorías que cubren. Así puedes saber quién está detrás de
-                  cada recomendación.
+                  envío se aprueba, el grupo se publica con su nombre como crédito en la página
+                  del grupo — sin perfiles de autor, para que quede claro quién cura el
+                  directorio y quién aporta cada grupo.
                 </p>
                 <p>
                   Si administras una comunidad activa — de fútbol, memes, idiomas, emprendimiento o
                   lo que sea — puedes unirte: envía tu grupo con el botón de arriba y, si pasa la
-                  revisión, tu perfil de contribuidor aparecerá en esta página.
+                  revisión, quedará publicado en el directorio con tu crédito.
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">

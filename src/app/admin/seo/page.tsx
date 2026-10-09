@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Settings2, ArrowLeft, Plus } from "lucide-react";
-import { AdminSeoOverrideForm, AdminEntityIntroForm } from "./admin-seo-forms";
+import { AdminSeoOverrideForm, AdminEntityIntroForm, AdminBulkIntros } from "./admin-seo-forms";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -185,6 +185,13 @@ export default async function AdminSeoPage() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Bulk JSON export / import for entity intros */}
+            <Card>
+              <CardContent className="pt-6">
+                <AdminBulkIntros csrfToken={csrfToken} />
               </CardContent>
             </Card>
           </div>

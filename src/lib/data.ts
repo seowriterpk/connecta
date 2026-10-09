@@ -156,10 +156,14 @@ export async function getCategories(
 }
 
 export async function getCountries(): Promise<CountryDTO[]> {
+  // Sin filtro isActive: el banco de países es CURADO y fijo (20 países
+  // hispanohablantes). Filtrar aquí escondía países enteros de /paises, del
+  // header, del buscador, etc. cuando el flag derivaba en la BD — exactamente
+  // el bug "la página de países no muestra todos los países". El DTO sigue
+  // exponiendo isActive por si algún consumidor quiere distinguirlo.
   const rows = await query<Row>(
     `SELECT co.*, (SELECT COUNT(*) FROM \`groups\` g WHERE g.\`countryId\` = co.\`id\` AND g.\`status\` = 'live' AND g.\`isAdult\` = 0) AS \`groupCount\`
      FROM \`countries\` co
-     WHERE co.\`isActive\` = 1
      ORDER BY co.\`name\` ASC`
   );
   return rows.map((c: any) => ({
@@ -247,9 +251,13 @@ function buildGroupWhere(q: {
       break; // no filter — both clean and adult
   }
   if (q.search && q.search.trim().length > 0) {
-    clauses.push("(g.`groupName` LIKE ? OR g.`description` LIKE ?)");
+    // Industry-standard accuracy: match name, description, tags, keywords,
+    // city and country name (utf8mb4_unicode_ci → case/accent-insensitive).
     const l = like(q.search.trim());
-    params.push(l, l);
+    clauses.push(
+      "(g.`groupName` LIKE ? OR g.`description` LIKE ? OR g.`tags` LIKE ? OR g.`keywords` LIKE ? OR (g.`city` IS NOT NULL AND g.`city` LIKE ?) OR co.`name` LIKE ?)"
+    );
+    params.push(l, l, l, l, l, l);
   }
   if (q.region) {
     clauses.push("co.`region` = ?");
@@ -326,8 +334,8 @@ export async function submitGroup(payload: {
   // a group submitted into an 18+ category is stored as an adult group so it
   // never leaks into the clean, indexable surface.
   const cat = await queryOne<Row>("SELECT `name`, `isAdult` FROM `categories` WHERE `id` = ? LIMIT 1", [payload.categoryId]);
-  const country = await queryOne<Row>("SELECT `name` FROM `countries` WHERE `id` = ? LIMIT 1", [payload.countryId]);
   const isAdult = !!(cat as any)?.isAdult;
+  const country = await queryOne<Row>("SELECT `name` FROM `countries` WHERE `id` = ? LIMIT 1", [payload.countryId]);
 
   // Generate unique slug from title
   const baseSlug = generateSlug(payload.title);
@@ -538,17 +546,15 @@ export async function getGroupsCount(
 }
 
 export async function getRandomGroup(): Promise<GroupDTO | null> {
-  // Clean-by-default (SafeSearch posture): the "Sorpréndeme" hero button
-  // lives on clean surfaces — adult groups are never served at random.
   const row = await queryOne<Row>(
-    "SELECT COUNT(*) AS `c` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0"
+    "SELECT COUNT(*) AS `c` FROM `groups` WHERE `status` = 'live'"
   );
   const total = Number((row as any)?.c ?? 0);
   if (total === 0) return null;
   const skip = Math.floor(Math.random() * total);
   const g = await queryOne<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
-     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0
+     WHERE g.\`status\` = 'live'
      LIMIT 1 OFFSET ?`,
     [skip]
   );
@@ -556,10 +562,9 @@ export async function getRandomGroup(): Promise<GroupDTO | null> {
 }
 
 export async function getRecentGroups(limit = 6): Promise<GroupDTO[]> {
-  // Clean-by-default: recent feeds never leak adult rows into clean UI.
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
-     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0
+     WHERE g.\`status\` = 'live'
      ORDER BY g.\`createdAt\` DESC
      LIMIT ?`,
     [limit]
@@ -948,23 +953,22 @@ export interface PaginatedGroups {
 async function buildPaginated(
   where: BuiltWhere,
   orderBy: string,
-  page: number,
-  pageSize: number = PAGE_SIZE
+  page: number
 ): Promise<PaginatedGroups> {
   const totalRow = await queryOne<Row>(
     `SELECT COUNT(*) AS \`c\` ${GROUP_FROM} WHERE ${where.where}`,
     where.params
   );
   const total = Number((totalRow as any)?.c ?? 0);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(Math.max(1, page), totalPages);
-  const skip = (safePage - 1) * pageSize;
+  const skip = (safePage - 1) * PAGE_SIZE;
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE ${where.where}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
-    [...where.params, pageSize, skip]
+    [...where.params, PAGE_SIZE, skip]
   );
   return {
     groups: rows.map(toGroupDTO),
@@ -979,14 +983,10 @@ async function buildPaginated(
 export async function getGroupsByCategorySlugPaginated(slug: string, page: number) {
   const cat = await queryOne<Row>("SELECT * FROM `categories` WHERE `slug` = ? LIMIT 1", [slug]);
   if (!cat) return null;
-  // Silo + default order "populares" (matches the client filter row's default).
-  // SSR batch is 24 for fast first paint; deeper pages load via AJAX load-more.
-  const isAdult = !!(cat as any).isAdult;
   const result = await buildPaginated(
-    buildGroupWhere({ categoryId: (cat as any).id, adult: isAdult ? "only" : "exclude" }),
-    "g.`views` DESC, g.`clicks` DESC",
-    page,
-    24
+    buildGroupWhere({ categoryId: (cat as any).id }),
+    "g.`clicks` DESC, g.`views` DESC",
+    page
   );
   return { category: cat, ...result };
 }
@@ -1250,43 +1250,16 @@ export async function getUploaderBySlug(slug: string): Promise<UploaderDTO | nul
     };
   }
 
-  // Community contributors also get public profiles at /autor/[slug].
-  // (ugc_contributors — people who publish groups through the UGC form.)
-  const c = await queryOne<Row>(
-    "SELECT `id`, `displayName`, `displaySlug`, `avatarUrl`, `publishedCount`, `submittedCount`, `reputationScore`, `isBlocked`, `isRemoved`, `lastSubmissionAt`, `createdAt` FROM `ugc_contributors` WHERE `displaySlug` = ? LIMIT 1",
-    [slug]
-  );
-  if (!c) return null;
-  const r = c as any;
-  if (r.isBlocked || r.isRemoved) return null;
-  const published = Number(r.publishedCount ?? 0);
-  const description =
-    `Contribuidor de la comunidad de ${SITE.name}: ha publicado ${published} ` +
-    `${published === 1 ? "grupo" : "grupos"} en el directorio.`;
-  return {
-    id: r.id,
-    name: r.displayName,
-    slug: r.displaySlug,
-    jobTitle: "Contribuidor de la comunidad",
-    description,
-    facebookUrl: null,
-    twitterUrl: null,
-    linkedinUrl: null,
-    websiteUrl: null,
-    imageUrl: r.avatarUrl || null,
-    createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
-    lastActiveAt:
-      r.lastSubmissionAt instanceof Date
-        ? r.lastSubmissionAt
-        : new Date(r.lastSubmissionAt ?? Date.now()),
-  };
+  // NOTE: only staff uploaders get dedicated author pages.
+  // UGC contributors (ugc_contributors) are a different kind of user and
+  // must NEVER resolve here — they only show up as "publicado por"
+  // credits on group pages, never as authors.
+  return null;
 }
 
 export async function getAllUploaderSlugs(): Promise<string[]> {
-  // Public author profiles: staff uploaders + community contributors.
-  const rows = await query<Row>(
-    "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
-  );
+  // Public author profiles: staff uploaders only (no ugc_contributors).
+  const rows = await query<Row>("SELECT `slug` FROM `uploaders`");
   return (rows as any[]).map((r) => r.slug);
 }
 
@@ -1304,42 +1277,35 @@ export interface AuthorIndexDTO {
 }
 
 /**
- * All public authors (staff uploaders + unblocked community contributors)
- * with live-group stats, sorted by published count desc. Powers /autores.
+ * All public authors (staff uploaders ONLY — UGC contributors never get
+ * author pages, they only appear as credits on group pages) with live-group
+ * stats, sorted by published count desc. Powers /autores.
  *
  * NOTE: "members" is a derived value (computeDisplayedMembers), not a DB
  * column, so we aggregate in JS from a lightweight per-group owner query.
  */
 export async function getAllAuthors(): Promise<AuthorIndexDTO[]> {
-  const [staff, community, groupStats] = await Promise.all([
+  const [staff, groupStats] = await Promise.all([
     query<Row>(
       `SELECT u.\`id\`, u.\`name\`, u.\`slug\`, u.\`jobTitle\`, u.\`description\`, u.\`imageUrl\`, u.\`createdAt\`
        FROM \`uploaders\` u
        ORDER BY u.\`name\` ASC`
     ),
     query<Row>(
-      `SELECT c.\`id\`, c.\`displayName\` AS \`name\`, c.\`displaySlug\` AS \`slug\`, c.\`avatarUrl\` AS \`imageUrl\`,
-              c.\`publishedCount\`, c.\`createdAt\`
-       FROM \`ugc_contributors\` c
-       WHERE c.\`isBlocked\` = 0 AND c.\`isRemoved\` = 0
-       ORDER BY c.\`publishedCount\` DESC, c.\`displayName\` ASC`
-    ),
-    query<Row>(
-      `SELECT \`uploaderId\`, \`ugcContributorId\`, \`id\`, \`clicks\`, \`joinCount\`
+      `SELECT \`uploaderId\`, \`id\`, \`clicks\`, \`joinCount\`
        FROM \`groups\`
        WHERE \`status\` = 'live' AND \`isAdult\` = 0`
     ),
   ]);
 
-  // ownerKey → { published, members }
+  // uploaderId → { published, members }
   const stats = new Map<string, { published: number; members: number }>();
   for (const g of groupStats as any[]) {
-    const key = g.uploaderId ?? g.ugcContributorId;
-    if (!key) continue;
-    const entry = stats.get(key) ?? { published: 0, members: 0 };
+    if (!g.uploaderId) continue;
+    const entry = stats.get(g.uploaderId) ?? { published: 0, members: 0 };
     entry.published += 1;
     entry.members += computeDisplayedMembers(Number(g.clicks ?? 0), Number(g.joinCount ?? 0), String(g.id));
-    stats.set(key, entry);
+    stats.set(g.uploaderId, entry);
   }
 
   const authors: AuthorIndexDTO[] = [];
@@ -1355,22 +1321,6 @@ export async function getAllAuthors(): Promise<AuthorIndexDTO[]> {
       imageUrl: r.imageUrl ?? null,
       kind: "staff",
       publishedCount: s.published,
-      totalMembers: s.members,
-      createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
-    });
-  }
-
-  for (const r of community as any[]) {
-    const s = stats.get(r.id) ?? { published: 0, members: 0 };
-    authors.push({
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      jobTitle: "Contribuidor de la comunidad",
-      description: null,
-      imageUrl: r.imageUrl ?? null,
-      kind: "community",
-      publishedCount: s.published > 0 ? s.published : Number(r.publishedCount ?? 0),
       totalMembers: s.members,
       createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt ?? Date.now()),
     });

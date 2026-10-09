@@ -2,30 +2,26 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/grupos-1.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/categorias.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/paises.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/ciudades.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/autores.xml</loc>
-    <lastmod>2026-10-08</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://conectagrupos.com/sitemaps/blog.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://conectagrupos.com/sitemaps/estaticas.xml</loc>
-    <lastmod>2026-10-08</lastmod>
+    <lastmod>2026-10-09</lastmod>
   </sitemap>
 </sitemapindex>

@@ -756,3 +756,111 @@ SESSION_SECRET=genera-con-openssl-rand-hex-32
 ```
 
 > La app es **mysql2 puro** (sin Prisma): ignora cualquier `DATABASE_URL`. El admin del panel se autentica con `ADMIN_USER`/`ADMIN_PASS` del `.env` (no hay tabla de usuarios).
+
+---
+
+## MIGRACIÓN AUTORES (2026-10-08) — ejecutar tras importar el dump base
+
+Objetivo: dejar exactamente 5 autores reales y casuales (sin categoría asignada,
+presentados como expertos curadores), reasignar los grupos del autor eliminado
+y borrar los uploaders sobrantes. Idempotente: puede re-ejecutarse sin efectos
+secundarios (los UPDATE por slug dejan de coincidir tras la primera pasada y
+el DELETE por slug solo afecta a los eliminados).
+
+```sql
+-- ============================================================
+-- 1) Reasignar los grupos del autor eliminado (up-luis /
+--    luis-caminos) entre los 5 que quedan (reparto determinista
+--    por CRC32 del id del grupo; idempotente por el WHERE).
+-- ============================================================
+UPDATE `groups` SET `uploaderId` = 'up-lucia'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 0;
+UPDATE `groups` SET `uploaderId` = 'up-carlos' WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 1;
+UPDATE `groups` SET `uploaderId` = 'up-maria'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 2;
+UPDATE `groups` SET `uploaderId` = 'up-diego'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 3;
+UPDATE `groups` SET `uploaderId` = 'up-ana'    WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 4;
+UPDATE `groups_queue` SET `uploaderId` = 'up-lucia' WHERE `uploaderId` = 'up-luis';
+
+-- ============================================================
+-- 2) Los 5 autores finales (INSERT ... ON DUPLICATE KEY por id:
+--    si el dump base ya trae la fila la reescribe; si faltara, la crea).
+--    Gente normal de clase media, tono casual, sin categoría asignada,
+--    sin redes sociales (imageUrl NULL → la UI muestra las iniciales).
+-- ============================================================
+INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
+VALUES ('up-lucia','Karina Roldán','karina-r','Curadora de comunidades',
+        'estoy en como 40 grupos de todo, memes, recetas, ofertas. acá me toca revisar que los grupos que subimos funcionen de verdad, si encontrás uno caído avisame',
+        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
+  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
+  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
+
+INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
+VALUES ('up-carlos','Toto Vélez','toto-v','Curador de comunidades',
+        'deportero de corazón, ando en grupos de memes y de ofertas en las noches. yo me encargo de que los grupos que suben acá no sean puro spam',
+        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
+  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
+  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
+
+INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
+VALUES ('up-maria','Male Duarte','male-d','Curadora de comunidades',
+        'soy la de la familia que siempre manda grupos buenos jaja, ahora también curo los del directorio. reviso los enlaces antes de que suban',
+        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
+  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
+  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
+
+INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
+VALUES ('up-diego','JP Ferrer','jp-f','Curador de comunidades',
+        'me hice adicto a los grupos de ofertas y de segunda mano, sé cuales van y cuales no. ayudo con esto del directorio por las tardes',
+        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
+  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
+  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
+
+INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
+VALUES ('up-ana','Gisela Ruiz','gisela-r','Curadora de comunidades',
+        'me gustan los grupos de futbol y de memes, aquí ayudo a que los grupos buenos lleguen a la gente. si algo raro pasa en un grupo, avisen y lo miramos',
+        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
+  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
+  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
+
+-- ============================================================
+-- 3) Eliminar SOLO los autores sobrantes (por slug del dump base).
+--    Los grupos ya fueron reasignados en el paso 1.
+-- ============================================================
+DELETE FROM `uploaders` WHERE `slug` = 'luis-caminos';
+
+-- Verificación esperada: 5 filas en uploaders, 0 grupos con uploaderId='up-luis'.
+-- SELECT id, name, slug, jobTitle FROM `uploaders`;
+-- SELECT COUNT(*) FROM `groups` WHERE `uploaderId` = 'up-luis';
+```
+
+Nota: no existe tabla `blog_posts` en este proyecto (verificado con SHOW TABLES),
+por lo que no hay reasignación de autores de blog. La tabla `ugc_contributors`
+se mantiene intacta: los contribuidores UGC no son autores y no reciben páginas
+de autor (solo crédito "publicado por" en las páginas de grupo).
+
+## MIGRACIÓN PAÍSES (2026-10-08) — ejecutar tras importar el dump base
+
+Objetivo: la página /paises agrupaba por las regiones canónicas ("América del
+Sur", "América Central", "América del Norte") pero el dump base siembra
+"Sudamérica / Centroamérica / Norteamérica" — 16 de 20 países quedaban ocultos
+por desajuste de texto. Esta migración caniza las regiones y activa todos los
+países. Idempotente (los UPDATE dejan de coincidir tras la primera pasada).
+El código de /paises ahora además deriva las secciones de los datos, así que
+ningún país puede volver a perderse por una cadena distinta.
+
+```sql
+UPDATE `countries` SET `region` = 'América del Sur'  WHERE `region` = 'Sudamérica';
+UPDATE `countries` SET `region` = 'América Central'  WHERE `region` = 'Centroamérica';
+UPDATE `countries` SET `region` = 'América del Norte' WHERE `region` = 'Norteamérica';
+UPDATE `countries` SET `region` = TRIM(`region`);
+UPDATE `countries` SET `isActive` = 1;
+```

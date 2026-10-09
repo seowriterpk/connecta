@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     const data = await getRecentRelatedGroups(
       group.id,
-      group.categoryId,
+      group.categoryId ?? undefined,
       !!group.isAdult,
       limit
     );

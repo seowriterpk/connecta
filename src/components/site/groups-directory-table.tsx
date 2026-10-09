@@ -8,12 +8,12 @@ import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
+import { SearchPredictive } from "@/components/site/search-predictive";
 import { useFavorites } from "@/lib/favorites";
 import { CompareIconButton } from "@/components/site/compare-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { CountryFlag } from "@/components/site/country-flag";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -54,6 +54,9 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
   const [limit, setLimit] = React.useState(PAGE_SIZE);
   const [totalCount, setTotalCount] = React.useState<number | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
+  // Skip the redundant initial groups re-fetch when SSR already provided the
+  // exact default view (see the fetch effect below).
+  const skipInitialRef = React.useRef(true);
   // Adult taxonomies — fetched client-side only when 18+ is active.
   const [adultCategories, setAdultCategories] = React.useState<CategoryDTO[] | null>(null);
   const [adultTags, setAdultTags] = React.useState<{ tag: string; count: number }[] | null>(null);
@@ -101,6 +104,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
 
   React.useEffect(() => {
     let cancelled = false;
+    const ctl = new AbortController();
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (categoryId) params.set("cat", categoryId);
@@ -111,10 +115,30 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
     if (adultMode) params.set("adult", "only");
     params.set("limite", String(PAGE_SIZE));
 
+    // First mount on the default view: SSR already rendered exactly this list
+    // (sort=recientes, no filters, clean silo) — skip re-downloading the 30
+    // groups, fetch ONLY the total count for the pagination footer.
+    const isDefaultView =
+      !search && !categoryId && !countryId && !tag && sort === "recientes" && !adultMode;
+    if (skipInitialRef.current && isDefaultView && initialGroups.length > 0) {
+      skipInitialRef.current = false;
+      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal })
+        .then((r) => r.json())
+        .then((j) => {
+          if (!cancelled && j?.ok && typeof j.data === "number") setTotalCount(j.data);
+        })
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+        ctl.abort();
+      };
+    }
+    skipInitialRef.current = false;
+
     setLoading(true);
     Promise.all([
-      fetch(`/api/groups?${params.toString()}&XTransformPort=3000`).then((r) => r.json()),
-      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`).then((r) => r.json()).catch(() => null),
+      fetch(`/api/groups?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()),
+      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()).catch(() => null),
     ])
       .then(([json, countJson]) => {
         if (cancelled) return;
@@ -128,6 +152,10 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
       })
       .catch(() => {})
       .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+      ctl.abort();
+    };
     return () => { cancelled = true; };
   }, [search, categoryId, countryId, tag, sort, adultMode]);
 
@@ -201,14 +229,19 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
         {/* Search + filters bar */}
         <div className="sticky top-16 z-30 -mx-4 border-y bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+            <div className="flex-1">
+              <SearchPredictive
                 value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
+                onChange={setLocalSearch}
+                onSubmit={(q) => {
+                  if (q) {
+                    setLocalSearch(q);
+                    setSearch(q);
+                  }
+                }}
                 placeholder="Buscar grupos: fútbol, memes, inglés, emprendimiento…"
-                className="h-11 pl-10"
-                aria-label="Buscar grupos"
+                adultParam={adultMode ? "only" : undefined}
+                ariaLabel="Buscar grupos"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">

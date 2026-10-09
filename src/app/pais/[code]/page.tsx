@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -12,24 +12,24 @@ import {
   ShieldCheck,
   MapPin,
 } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
+import { CountryFlag } from "@/components/site/country-flag";
 import {
   getCountryByCode,
   getGroupsByCountryCodePaginated,
   getRatingsBatch,
-  getCategories,
-  getCountries,
 } from "@/lib/data";
+import {
+  getTaxonomyContent,
+  buildTaxonomyMetaDescription,
+} from "@/lib/taxonomy-intro";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
 import { AdultCountryZone } from "@/components/site/adult-zone";
-import { jsonLdScript } from "@/lib/jsonld";
-import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +58,15 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const title = `${country.flag} ${country.name} — Grupos de WhatsApp | ConectaGrupos`;
-  const description =
-    `Grupos de WhatsApp en ${country.name}: ${country.groupCount} ` +
-    `${country.groupCount === 1 ? "comunidad activa" : "comunidades activas"} ` +
-    `de ${country.region}. Únete gratis, sin registros, filtrando por categoría.`;
+  // Dynamic meta description: custom hero override wins, else keyword-derived
+  // from the oldest groups of this country (one keyword per group).
+  const taxContent = await getTaxonomyContent("country", country.name);
+  const description = buildTaxonomyMetaDescription(
+    "country",
+    country.name,
+    taxContent,
+    country.groupCount
+  );
 
   return {
     title: { absolute: title },
@@ -74,11 +79,9 @@ export async function generateMetadata({
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
-      images: [OG_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
-      images: ["/og.svg"],
       title,
       description,
     },
@@ -105,18 +108,8 @@ export default async function CountryPage({
   const country = await getCountryByCode(code);
   if (!country) notFound();
 
-  const [result, categories, countries] = await Promise.all([
-    getGroupsByCountryCodePaginated(country.code, page),
-    getCategories(),
-    getCountries(),
-  ]);
+  const result = await getGroupsByCountryCodePaginated(country.code, page);
   if (!result) notFound();
-
-  // Out-of-range ?page= → redirect to the clamped canonical URL
-  // (prevents duplicate-content URLs rendering page 1 with a self-canonical).
-  if (page !== result.page) {
-    redirect(result.page === 1 ? `/pais/${country.code}` : `/pais/${country.code}?page=${result.page}`);
-  }
   const groups = result.groups;
   const basePath = `/pais/${country.code}`;
   const PAGE_SIZE = 120;
@@ -124,6 +117,10 @@ export default async function CountryPage({
   const rangeEnd = rangeStart + groups.length - 1;
 
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
+
+  // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
+  // shares the lookup with generateMetadata.
+  const content = await getTaxonomyContent("country", country.name);
 
   // JSON-LD: CollectionPage about a Place (the country)
   const collectionPageJsonLd = {
@@ -178,11 +175,11 @@ export default async function CountryPage({
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(collectionPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <SiteHeader />
@@ -219,7 +216,7 @@ export default async function CountryPage({
             <div className="mx-auto flex max-w-4xl flex-col items-start gap-5">
               <div className="flex items-start gap-4">
                 <span
-                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 sm:h-20 sm:w-20"
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 text-4xl sm:h-20 sm:w-20 sm:text-5xl"
                   aria-hidden
                 >
                   <CountryFlag code={country.code} name={country.name} className="h-8 w-12 rounded-[3px]" />
@@ -230,13 +227,26 @@ export default async function CountryPage({
                     <span>País</span>
                   </div>
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                    Grupos de WhatsApp en {country.name}
+                    {content.customTitle ?? `Grupos de WhatsApp en ${country.name}`}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Directorio de comunidades hispanohablantes activas en {country.name}. Elige
-                    una categoría, abre el enlace y únete en un toque: sin registros, sin
-                    comisiones y desde cualquier dispositivo.
-                  </p>
+                  {content.customHeroDesc ? (
+                    <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                      {content.customHeroDesc}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        Directorio de comunidades hispanohablantes activas en {country.name}. Elige
+                        una categoría, abre el enlace y únete en un toque: sin registros, sin
+                        comisiones y desde cualquier dispositivo.
+                      </p>
+                      {content.keywordSentence && (
+                        <p className="mt-1.5 max-w-2xl text-xs text-muted-foreground/80">
+                          Temas: {content.keywordSentence}.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -286,20 +296,17 @@ export default async function CountryPage({
                   {result.total === 1 ? "grupo" : "grupos"}
                 </p>
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
             {groups.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
-                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-3xl">
                   <CountryFlag code={country.code} name={country.name} className="h-8 w-12 rounded-[3px]" />
                 </div>
                 <h3 className="text-lg font-semibold">
@@ -310,15 +317,12 @@ export default async function CountryPage({
                   ayuda a otros hispanohablantes de {country.region} a encontrar su sitio.
                 </p>
                 <div className="mt-6 flex justify-center">
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar mi grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar mi grupo
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -360,6 +364,15 @@ export default async function CountryPage({
               </h2>
 
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
+                {content.customIntro ? (
+                  // Bulk-edited long description (admin SEO → intros JSON import).
+                  // Paragraphs separated by blank lines in the custom text.
+                  content.customIntro
+                    .split(/\n\s*\n/)
+                    .filter((p) => p.trim().length > 0)
+                    .map((p, i) => <p key={i}>{p}</p>)
+                ) : (
+                  <>
                 <p>
                   Los <strong className="font-semibold text-foreground">grupos de WhatsApp en{" "}
                   {country.name}</strong> son una de las formas más rápidas de mantenerse
@@ -411,6 +424,8 @@ export default async function CountryPage({
                   invitación de WhatsApp funcionan desde cualquier país, así que llevas tu
                   comunidad hispana allá donde vayas.
                 </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">
@@ -456,15 +471,12 @@ export default async function CountryPage({
                 están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
                 publicamos en este directorio.
               </p>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+              </Link>
             </div>
           </div>
         </section>

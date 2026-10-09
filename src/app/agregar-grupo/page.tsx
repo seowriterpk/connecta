@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Send, ShieldCheck, Sparkles, Clock, Globe2, MessageCircle } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
 import { getCategories, getCountries } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { AddGroupForm } from "@/components/site/add-group-form";
-import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
       "Agregar Grupo de WhatsApp — ConectaGrupos | Publica tu comunidad",
   },
   description:
-    "Agrega gratis tu grupo de WhatsApp al directorio ConectaGrupos. Verificamos el enlace al instante, calculamos una puntuación de calidad y lo publicamos si cumple las normas.",
+    "Agrega gratis tu grupo de WhatsApp al directorio ConectaGrupos. Verificamos el enlace al instante, calculamos una puntuación de calidad y lo publicamos si cumple las normas. Sin registro.",
   alternates: {
     canonical: `${SITE.url}/agregar-grupo`,
   },
@@ -29,11 +28,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
-      images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-      images: ["/og.svg"],
     title: "Agregar Grupo de WhatsApp — ConectaGrupos",
     description:
       "Agrega tu grupo de WhatsApp gratis. Verificación instantánea, puntuación de calidad y revisión humana.",
@@ -53,10 +50,14 @@ export const metadata: Metadata = {
 };
 
 export default async function AgregarGrupoPage() {
-  const [categories, countries] = await Promise.all([
-    getCategories(),
+  // Clean + adult categories: the form's category step has an 18+ toggle that
+  // shows ONLY adult categories when on (clean hidden) — both lists needed.
+  const [cleanCategories, adultCategories, countries] = await Promise.all([
+    getCategories({ adult: "exclude" }),
+    getCategories({ adult: "only" }),
     getCountries(),
   ]);
+  const categories = [...cleanCategories, ...adultCategories];
 
   // JSON-LD: WebPage describing the public submission page.
   const webPageJsonLd = {
@@ -94,7 +95,7 @@ export default async function AgregarGrupoPage() {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
       />
 
       <SiteHeader />

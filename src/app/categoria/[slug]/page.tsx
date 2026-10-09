@@ -1,22 +1,24 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Users, Plus, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
-import { SITE, OG_IMAGE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
 import {
   getCategoryBySlug,
   getGroupsByCategorySlugPaginated,
   getRatingsBatch,
-  getCategories,
-  getCountries,
 } from "@/lib/data";
+import {
+  getTaxonomyContent,
+  buildTaxonomyMetaDescription,
+} from "@/lib/taxonomy-intro";
+import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
-import { CategoryGroupsFeed } from "@/components/site/category-groups-feed";
-import { jsonLdScript } from "@/lib/jsonld";
+import { Pagination } from "@/components/site/pagination";
+import { AdultCategoryFeed } from "@/components/site/adult-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -40,15 +42,12 @@ export async function generateMetadata({
     };
   }
 
-  // Adult categories: never indexed (strict separation directive) + RTA
-  // label (industry-standard "Restricted To Adults" meta, respected by
-  // parental-control and safe-search filters).
+  // Adult categories: never indexed (strict separation directive).
   if (category.isAdult) {
     return {
       title: { absolute: `${category.name} — ${SITE.name}` },
       description: category.description,
       robots: { index: false, follow: false },
-      other: { rating: "RTA-5042-1996-1400-1577-1" },
     };
   }
 
@@ -57,10 +56,15 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const title = `${category.name} — Grupos de WhatsApp | ConectaGrupos`;
-  const description =
-    `Descubre los mejores grupos de WhatsApp de ${category.name} en español. ` +
-    `${category.groupCount} ${category.groupCount === 1 ? "comunidad activa" : "comunidades activas"} ` +
-    `a las que puedes unirte hoy. Filtra por país y encuentra tu grupo ideal en ConectaGrupos.`;
+  // Dynamic meta description: custom hero override wins, else keyword-derived
+  // from the oldest groups of this category (one keyword per group).
+  const taxContent = await getTaxonomyContent("category", category.name);
+  const description = buildTaxonomyMetaDescription(
+    "category",
+    category.name,
+    taxContent,
+    category.groupCount
+  );
 
   return {
     title: { absolute: title },
@@ -73,11 +77,9 @@ export async function generateMetadata({
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
-      images: [OG_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
-      images: ["/og.svg"],
       title,
       description,
     },
@@ -103,21 +105,19 @@ export default async function CategoryPage({
   const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const [result, categories, countries] = await Promise.all([
-    getGroupsByCategorySlugPaginated(slug, page),
-    getCategories(),
-    getCountries(),
-  ]);
+  const result = await getGroupsByCategorySlugPaginated(slug, page);
   if (!result) notFound();
-
-  // Out-of-range ?page= → redirect to the clamped canonical URL
-  // (prevents duplicate-content URLs rendering page 1 with a self-canonical).
-  if (page !== result.page) {
-    redirect(result.page === 1 ? `/categoria/${slug}` : `/categoria/${slug}?page=${result.page}`);
-  }
   const groups = result.groups;
+  const basePath = `/categoria/${slug}`;
+  const PAGE_SIZE = 120;
+  const rangeStart = (result.page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = rangeStart + groups.length - 1;
 
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
+
+  // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
+  // shares the lookup with generateMetadata.
+  const content = await getTaxonomyContent("category", category.name);
 
   // JSON-LD: ItemList of groups in this category
   const itemListJsonLd = {
@@ -159,11 +159,11 @@ export default async function CategoryPage({
         <>
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: jsonLdScript(itemListJsonLd) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
           />
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJsonLd) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
           />
         </>
       )}
@@ -212,11 +212,24 @@ export default async function CategoryPage({
                     <span>Categoría</span>
                   </div>
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                    {category.name}
+                    {content.customTitle ?? category.name}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    {category.description}
-                  </p>
+                  {content.customHeroDesc ? (
+                    <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                      {content.customHeroDesc}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        {category.description}
+                      </p>
+                      {content.keywordSentence && (
+                        <p className="mt-1.5 max-w-2xl text-xs text-muted-foreground/80">
+                          Temas: {content.keywordSentence}.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -240,10 +253,7 @@ export default async function CategoryPage({
           </div>
         </header>
 
-        {/* Groups grid — Populares|Nuevos filter row + AJAX load-more.
-            ADULT DIRECTIVE: adult category groups are NOT server-rendered;
-            they load client-side on visit (no toggle, no gate — SafeSearch
-            and Googlebot never see adult rows in the HTML source). */}
+        {/* Groups grid */}
         <section className="py-10 sm:py-12" aria-labelledby="grupos-heading">
           <div className="container mx-auto px-4">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -256,36 +266,27 @@ export default async function CategoryPage({
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {category.isAdult ? (
-                    <span>
-                      Contenido para adultos — se carga al visitar la página y no
-                      aparece en el directorio general.
-                    </span>
+                    <span>Contenido para adultos — visible solo con el modo 18+ activo.</span>
                   ) : (
                     <>
-                      {result.total} {result.total === 1 ? "grupo" : "grupos"} en esta
-                      categoría · ordena y carga más sin recargar
+                      Mostrando {rangeStart}–{rangeEnd} de {result.total}{" "}
+                      {result.total === 1 ? "grupo" : "grupos"}
                     </>
                   )}
                 </p>
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
+            {/* ADULT DIRECTIVE: adult category groups load client-side only,
+                after the 18+ toggle. Never server-rendered. */}
             {category.isAdult ? (
-              <CategoryGroupsFeed
-                categoryId={category.id}
-                isAdult
-                initialGroups={[]}
-                initialTotal={0}
-              />
+              <AdultCategoryFeed categoryId={category.id} categoryName={category.name} />
             ) : groups.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
                 <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-3xl">
@@ -297,27 +298,30 @@ export default async function CategoryPage({
                   otros hispanohablantes a encontrar comunidad.
                 </p>
                 <div className="mt-6 flex justify-center">
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar mi grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar mi grupo
+                  </Link>
                 </div>
               </div>
             ) : (
               <Reveal>
-                <CategoryGroupsFeed
-                  categoryId={category.id}
-                  isAdult={false}
-                  initialGroups={groups}
-                  initialTotal={result.total}
-                  initialRatings={ratings}
-                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {groups.map((g) => (
+                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                  ))}
+                </div>
               </Reveal>
+            )}
+
+            {!category.isAdult && (
+              <Pagination
+                basePath={basePath}
+                page={result.page}
+                totalPages={result.totalPages}
+              />
             )}
           </div>
         </section>
@@ -335,6 +339,15 @@ export default async function CategoryPage({
               </h2>
 
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
+                {content.customIntro ? (
+                  // Bulk-edited long description (admin SEO → intros JSON import).
+                  // Paragraphs separated by blank lines in the custom text.
+                  content.customIntro
+                    .split(/\n\s*\n/)
+                    .filter((p) => p.trim().length > 0)
+                    .map((p, i) => <p key={i}>{p}</p>)
+                ) : (
+                  <>
                 <p>
                   Los grupos de WhatsApp de{" "}
                   <strong className="font-semibold text-foreground">{category.name}</strong> reúnen
@@ -370,6 +383,8 @@ export default async function CategoryPage({
                   toda Latinoamérica y España. Así de simple: tú pones la comunidad, nosotros la
                   ponemos a la vista de quien la está buscando.
                 </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">
@@ -408,15 +423,12 @@ export default async function CategoryPage({
                 hispanohablantes que están buscando justo lo que tú ofreces. Lo revisamos en menos de
                 24 horas.
               </p>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+              </Link>
             </div>
           </div>
         </section>

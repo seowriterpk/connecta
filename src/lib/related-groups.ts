@@ -1,9 +1,21 @@
 /**
- * Related Groups Engine (Smart Selection)
- * Based on Groupizo VIP Logic SYSTEM 14.
+ * Related Groups Engine
  *
- * Returns 10 related groups: 4 newest + 4 fewest clicks + 2 random.
- * Priority: same category AND country, with fallbacks.
+ * getRelatedGroups (group detail page — "Grupos similares"):
+ * Up to 8 unique related groups with a DETERMINISTIC "clicks + old" order —
+ * most-clicked groups first, older groups break ties (no shuffling).
+ * Maximum of 2 queries:
+ *   1) Same content silo + same category (indexed g.categoryId), status
+ *      live + linkStatus active, id <> current, ORDER BY g.clicks DESC,
+ *      g.createdAt ASC, LIMIT 8. Dedupe guaranteed by SQL.
+ *   2) Fallback (only if query 1 returned < 4): same silo + same country
+ *      (indexed g.countryId), excluding already-fetched ids + current,
+ *      same ordering, LIMIT (8 - results). Merged, re-sorted by
+ *      clicks DESC / createdAt ASC and capped at the limit.
+ *
+ * getRecentRelatedGroups (verify page — "Grupos nuevos de la misma
+ * categoría"): the most recent live + active groups in the same category
+ * (and the same content silo) as the current group.
  *
  * SILOED LINKING (adult separation directive): related groups always match
  * the current group's content silo — adult groups only ever recommend other
@@ -26,7 +38,7 @@ function toDTO(g: GroupRow): GroupDTO {
     imageUrl: g.profileImage ?? null,
     categoryId: g.categoryId,
     countryId: g.countryId,
-    members: computeDisplayedMembers(g.clicks ?? 0, g.views ?? 0, g.id),
+    members: computeDisplayedMembers(g.clicks ?? 0, g.joinCount ?? 0, g.id),
     isFeatured: g.popularityBadge === "featured",
     isVerified: g.linkStatus === "active",
     status: g.status as any,
@@ -55,15 +67,6 @@ function toDTO(g: GroupRow): GroupDTO {
   };
 }
 
-function shuffle<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
 const RELATED_SELECT = `
   g.*,
   c.\`name\` AS \`catName\`, c.\`slug\` AS \`catSlug\`, c.\`description\` AS \`catDesc\`, c.\`icon\` AS \`catIcon\`, c.\`color\` AS \`catColor\`, c.\`sortOrder\` AS \`catSort\`, c.\`isAdult\` AS \`catIsAdult\`,
@@ -76,122 +79,86 @@ const RELATED_FROM = `
   LEFT JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
 `;
 
-export async function getRelatedGroups(
-  currentGroupId: string,
-  category: string,
-  country: string,
-  limit = 10,
-  opts: { isAdult?: boolean } = {}
-): Promise<any[]> {
-  const usedIds = new Set<string>([currentGroupId]);
-  // Silo: related groups must live in the same content silo as this group.
-  const siloIsAdult = opts.isAdult ? 1 : 0;
+const RELATED_BASE_WHERE = "g.\`status\` = 'live' AND g.\`linkStatus\` = 'active'";
 
-  const fetchGroups = (extraWhere: string, params: unknown[], orderBy: string, take: number) => {
-    const notIn = [...usedIds];
-    const notInSql = notIn.length > 0 ? `AND g.\`id\` NOT IN (${notIn.map(() => "?").join(", ")})` : "";
-    return query<GroupRow>(
-      `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-       WHERE g.\`status\` = 'live' AND g.\`linkStatus\` = 'active' AND g.\`isAdult\` = ? ${extraWhere ? `AND ${extraWhere}` : ""} ${notInSql}
-       ORDER BY ${orderBy}
-       LIMIT ?`,
-      [siloIsAdult, ...params, ...notIn, take]
-    );
-  };
-
-  // FETCH 1: 4 newest from same category AND country
-  let newest = await fetchGroups(
-    "g.`category` = ? AND g.`country` = ?",
-    [category, country],
-    "g.`createdAt` DESC",
-    4
-  );
-  newest.forEach((g) => usedIds.add(g.id));
-
-  // Fallback: if not enough, same category only (no country)
-  if (newest.length < 4) {
-    const fallback = await fetchGroups(
-      "g.`category` = ?",
-      [category],
-      "g.`createdAt` DESC",
-      4 - newest.length
-    );
-    newest = [...newest, ...fallback];
-    fallback.forEach((g) => usedIds.add(g.id));
-  }
-
-  // FETCH 2: 4 with fewest clicks (exposure boost)
-  let fewestClicks = await fetchGroups(
-    "g.`category` = ? AND g.`country` = ?",
-    [category, country],
-    "g.`clicks` ASC, g.`createdAt` DESC",
-    4
-  );
-  fewestClicks.forEach((g) => usedIds.add(g.id));
-
-  if (fewestClicks.length < 4) {
-    const fallback = await fetchGroups(
-      "g.`category` = ?",
-      [category],
-      "g.`clicks` ASC, g.`createdAt` DESC",
-      4 - fewestClicks.length
-    );
-    fewestClicks = [...fewestClicks, ...fallback];
-    fallback.forEach((g) => usedIds.add(g.id));
-  }
-
-  // FETCH 3: 2 random
-  let randomGroups = await fetchGroups("", [], "g.`createdAt` DESC", 20);
-  randomGroups = shuffle(randomGroups).slice(0, 2);
-
-  // Merge and shuffle
-  const all = [...newest, ...fewestClicks, ...randomGroups];
-  return shuffle(all).slice(0, limit).map(toDTO);
+function rowCreatedAt(g: GroupRow): number {
+  return g.createdAt instanceof Date ? g.createdAt.getTime() : new Date(g.createdAt).getTime() || 0;
 }
 
 /**
- * Recent Related Groups (verify-page directive):
- * The MOST RECENT groups in the SAME category as the current group,
- * always within the same content silo (adult ↔ adult, clean ↔ clean).
- * Fills any shortfall with the most recent same-silo groups so the
- * grid never shows cross-silo (non-adult) groups on adult pages.
+ * Related groups for the group detail page — deterministic "clicks + old"
+ * ordering (clicks DESC, createdAt ASC). Maximum of 2 sequential queries.
  */
-export async function getRecentRelatedGroups(
+export async function getRelatedGroups(
   currentGroupId: string,
-  categoryId: string | null | undefined,
-  isAdult: boolean,
-  limit = 6
+  categoryId: string,
+  countryId: string,
+  limit = 8,
+  opts: { isAdult?: boolean } = {}
 ): Promise<GroupDTO[]> {
+  // Silo: related groups must live in the same content silo as this group.
+  const siloIsAdult = opts.isAdult ? 1 : 0;
   const usedIds = new Set<string>([currentGroupId]);
-  const siloIsAdult = isAdult ? 1 : 0;
-  const notInSql = (n: number) =>
-    n > 0 ? `AND g.\`id\` NOT IN (${Array.from({ length: n }, () => "?").join(", ")})` : "";
 
-  let rows: GroupRow[] = [];
+  // QUERY 1 — same silo + same category (indexed id column), popular
+  // (clicks DESC) then older (createdAt ASC). Dedupe guaranteed by SQL.
+  const categoryFilter = categoryId ? "AND g.`categoryId` = ?" : "";
+  let rows = await query<GroupRow>(
+    `SELECT ${RELATED_SELECT} ${RELATED_FROM}
+     WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${categoryFilter} AND g.\`id\` <> ?
+     ORDER BY g.\`clicks\` DESC, g.\`createdAt\` ASC
+     LIMIT ?`,
+    [siloIsAdult, ...(categoryId ? [categoryId] : []), currentGroupId, limit]
+  );
+  rows.forEach((g) => usedIds.add(g.id));
 
-  // Primary: most recent live+active groups in the SAME category, same silo.
-  if (categoryId) {
-    rows = await query<GroupRow>(
-      `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-       WHERE g.\`status\` = 'live' AND g.\`linkStatus\` = 'active' AND g.\`isAdult\` = ? AND g.\`categoryId\` = ? ${notInSql(usedIds.size)}
-       ORDER BY g.\`createdAt\` DESC
-       LIMIT ?`,
-      [siloIsAdult, categoryId, ...usedIds, limit]
-    );
-    rows.forEach((r) => usedIds.add(r.id));
-  }
-
-  // Fallback: fill with most recent same-silo groups (any category).
-  if (rows.length < limit) {
+  // QUERY 2 (fallback) — only when the category silo is thin (< 4 groups):
+  // same silo + same country, excluding everything already fetched.
+  if (rows.length < 4) {
+    const excludeIds = [...usedIds];
+    const countryFilter = countryId ? "AND g.`countryId` = ?" : "";
+    const notInSql =
+      excludeIds.length > 0
+        ? `AND g.\`id\` NOT IN (${excludeIds.map(() => "?").join(", ")})`
+        : "";
     const fallback = await query<GroupRow>(
       `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-       WHERE g.\`status\` = 'live' AND g.\`linkStatus\` = 'active' AND g.\`isAdult\` = ? ${notInSql(usedIds.size)}
-       ORDER BY g.\`createdAt\` DESC
+       WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${countryFilter} ${notInSql}
+       ORDER BY g.\`clicks\` DESC, g.\`createdAt\` ASC
        LIMIT ?`,
-      [siloIsAdult, ...usedIds, limit - rows.length]
+      [siloIsAdult, ...(countryId ? [countryId] : []), ...excludeIds, limit - rows.length]
     );
+    fallback.forEach((g) => usedIds.add(g.id));
     rows = [...rows, ...fallback];
   }
 
+  // Deterministic merge order: clicks DESC, then createdAt ASC (older first).
+  const sorted = [...rows].sort((a, b) => {
+    const byClicks = (b.clicks ?? 0) - (a.clicks ?? 0);
+    if (byClicks !== 0) return byClicks;
+    return rowCreatedAt(a) - rowCreatedAt(b);
+  });
+  return sorted.slice(0, limit).map(toDTO);
+}
+
+/**
+ * Most recent groups in the same category (and the same content silo) as
+ * the current group — used by the /verificar/[slug] interstitial.
+ */
+export async function getRecentRelatedGroups(
+  currentGroupId: string,
+  categoryId: string | undefined,
+  isAdult: boolean,
+  limit = 9
+): Promise<GroupDTO[]> {
+  const siloIsAdult = isAdult ? 1 : 0;
+  const categoryFilter = categoryId ? "AND g.`categoryId` = ?" : "";
+  const rows = await query<GroupRow>(
+    `SELECT ${RELATED_SELECT} ${RELATED_FROM}
+     WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${categoryFilter} AND g.\`id\` <> ?
+     ORDER BY g.\`createdAt\` DESC
+     LIMIT ?`,
+    [siloIsAdult, ...(categoryId ? [categoryId] : []), currentGroupId, limit]
+  );
   return rows.map(toDTO);
 }

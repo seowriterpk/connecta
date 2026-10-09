@@ -31,7 +31,6 @@ export const NAV_LINKS = [
   { href: "/categorias", label: "Categorías" },
   { href: "/paises", label: "Países" },
   { href: "/buscar", label: "Buscar" },
-  { href: "/agregar-grupo", label: "Enviar grupo" },
   { href: "/sobre-nosotros", label: "Acerca" },
   { href: "/guias", label: "Guías" },
 ] as const;
