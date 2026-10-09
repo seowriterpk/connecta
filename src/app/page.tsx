@@ -33,7 +33,10 @@ export default async function HomePage() {
     getCategories(),
     getCountries(),
     getStats(),
-    getGroups({ sort: "destacados", limit: 30 }),
+    // "recientes" = the client store's default sort → the SSR list matches the
+    // default filter view exactly, so the directory skips its initial re-fetch
+    // (one fewer API round-trip + one fewer DB query per homepage view).
+    getGroups({ sort: "recientes", limit: 30 }),
     getPopularTags(14),
     getMetrics(),
     getAllCities(),
@@ -70,7 +73,7 @@ export default async function HomePage() {
         <AboutSection stats={stats} />
         <MetricsSection metrics={metrics} />
         <TestimonialsSection />
-        <CtaBanner categories={categories} countries={countries} />
+        <CtaBanner />
         <LongFormSection />
         <FaqSection />
       </main>

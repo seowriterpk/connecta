@@ -18,7 +18,6 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { SearchBox } from "@/components/site/search-box";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 
 export const dynamic = "force-dynamic";
@@ -108,11 +107,7 @@ export default async function BuscarPage({ searchParams }: PageProps) {
     return <BuscarLanding />;
   }
 
-  const [result, categories, countries] = await Promise.all([
-    searchGroups(q, 48),
-    getCategories(),
-    getCountries(),
-  ]);
+  const result = await searchGroups(q, 48);
   const groups = result.groups;
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
 
@@ -274,15 +269,12 @@ export default async function BuscarPage({ searchParams }: PageProps) {
                   >
                     <TrendingUp className="h-4 w-4 text-primary" /> Explorar grupos
                   </Link>
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar un grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar un grupo
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -447,15 +439,12 @@ async function BuscarLanding() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-2">
-                <SubmitDialog
-                  categories={categories}
-                  countries={countries}
-                  trigger={
-                    <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                      <Plus className="h-4 w-4" /> Enviar un grupo
-                    </button>
-                  }
-                />
+                <Link
+                  href="/agregar-grupo"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                >
+                  <Plus className="h-4 w-4" /> Enviar un grupo
+                </Link>
                 <Link
                   href="/"
                   className="inline-flex items-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition hover:bg-accent"

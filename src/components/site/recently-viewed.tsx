@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { History, ChevronLeft, ChevronRight, Users, ArrowUpRight, Trash2 } from "lucide-react";
 import { useRecent } from "@/lib/recent";
 import { GroupImage } from "@/components/site/group-image";
+import { CountryFlag } from "@/components/site/country-flag";
 
 function fmt(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
@@ -154,7 +155,7 @@ export function RecentlyViewed() {
                           {g.title}
                         </h3>
                         <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {g.country?.flag && <span>{g.country.flag}</span>}
+                          {g.country && <CountryFlag code={g.country.code} name={g.country.name} />}
                           {g.country?.name && (
                             <span className="truncate">{g.country.name}</span>
                           )}

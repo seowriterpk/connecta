@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitRating, getGroupRatingStats } from "@/lib/data";
 import { queryOne, type Row } from "@/lib/db";
+import { hashValue, getClientIp, checkRateLimit, hitRateLimit } from "@/lib/rate-limiter";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,18 @@ export async function GET(req: NextRequest) {
     // /api/groups/rate/user?id= → returns the user's existing rating (0 if none)
     const isUserQuery = req.nextUrl.searchParams.get("user");
     if (isUserQuery !== null) {
-      const ipHash = getSessionId(req);
-      if (!ipHash) {
-        return NextResponse.json({ ok: true, data: 0 });
+      // Identity: legacy session cookie first, then per-IP hash.
+      const sid = getSessionId(req);
+      if (sid) {
+        const bySid = await queryOne<Row>(
+          "SELECT `rating` FROM `group_reviews` WHERE `groupId` = ? AND `ipHash` = ? LIMIT 1",
+          [groupId, sid]
+        );
+        if (bySid) {
+          return NextResponse.json({ ok: true, data: Number((bySid as Row).rating ?? 0) });
+        }
       }
+      const ipHash = hashValue(getClientIp(req));
       const existing = await queryOne<Row>(
         "SELECT `rating` FROM `group_reviews` WHERE `groupId` = ? AND `ipHash` = ? LIMIT 1",
         [groupId, ipHash]
@@ -52,21 +61,35 @@ export async function POST(req: NextRequest) {
     if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ ok: false, error: "Valoración debe ser entre 1 y 5." }, { status: 400 });
     }
-    const existingSid = getSessionId(req);
-    const ipHash = existingSid ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const result = await submitRating(groupId, rating, ipHash);
 
-    const res = NextResponse.json({ ok: true, data: result, userRating: rating }, { status: 201 });
-    // Set session cookie if new
-    if (!existingSid) {
-      res.cookies.set("cg-sid", ipHash, {
-        httpOnly: true,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 365,
-        path: "/",
-      });
+    // Anti-inflation: reviewers are identified by a per-IP hash (unique key
+    // groupId+ipHash → one review per IP per group, re-rates update in place),
+    // and each IP is capped at 15 rating POSTs per hour.
+    const ip = getClientIp(req);
+    const ipHash = hashValue(ip);
+    const rateKey = `rate_ip:${ipHash}`;
+    const burst = await checkRateLimit(rateKey, "group_rate", 15, 3600);
+    if (!burst.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Demasiadas valoraciones seguidas. Inténtalo más tarde." },
+        { status: 429 }
+      );
     }
-    return res;
+
+    // Legacy continuity: a pre-existing cookie-sid review is updated in place.
+    const legacySid = getSessionId(req);
+    const legacy = legacySid
+      ? await queryOne<Row>(
+          "SELECT `id` FROM `group_reviews` WHERE `groupId` = ? AND `ipHash` = ? LIMIT 1",
+          [groupId, legacySid]
+        )
+      : null;
+    const raterKey = legacy ? String((legacy as Row).ipHash ?? legacySid) : ipHash;
+
+    const result = await submitRating(groupId, rating, raterKey);
+    await hitRateLimit(rateKey, "group_rate", 3600);
+
+    return NextResponse.json({ ok: true, data: result, userRating: rating }, { status: 201 });
   } catch {
     return NextResponse.json({ ok: false, error: "No se pudo guardar la valoración." }, { status: 500 });
   }

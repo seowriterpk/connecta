@@ -13,13 +13,24 @@ export const SITE = {
   twitter: "@conectagrupos",
 } as const;
 
+/**
+ * Default OpenGraph/Twitter social card (1200×630). Every page that overrides
+ * `openGraph` must include this — Next.js replaces the whole object (no
+ * deep-merge with the root layout), otherwise social shares lose the image.
+ */
+export const OG_IMAGE = {
+  url: "/og.svg",
+  width: 1200,
+  height: 630,
+  alt: `${SITE.name} — ${SITE.tagline}`,
+} as const;
+
 export const NAV_LINKS = [
   { href: "/", label: "Inicio" },
   { href: "/populares", label: "Populares" },
   { href: "/categorias", label: "Categorías" },
   { href: "/paises", label: "Países" },
   { href: "/buscar", label: "Buscar" },
-  { href: "/agregar-grupo", label: "Enviar grupo" },
   { href: "/sobre-nosotros", label: "Acerca" },
   { href: "/guias", label: "Guías" },
 ] as const;

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getCategories } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     url: `${SITE.url}/categorias`,
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
 };
 
@@ -61,7 +63,7 @@ export default async function CategoriasPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <SiteHeader />
       <main className="flex-1">
         {/* Breadcrumb */}

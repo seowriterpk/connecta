@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Cookie, Settings, Trash2, ChevronRight, ShieldCheck } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
   title: { absolute: `Política de Cookies — ${SITE.name}` },
   description:
-    "Política de cookies de ConectaGrupos: solo usamos cookies esenciales (tema, favoritos, vistos recientemente, valoraciones y consentimiento). Sin cookies publicitarias ni de seguimiento.",
+    "Política de cookies de ConectaGrupos: solo cookies esenciales (tema, favoritos, recientes y consentimiento). Sin cookies publicitarias ni de seguimiento.",
   alternates: { canonical: `${SITE.url}/politica-de-cookies` },
   robots: { index: true, follow: true },
   openGraph: {
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
   keywords: [
     "política de cookies",
@@ -96,7 +98,7 @@ export default function CookiePolicyPage() {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
       />
       <SiteHeader />
       <main className="flex-1">

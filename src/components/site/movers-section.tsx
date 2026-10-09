@@ -5,6 +5,7 @@ import { GroupImage } from "@/components/site/group-image";
 import { CompareIconButton } from "@/components/site/compare-button";
 import { Sparkline } from "@/components/site/sparkline";
 import { Reveal } from "@/components/site/reveal";
+import { CountryFlag } from "@/components/site/country-flag";
 
 /**
  * "En ascenso" — groups with the strongest 7-day view growth vs the previous
@@ -86,7 +87,7 @@ export function MoversSection({ movers }: { movers: TrendingMover[] }) {
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                       {m.group.country && (
                         <span className="inline-flex items-center gap-1">
-                          {m.group.country.flag} {m.group.country.name}
+                          <CountryFlag code={m.group.country.code} name={m.group.country.name} /> {m.group.country.name}
                         </span>
                       )}
                       <span className="inline-flex items-center gap-1">

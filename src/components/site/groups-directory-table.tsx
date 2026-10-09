@@ -2,17 +2,18 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp } from "lucide-react";
+import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
 import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
+import { SearchPredictive } from "@/components/site/search-predictive";
 import { useFavorites } from "@/lib/favorites";
 import { CompareIconButton } from "@/components/site/compare-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
+import { CountryFlag } from "@/components/site/country-flag";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -36,13 +37,15 @@ function fmt(n: number): string {
   return `${n}`;
 }
 
-export function GroupsDirectoryTable({ groups: initialGroups, categories, countries, popularTags }: Props) {
+export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanCategories, countries, popularTags: cleanTags }: Props) {
   const {
     search, categoryId, countryId, sort, tag, favoritesOnly,
     setSearch, setCategory, setCountry, setTag, setSort, setFavoritesOnly, reset,
   } = useGroupsFilter();
   const favoriteIds = useFavorites((s) => s.ids);
-  // 18+ mode: when ON, client fetches include adult rows (never in SSR HTML).
+  // 18+ mode: when ON the whole directory switches to the adult silo —
+  // ONLY adult groups are listed (clean rows hidden), and the filter row
+  // swaps to adult categories / adult tags. Adult rows are never in SSR HTML.
   const { enabled: adultMode } = useAdultModeHydrated();
 
   const [groups, setGroups] = React.useState<GroupDTO[]>(initialGroups);
@@ -51,6 +54,48 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
   const [limit, setLimit] = React.useState(PAGE_SIZE);
   const [totalCount, setTotalCount] = React.useState<number | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
+  // Skip the redundant initial groups re-fetch when SSR already provided the
+  // exact default view (see the fetch effect below).
+  const skipInitialRef = React.useRef(true);
+  // Adult taxonomies — fetched client-side only when 18+ is active.
+  const [adultCategories, setAdultCategories] = React.useState<CategoryDTO[] | null>(null);
+  const [adultTags, setAdultTags] = React.useState<{ tag: string; count: number }[] | null>(null);
+
+  // Fetch adult categories + tags for the filter row (client-only, adult silo).
+  React.useEffect(() => {
+    if (!adultMode) {
+      setAdultCategories(null);
+      setAdultTags(null);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/categories?adult=only&XTransformPort=3000")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.ok && Array.isArray(j.data)) setAdultCategories(j.data);
+      })
+      .catch(() => {});
+    fetch("/api/tags?adult=only&limite=14&XTransformPort=3000")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.ok && Array.isArray(j.data)) setAdultTags(j.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [adultMode]);
+
+  // Track the silo so a category chosen in one silo never leaks into the other.
+  const prevAdultMode = React.useRef(false);
+  React.useEffect(() => {
+    if (prevAdultMode.current !== adultMode) {
+      prevAdultMode.current = adultMode;
+      // Silo switch: the active category/tag may not exist in the new silo.
+      if (categoryId) useGroupsFilter.getState().setCategory(null);
+      if (tag) useGroupsFilter.getState().setTag(null);
+    }
+  }, [adultMode, categoryId, tag]);
 
   React.useEffect(() => {
     const t = setTimeout(() => setSearch(localSearch), 250);
@@ -59,19 +104,41 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
 
   React.useEffect(() => {
     let cancelled = false;
+    const ctl = new AbortController();
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (categoryId) params.set("cat", categoryId);
     if (countryId) params.set("pais", countryId);
     if (tag) params.set("tag", tag);
     if (sort) params.set("orden", sort);
-    if (adultMode) params.set("adult", "1");
+    // 18+ ON → adult silo: ONLY adult groups (clean rows hidden).
+    if (adultMode) params.set("adult", "only");
     params.set("limite", String(PAGE_SIZE));
+
+    // First mount on the default view: SSR already rendered exactly this list
+    // (sort=recientes, no filters, clean silo) — skip re-downloading the 30
+    // groups, fetch ONLY the total count for the pagination footer.
+    const isDefaultView =
+      !search && !categoryId && !countryId && !tag && sort === "recientes" && !adultMode;
+    if (skipInitialRef.current && isDefaultView && initialGroups.length > 0) {
+      skipInitialRef.current = false;
+      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal })
+        .then((r) => r.json())
+        .then((j) => {
+          if (!cancelled && j?.ok && typeof j.data === "number") setTotalCount(j.data);
+        })
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+        ctl.abort();
+      };
+    }
+    skipInitialRef.current = false;
 
     setLoading(true);
     Promise.all([
-      fetch(`/api/groups?${params.toString()}&XTransformPort=3000`).then((r) => r.json()),
-      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`).then((r) => r.json()).catch(() => null),
+      fetch(`/api/groups?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()),
+      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()).catch(() => null),
     ])
       .then(([json, countJson]) => {
         if (cancelled) return;
@@ -85,6 +152,10 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
       })
       .catch(() => {})
       .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+      ctl.abort();
+    };
     return () => { cancelled = true; };
   }, [search, categoryId, countryId, tag, sort, adultMode]);
 
@@ -99,7 +170,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
     if (countryId) params.set("pais", countryId);
     if (tag) params.set("tag", tag);
     if (sort) params.set("orden", sort);
-    if (adultMode) params.set("adult", "1");
+    if (adultMode) params.set("adult", "only");
     params.set("limite", String(nextLimit));
     fetch(`/api/groups?${params.toString()}&XTransformPort=3000`)
       .then((r) => r.json())
@@ -120,7 +191,10 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
     : groups;
 
   const hasFilters = Boolean(search || categoryId || countryId || tag || favoritesOnly);
-  const catName = categories.find((c) => c.id === categoryId)?.name;
+  // Active taxonomies follow the active silo (clean vs adult-only).
+  const activeCategories = adultMode ? (adultCategories ?? []) : cleanCategories;
+  const activeTags = adultMode ? (adultTags ?? []) : cleanTags;
+  const catName = activeCategories.find((c) => c.id === categoryId)?.name;
   const countryName = countries.find((c) => c.id === countryId)?.name;
 
   return (
@@ -129,14 +203,25 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
         {/* Section header */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Directorio de grupos de WhatsApp
+            {adultMode ? (
+              <span className="inline-flex flex-wrap items-center gap-2">
+                Directorio 18+
+                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">Solo adultos</span>
+              </span>
+            ) : (
+              "Directorio de grupos de WhatsApp"
+            )}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Explora {groups.length}+ comunidades activas en español.{" "}
             {adultMode ? (
-              <span className="font-medium text-rose-600 dark:text-rose-400">Modo 18+ activo — se incluye contenido adulto.</span>
+              <span>
+                Mostrando <span className="font-semibold text-rose-600 dark:text-rose-400">solo grupos 18+</span>. El resto del directorio está oculto mientras el modo esté activo.
+              </span>
             ) : (
-              <span>Contenido 100% apto para todos.</span>
+              <span>
+                Explora {groups.length}+ comunidades activas en español.{" "}
+                Contenido 100% apto para todos.
+              </span>
             )}
           </p>
         </div>
@@ -144,24 +229,29 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
         {/* Search + filters bar */}
         <div className="sticky top-16 z-30 -mx-4 border-y bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+            <div className="flex-1">
+              <SearchPredictive
                 value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
+                onChange={setLocalSearch}
+                onSubmit={(q) => {
+                  if (q) {
+                    setLocalSearch(q);
+                    setSearch(q);
+                  }
+                }}
                 placeholder="Buscar grupos: fútbol, memes, inglés, emprendimiento…"
-                className="h-11 pl-10"
-                aria-label="Buscar grupos"
+                adultParam={adultMode ? "only" : undefined}
+                ariaLabel="Buscar grupos"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={categoryId ?? "_all"} onValueChange={(v) => setCategory(v === "_all" ? null : v)}>
                 <SelectTrigger className="h-11 w-full sm:w-[170px]">
-                  <SelectValue placeholder="Categoría" />
+                  <SelectValue placeholder={adultMode ? "Categoría 18+" : "Categoría"} />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  <SelectItem value="_all">Todas las categorías</SelectItem>
-                  {categories.map((c) => (
+                  <SelectItem value="_all">{adultMode ? "Todas las 18+" : "Todas las categorías"}</SelectItem>
+                  {activeCategories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.icon} {c.name}
                     </SelectItem>
@@ -176,7 +266,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
                   <SelectItem value="_all">Todos los países</SelectItem>
                   {countries.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.flag} {c.name}
+                      <CountryFlag code={c.code} name={c.name} /> {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -224,16 +314,20 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories, countr
             </div>
           </div>
 
-          {/* Popular tags quick chips */}
-          {popularTags.length > 0 && (
+          {/* Popular tags quick chips (clean tags, or adult tags in 18+ mode) */}
+          {activeTags.length > 0 && (
             <div className="cg-scroll mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1">
               <span className="shrink-0 text-xs text-muted-foreground">Etiquetas:</span>
-              {popularTags.map((t) => (
+              {activeTags.map((t) => (
                 <button
                   key={t.tag}
                   onClick={() => setTag(tag === t.tag ? null : t.tag)}
                   className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
-                    tag === t.tag ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-accent"
+                    tag === t.tag
+                      ? adultMode
+                        ? "border-rose-400 bg-rose-500 text-white"
+                        : "border-primary bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-accent"
                   }`}
                 >
                   #{t.tag}
@@ -364,108 +458,133 @@ function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string
   const imgTitle = group.isAdult ? undefined : group.title;
 
   return (
-    <Link href={`/grupo/${group.slug}`} className="block">
-      <motion.article
-        whileHover={{ y: -2 }}
-        transition={{ type: "spring", stiffness: 320, damping: 24 }}
-        className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
-      >
-        {/* Category color left accent */}
-        <span
-          className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${gradient} opacity-60 transition-opacity group-hover:opacity-100`}
-          aria-hidden
-        />
-        {/* Decorative corner wash */}
-        <span
-          className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-[0.07] blur-2xl transition group-hover:opacity-20`}
-          aria-hidden
-        />
+    <motion.article
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
+    >
+      {/* Category color left accent */}
+      <span
+        className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${gradient} opacity-60 transition-opacity group-hover:opacity-100`}
+        aria-hidden
+      />
+      {/* Decorative corner wash */}
+      <span
+        className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-[0.07] blur-2xl transition group-hover:opacity-20`}
+        aria-hidden
+      />
 
-        {/* Image / icon */}
-        <div className="relative shrink-0 pl-1">
-          <GroupImage
-            src={group.imageUrl}
-            alt={imgAlt}
-            title={imgTitle}
-            size={56}
-            className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
-            fallbackEmoji={group.category?.icon}
-          />
-          {isActiveRecently && (
-            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
+      {/* Stretched link: whole row stays clickable; sits ABOVE static content
+          (z-[1]) but BELOW interactive controls (details summary, actions). */}
+      <Link
+        href={`/grupo/${group.slug}`}
+        title={imgTitle}
+        aria-label={group.isAdult ? "Ver grupo 18+" : `Ver grupo ${group.title}`}
+        className="absolute inset-0 z-[1] rounded-2xl"
+      />
+
+      {/* Image / icon */}
+      <div className="relative shrink-0 pl-1">
+        <GroupImage
+          src={group.imageUrl}
+          alt={imgAlt}
+          title={imgTitle}
+          size={56}
+          className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
+          fallbackEmoji={group.category?.icon}
+        />
+        {isActiveRecently && (
+          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
+            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
+          </span>
+        )}
+      </div>
+
+      {/* Content: name + compact stats always visible; país/ciudad/categoría/
+          descripción collapsed behind a native <details> dropdown (content
+          stays in the HTML for Googlebot — we only minimize visually). */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
+          <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
+            <Highlight text={group.title} query={searchQuery} />
+          </h3>
+          {group.isAdult && (
+            <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
+              18+
+            </span>
+          )}
+          {group.isVerified && (
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
+          )}
+          {group.isFeatured && (
+            <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
+          )}
+          {isHot && <Flame className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-label="Popular" />}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
+            <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
+          </span>
+          {isTrending && (
+            <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
+              <TrendingUp className="h-3 w-3" /> Tendencia
             </span>
           )}
         </div>
 
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
-            <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
-              <Highlight text={group.title} query={searchQuery} />
-            </h3>
-            {group.isAdult && (
-              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
-                18+
-              </span>
-            )}
-            {group.isVerified && (
-              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
-            )}
-            {group.isFeatured && (
-              <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
-            )}
-            {isHot && <Flame className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-label="Popular" />}
-          </div>
-          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground/90 sm:text-sm">
-            <Highlight text={group.description} query={searchQuery} />
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {group.country && (
-              <span className="inline-flex items-center gap-1">
-                {group.country.flag} {group.country.name}
-              </span>
-            )}
-            {group.city && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {group.city}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
-              <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Eye className="h-3 w-3" /> {fmt(group.views)}
-            </span>
-            {isTrending && (
-              <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
-                <TrendingUp className="h-3 w-3" /> Tendencia
-              </span>
-            )}
-            {group.category && (
-              <Badge variant="outline" className="gap-1 font-normal">
-                {group.category.icon} {group.category.name}
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Actions: heart + compare + join CTA */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2 sm:pl-2">
-          <div className="flex flex-row items-center gap-0.5 sm:gap-1">
-            <RowHeartButton id={group.id} />
-            <CompareIconButton slug={group.slug} title={group.title} />
-          </div>
-          <span
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
-            aria-hidden
+        <details className="group/details relative z-[2]">
+          <summary
+            className="-ml-1 flex min-h-8 cursor-pointer select-none list-none items-center gap-1 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
+            aria-label={`Mostrar país, ciudad, categoría y descripción de ${group.isAdult ? "este grupo 18+" : group.title}`}
           >
-            Unirme
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </span>
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
+              <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
+            </span>
+            <span className="truncate">País, ciudad, categoría y descripción</span>
+          </summary>
+          <div className="space-y-1.5 px-1 pb-1 pt-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+              {group.country && (
+                <span className="inline-flex items-center gap-1">
+                  <CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}
+                </span>
+              )}
+              {group.city && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {group.city}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-3 w-3" /> {fmt(group.views)}
+              </span>
+              {group.category && (
+                <Badge variant="outline" className="gap-1 font-normal">
+                  {group.category.icon} {group.category.name}
+                </Badge>
+              )}
+            </div>
+            <p className="line-clamp-3 break-words text-muted-foreground/90">
+              <Highlight text={group.description} query={searchQuery} />
+            </p>
+          </div>
+        </details>
+      </div>
+
+      {/* Actions: heart + compare + join CTA */}
+      <div className="relative z-[2] flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2 sm:pl-2">
+        <div className="flex flex-row items-center gap-0.5 sm:gap-1">
+          <RowHeartButton id={group.id} />
+          <CompareIconButton slug={group.slug} title={group.title} />
         </div>
-      </motion.article>
-    </Link>
+        <span
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
+          aria-hidden
+        >
+          Unirme
+          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </motion.article>
   );
 }
 

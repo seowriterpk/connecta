@@ -7,15 +7,16 @@ import {
   getCategoryBySlug,
   getGroupsByCategorySlugPaginated,
   getRatingsBatch,
-  getCategories,
-  getCountries,
 } from "@/lib/data";
+import {
+  getTaxonomyContent,
+  buildTaxonomyMetaDescription,
+} from "@/lib/taxonomy-intro";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
 import { AdultCategoryFeed } from "@/components/site/adult-zone";
 
@@ -55,10 +56,15 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const title = `${category.name} — Grupos de WhatsApp | ConectaGrupos`;
-  const description =
-    `Descubre los mejores grupos de WhatsApp de ${category.name} en español. ` +
-    `${category.groupCount} ${category.groupCount === 1 ? "comunidad activa" : "comunidades activas"} ` +
-    `a las que puedes unirte hoy. Filtra por país y encuentra tu grupo ideal en ConectaGrupos.`;
+  // Dynamic meta description: custom hero override wins, else keyword-derived
+  // from the oldest groups of this category (one keyword per group).
+  const taxContent = await getTaxonomyContent("category", category.name);
+  const description = buildTaxonomyMetaDescription(
+    "category",
+    category.name,
+    taxContent,
+    category.groupCount
+  );
 
   return {
     title: { absolute: title },
@@ -99,11 +105,7 @@ export default async function CategoryPage({
   const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const [result, categories, countries] = await Promise.all([
-    getGroupsByCategorySlugPaginated(slug, page),
-    getCategories(),
-    getCountries(),
-  ]);
+  const result = await getGroupsByCategorySlugPaginated(slug, page);
   if (!result) notFound();
   const groups = result.groups;
   const basePath = `/categoria/${slug}`;
@@ -112,6 +114,10 @@ export default async function CategoryPage({
   const rangeEnd = rangeStart + groups.length - 1;
 
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
+
+  // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
+  // shares the lookup with generateMetadata.
+  const content = await getTaxonomyContent("category", category.name);
 
   // JSON-LD: ItemList of groups in this category
   const itemListJsonLd = {
@@ -206,11 +212,24 @@ export default async function CategoryPage({
                     <span>Categoría</span>
                   </div>
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                    {category.name}
+                    {content.customTitle ?? category.name}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    {category.description}
-                  </p>
+                  {content.customHeroDesc ? (
+                    <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                      {content.customHeroDesc}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        {category.description}
+                      </p>
+                      {content.keywordSentence && (
+                        <p className="mt-1.5 max-w-2xl text-xs text-muted-foreground/80">
+                          Temas: {content.keywordSentence}.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -256,15 +275,12 @@ export default async function CategoryPage({
                   )}
                 </p>
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
             {/* ADULT DIRECTIVE: adult category groups load client-side only,
@@ -282,15 +298,12 @@ export default async function CategoryPage({
                   otros hispanohablantes a encontrar comunidad.
                 </p>
                 <div className="mt-6 flex justify-center">
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar mi grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar mi grupo
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -326,6 +339,15 @@ export default async function CategoryPage({
               </h2>
 
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
+                {content.customIntro ? (
+                  // Bulk-edited long description (admin SEO → intros JSON import).
+                  // Paragraphs separated by blank lines in the custom text.
+                  content.customIntro
+                    .split(/\n\s*\n/)
+                    .filter((p) => p.trim().length > 0)
+                    .map((p, i) => <p key={i}>{p}</p>)
+                ) : (
+                  <>
                 <p>
                   Los grupos de WhatsApp de{" "}
                   <strong className="font-semibold text-foreground">{category.name}</strong> reúnen
@@ -361,6 +383,8 @@ export default async function CategoryPage({
                   toda Latinoamérica y España. Así de simple: tú pones la comunidad, nosotros la
                   ponemos a la vista de quien la está buscando.
                 </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">
@@ -399,15 +423,12 @@ export default async function CategoryPage({
                 hispanohablantes que están buscando justo lo que tú ofreces. Lo revisamos en menos de
                 24 horas.
               </p>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+              </Link>
             </div>
           </div>
         </section>

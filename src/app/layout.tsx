@@ -5,11 +5,12 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/site/theme-provider";
 import { CommandPalette } from "@/components/site/command-palette";
-import { CompareBar } from "@/components/site/compare-bar";
 import { CookieConsent } from "@/components/site/cookie-consent";
+import { CompareBar } from "@/components/site/compare-bar";
 import { TranslationFix } from "@/components/site/translation-fix";
 import { getCategories, getCountries, getGroups } from "@/lib/data";
 import { SITE } from "@/lib/constants";
+import { jsonLdScript } from "@/lib/jsonld";
 
 // Per-request dedupe: the homepage fetches the same lists for its own sections.
 const getCategoriesCached = cache(getCategories);
@@ -55,6 +56,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE.url,
     languages: { "es-ES": SITE.url, "es-419": SITE.url },
+    // RSS autodiscovery — browsers/readers/crawlers find the feed from any page.
+    types: {
+      "application/rss+xml": [{ url: "/rss", title: `${SITE.name} — RSS` }],
+    },
   },
   formatDetection: { telephone: false, email: false, address: false },
   icons: {
@@ -190,15 +195,15 @@ export default async function RootLayout({
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteJsonLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd) }}
         />
       </head>
       <body
@@ -214,8 +219,8 @@ export default async function RootLayout({
             countries={countries}
             groups={paletteGroups}
           />
-          <CompareBar />
           <CookieConsent />
+          <CompareBar />
         </ThemeProvider>
       </body>
     </html>

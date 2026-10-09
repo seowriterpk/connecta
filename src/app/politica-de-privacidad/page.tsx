@@ -9,11 +9,12 @@ import {
   RefreshCw,
   ChevronRight,
 } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
   title: { absolute: `Política de Privacidad — ${SITE.name}` },
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
   keywords: [
     "política de privacidad",
@@ -68,7 +70,7 @@ export default function PrivacyPolicyPage() {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
       />
       <SiteHeader />
       <main className="flex-1">

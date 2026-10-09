@@ -1,5 +1,6 @@
 import { SITE } from "@/lib/constants";
 import { getNewestGroupsForRss } from "@/lib/data";
+import { getPublishedPosts } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +34,16 @@ function toRfc822(date: Date | string): string {
 }
 
 export async function GET() {
-  const groups = await getNewestGroupsForRss(RSS_LIMIT);
+  const [groups, posts] = await Promise.all([
+    getNewestGroupsForRss(RSS_LIMIT),
+    getPublishedPosts(10),
+  ]);
   const selfUrl = `${SITE.url}/rss`;
   const buildDate = new Date().toUTCString();
 
   const itemsXml = groups
     .map((g) => {
-      const groupUrl = `${SITE.url}/${g.slug}`;
+      const groupUrl = `${SITE.url}/grupo/${g.slug}`;
       const title = xmlEscape(g.title);
       const description = xmlEscape(
         normalize(g.description, 320) ||
@@ -57,6 +61,22 @@ export async function GET() {
       <description>${description}</description>
       ${category ? `<category>${category}</category>\n      ` : ""}<author>${authorName}</author>
       ${country ? `<source url="${xmlEscape(SITE.url)}">${xmlEscape(SITE.name)}</source>\n      ` : ""}<pubDate>${pubDate}</pubDate>
+    </item>`;
+    })
+    .join("\n");
+
+  // Blog posts — newest first, mixed into the feed (guid = canonical URL).
+  const blogItemsXml = posts
+    .map((p) => {
+      const postUrl = `${SITE.url}/blog/${p.slug}`;
+      return `    <item>
+      <title>${xmlEscape(p.title)}</title>
+      <link>${xmlEscape(postUrl)}</link>
+      <guid isPermaLink="true">${xmlEscape(postUrl)}</guid>
+      <description>${xmlEscape(normalize(p.excerpt, 320))}</description>
+      <category>Blog</category>
+      <author>${xmlEscape(p.authorName)}</author>
+      <pubDate>${toRfc822(p.publishedAt ?? p.createdAt)}</pubDate>
     </item>`;
     })
     .join("\n");
@@ -85,6 +105,7 @@ export async function GET() {
     <atom:link href="${xmlEscape(selfUrl)}" rel="self" type="application/rss+xml" />
     <atom:link href="${xmlEscape(SITE.url)}/sitemap.xml" rel="related" type="application/xml" />
 ${itemsXml}
+${blogItemsXml}
   </channel>
 </rss>`;
 

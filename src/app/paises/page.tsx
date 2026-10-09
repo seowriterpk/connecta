@@ -1,15 +1,43 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Globe2 } from "lucide-react";
-import { SITE } from "@/lib/constants";
-import { getCountries, getCategories } from "@/lib/data";
+import { SITE, REGIONS } from "@/lib/constants";
+import { getCountries } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
-import { REGIONS } from "@/lib/constants";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Agrupación por región derivada de los DATOS (no de una constante fija).
+ *
+ * Antes: REGIONS.map(region => countries.filter(c => c.region === region))
+ * descartaba silenciosamente cualquier país cuya región en BD no coincidiera
+ * EXACTAMENTE con una de REGIONS (p. ej. "Sudamérica" vs "América del Sur",
+ * "Norteamérica" vs "América del Norte") — 16 de 20 países desaparecían.
+ *
+ * Ahora: se toman las regiones ÚNICAS presentes en los países devueltos por
+ * la BD, se ordenan con REGIONS como preferencia (las desconocidas van al
+ * final, ordenadas alfabéticamente) y cada país cae siempre en un grupo.
+ * Ningún país puede quedarse fuera por un desajuste de texto.
+ */
+function groupCountriesByRegion<T extends { region: string }>(countries: T[]) {
+  const preferred = REGIONS as readonly string[];
+
+  const present = Array.from(new Set(countries.map((c) => c.region)));
+  const known = preferred.filter((r) => present.includes(r));
+  const extra = present
+    .filter((r) => !preferred.includes(r))
+    .sort((a, b) => a.localeCompare(b, "es"));
+
+  return [...known, ...extra].map((region) => ({
+    region,
+    countries: countries.filter((c) => c.region === region),
+  }));
+}
 
 export const metadata: Metadata = {
   title: { absolute: `Países — Grupos de WhatsApp en Español | ${SITE.name}` },
@@ -28,10 +56,8 @@ export const metadata: Metadata = {
 export default async function PaisesPage() {
   const [countries] = await Promise.all([getCountries()]);
 
-  const byRegion = REGIONS.map((region) => ({
-    region,
-    countries: countries.filter((c) => c.region === region),
-  })).filter((r) => r.countries.length > 0);
+  // Regiones derivadas de los datos: ningún país se descarta por texto.
+  const byRegion = groupCountriesByRegion(countries);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -83,7 +109,7 @@ export default async function PaisesPage() {
                         href={`/pais/${c.code}`}
                         className="group flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <span className="text-2xl leading-none">{c.flag}</span>
+                        <CountryFlag code={c.code} name={c.name} className="h-8 w-12 rounded-[3px]" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">{c.name}</span>
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

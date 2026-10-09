@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Search, ShieldCheck, Users, Globe2, Sparkles } from "lucide-react";
+import { ShieldCheck, Users, Globe2, Sparkles } from "lucide-react";
 import { useGroupsFilter } from "@/lib/store";
+import { useAdultModeHydrated } from "@/lib/adult-store";
 import type { StatsDTO } from "@/lib/types";
 import { RandomGroupButton } from "@/components/site/random-group-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
+import { SearchPredictive } from "@/components/site/search-predictive";
 
 function Stat({ value, label, icon: Icon }: { value: string; label: string; icon: React.ElementType }) {
   return (
@@ -32,17 +34,12 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
   const setSearch = useGroupsFilter((s) => s.setSearch);
   const search = useGroupsFilter((s) => s.search);
   const [local, setLocal] = React.useState(search);
+  const { enabled: adultMode } = useAdultModeHydrated();
 
   React.useEffect(() => {
     const t = setTimeout(() => setSearch(local), 250);
     return () => clearTimeout(t);
   }, [local, setSearch]);
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setSearch(local);
-    document.getElementById("grupos")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   return (
     <section id="inicio" className="cg-mesh relative overflow-hidden">
@@ -84,26 +81,35 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
             de España a toda Hispanoamérica.
           </p>
 
-          <form onSubmit={submit} className="mx-auto mt-7 flex w-full max-w-xl items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={local}
-                onChange={(e) => setLocal(e.target.value)}
-                type="search"
-                inputMode="search"
-                aria-label="Buscar grupos de WhatsApp"
-                placeholder="Busca: fútbol, memes, inglés, emprendimiento…"
-                className="h-12 w-full rounded-xl border border-border bg-background/90 pl-11 pr-4 text-sm shadow-sm outline-none ring-ring transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              />
+          <div className="mx-auto mt-7 w-full max-w-xl">
+            <SearchPredictive
+              value={local}
+              onChange={setLocal}
+              onSubmit={(q) => {
+                if (q) {
+                  setLocal(q);
+                  setSearch(q);
+                }
+                document.getElementById("grupos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              placeholder="Busca: fútbol, memes, inglés, emprendimiento…"
+              adultParam={adultMode ? "only" : undefined}
+              ariaLabel="Buscar grupos de WhatsApp"
+              inputClassName="h-12"
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch(local);
+                  document.getElementById("grupos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="hidden h-12 shrink-0 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:inline-flex"
+              >
+                Buscar
+              </button>
             </div>
-            <button
-              type="submit"
-              className="hidden h-12 shrink-0 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:inline-flex"
-            >
-              Buscar
-            </button>
-          </form>
+          </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <AdultModeToggle variant="hero" />

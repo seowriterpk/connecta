@@ -50,10 +50,14 @@ export const metadata: Metadata = {
 };
 
 export default async function AgregarGrupoPage() {
-  const [categories, countries] = await Promise.all([
-    getCategories(),
+  // Clean + adult categories: the form's category step has an 18+ toggle that
+  // shows ONLY adult categories when on (clean hidden) — both lists needed.
+  const [cleanCategories, adultCategories, countries] = await Promise.all([
+    getCategories({ adult: "exclude" }),
+    getCategories({ adult: "only" }),
     getCountries(),
   ]);
+  const categories = [...cleanCategories, ...adultCategories];
 
   // JSON-LD: WebPage describing the public submission page.
   const webPageJsonLd = {

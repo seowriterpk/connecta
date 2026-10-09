@@ -4,10 +4,11 @@ import Link from "next/link";
 import { ChevronRight, ShieldCheck, ExternalLink, Clock, CheckCircle2 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { getGroupBySlug, getRatingsBatch } from "@/lib/data";
-import { getRelatedGroups } from "@/lib/related-groups";
+import { getRecentRelatedGroups } from "@/lib/related-groups";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { GroupImage } from "@/components/site/group-image";
+import { CountryFlag } from "@/components/site/country-flag";
 import { GroupCard } from "@/components/site/group-card";
 import { BackToTop } from "@/components/site/back-to-top";
 import { VerifyClient } from "@/components/site/verify-client";
@@ -36,7 +37,8 @@ export default async function VerifyPage({ params }: PageProps) {
   if (!group) notFound();
 
   const [related, ratingsBatch] = await Promise.all([
-    getRelatedGroups(group.id, group.category?.name ?? "", group.country?.name ?? "", 10),
+    // Most recent groups in the same category (siloed by adult flag).
+    getRecentRelatedGroups(group.id, group.category?.id, group.isAdult, 9),
     getRatingsBatch([group.id]),
   ]);
 
@@ -50,7 +52,7 @@ export default async function VerifyPage({ params }: PageProps) {
             <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
               <li><Link href="/" className="hover:text-primary">Inicio</Link></li>
               <li><ChevronRight className="h-3 w-3" /></li>
-              <li><Link href={`/${group.slug}`} className="hover:text-primary">{group.title}</Link></li>
+              <li><Link href={`/grupo/${group.slug}`} className="hover:text-primary">{group.title}</Link></li>
               <li><ChevronRight className="h-3 w-3" /></li>
               <li className="font-medium text-foreground">Verificar</li>
             </ol>
@@ -65,7 +67,7 @@ export default async function VerifyPage({ params }: PageProps) {
                 <GroupImage src={group.imageUrl} alt={group.title} title={group.title} size={80} className="rounded-2xl" fallbackEmoji={group.category?.icon} />
                 <h1 className="mt-4 text-xl font-bold sm:text-2xl">{group.title}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {group.country?.flag} {group.country?.name}{group.city ? ` · ${group.city}` : ""}
+                  {group.country && (<><CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}</>)}{group.city ? ` · ${group.city}` : ""}
                 </p>
               </div>
 
@@ -86,10 +88,10 @@ export default async function VerifyPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Related groups */}
+          {/* Related groups — newest in the same category */}
           {related.length > 0 && (
             <section className="mx-auto mt-12 max-w-5xl">
-              <h2 className="mb-4 text-lg font-bold">Grupos que también te pueden interesar</h2>
+              <h2 className="mb-4 text-lg font-bold">Grupos nuevos de la misma categoría</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((r) => (
                   <GroupCard key={r.id} group={r} rating={ratingsBatch[r.id]} />

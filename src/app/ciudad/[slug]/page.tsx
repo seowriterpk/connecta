@@ -12,19 +12,21 @@ import {
   Building2,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { CountryFlag } from "@/components/site/country-flag";
 import {
   getCityBySlug,
   getGroupsByCityPaginated,
   getRatingsBatch,
-  getCategories,
-  getCountries,
 } from "@/lib/data";
+import {
+  getTaxonomyContent,
+  buildTaxonomyMetaDescription,
+} from "@/lib/taxonomy-intro";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +56,15 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const title = `Grupos de WhatsApp en ${city.city} | ConectaGrupos`;
-  const description =
-    `Descubre los mejores grupos de WhatsApp en ${city.city} ${city.countryFlag}. ` +
-    `${city.groupCount} ${city.groupCount === 1 ? "comunidad activa" : "comunidades activas"} ` +
-    `a las que puedes unirte hoy mismo, sin registros y gratis. ` +
-    `Encuentra tu grupo ideal en ${city.city} con ConectaGrupos.`;
+  // Dynamic meta description: custom hero override wins, else keyword-derived
+  // from the oldest groups of this city (one keyword per group).
+  const taxContent = await getTaxonomyContent("city", city.city);
+  const description = buildTaxonomyMetaDescription(
+    "city",
+    city.city,
+    taxContent,
+    city.groupCount
+  );
 
   return {
     title: { absolute: title },
@@ -100,11 +106,7 @@ export default async function CityPage({
   const city = await getCityBySlug(slug);
   if (!city) notFound();
 
-  const [result, categories, countries] = await Promise.all([
-    getGroupsByCityPaginated(city.city, page),
-    getCategories(),
-    getCountries(),
-  ]);
+  const result = await getGroupsByCityPaginated(city.city, page);
   if (!result) notFound();
   const groups = result.groups;
   const basePath = `/ciudad/${slug}`;
@@ -113,6 +115,10 @@ export default async function CityPage({
   const rangeEnd = rangeStart + groups.length - 1;
 
   const ratings = await getRatingsBatch(groups.map((g) => g.id));
+
+  // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
+  // shares the lookup with generateMetadata.
+  const content = await getTaxonomyContent("city", city.city);
 
   // JSON-LD: CollectionPage about a City (Place subtype)
   const collectionPageJsonLd = {
@@ -210,10 +216,10 @@ export default async function CityPage({
             <div className="mx-auto flex max-w-4xl flex-col items-start gap-5">
               <div className="flex items-start gap-4">
                 <span
-                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 text-4xl sm:h-20 sm:w-20 sm:text-5xl"
+                  className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 p-2 sm:h-20 sm:w-20"
                   aria-hidden
                 >
-                  {city.countryFlag}
+                  <CountryFlag code={city.countryCode} className="h-10 w-15 rounded-[3px] sm:h-12 sm:w-18" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -221,13 +227,26 @@ export default async function CityPage({
                     <span>Ciudad</span>
                   </div>
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-                    Grupos de WhatsApp en {city.city}
+                    {content.customTitle ?? `Grupos de WhatsApp en ${city.city}`}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Directorio de comunidades hispanohablantes activas en {city.city}. Elige
-                    una categoría, abre el enlace de invitación y únete en un toque: sin
-                    registros, sin comisiones y desde cualquier dispositivo.
-                  </p>
+                  {content.customHeroDesc ? (
+                    <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                      {content.customHeroDesc}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        Directorio de comunidades hispanohablantes activas en {city.city}. Elige
+                        una categoría, abre el enlace de invitación y únete en un toque: sin
+                        registros, sin comisiones y desde cualquier dispositivo.
+                      </p>
+                      {content.keywordSentence && (
+                        <p className="mt-1.5 max-w-2xl text-xs text-muted-foreground/80">
+                          Temas: {content.keywordSentence}.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -239,7 +258,7 @@ export default async function CityPage({
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
-                  {city.countryFlag} {city.countryCode.toUpperCase()}
+                  <CountryFlag code={city.countryCode} /> {city.countryCode.toUpperCase()}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <MessageCircle className="h-3.5 w-3.5 text-primary" />
@@ -271,15 +290,12 @@ export default async function CityPage({
                   {result.total === 1 ? "grupo" : "grupos"}
                 </p>
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
             {groups.length === 0 ? (
@@ -295,15 +311,12 @@ export default async function CityPage({
                   ayuda a otros hispanohablantes a encontrar su sitio.
                 </p>
                 <div className="mt-6 flex justify-center">
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar mi grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar mi grupo
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -337,6 +350,15 @@ export default async function CityPage({
               </h2>
 
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
+                {content.customIntro ? (
+                  // Bulk-edited long description (admin SEO → intros JSON import).
+                  // Paragraphs separated by blank lines in the custom text.
+                  content.customIntro
+                    .split(/\n\s*\n/)
+                    .filter((p) => p.trim().length > 0)
+                    .map((p, i) => <p key={i}>{p}</p>)
+                ) : (
+                  <>
                 <p>
                   Los <strong className="font-semibold text-foreground">grupos de WhatsApp en{" "}
                   {city.city}</strong> reúnen a personas que viven, trabajan o pasan por la
@@ -386,6 +408,8 @@ export default async function CityPage({
                   enlaces de invitación de WhatsApp funcionan desde cualquier país, así que
                   llevas tu comunidad hispana allá donde vayas.
                 </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">
@@ -431,15 +455,12 @@ export default async function CityPage({
                 están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
                 publicamos en este directorio.
               </p>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+              </Link>
             </div>
           </div>
         </section>

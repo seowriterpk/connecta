@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useGroupsFilter } from "@/lib/store";
 import type { CountryDTO } from "@/lib/types";
 import { REGIONS } from "@/lib/constants";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export function CountriesSection({ countries }: { countries: CountryDTO[] }) {
   const setCountry = useGroupsFilter((s) => s.setCountry);
@@ -70,7 +71,7 @@ export function CountriesSection({ countries }: { countries: CountryDTO[] }) {
               href={`/pais/${c.code}`}
               className="group flex items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <span className="text-2xl leading-none">{c.flag}</span>
+              <CountryFlag code={c.code} name={c.name} className="h-8 w-12 rounded-[3px]" />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{c.name}</span>
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

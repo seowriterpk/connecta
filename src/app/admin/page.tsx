@@ -35,6 +35,7 @@ import {
   Eye,
   ListChecks,
   ExternalLink,
+  Newspaper,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -121,6 +122,12 @@ const QUICK_ACTIONS = [
     title: "Cola UGC",
     desc: "Revisa envíos de usuarios y apruébalos.",
     icon: Inbox,
+  },
+  {
+    href: "/admin/blog",
+    title: "Blog",
+    desc: "Redacta, edita y publica entradas del blog.",
+    icon: Newspaper,
   },
   {
     href: "/admin/json-builder",

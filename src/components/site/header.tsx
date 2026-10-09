@@ -133,7 +133,7 @@ export function SiteHeader() {
             <Sun className={`h-5 w-5 ${isDark ? "inline" : "hidden"}`} />
             <Moon className={`h-5 w-5 ${isDark ? "hidden" : "inline"}`} />
           </Button>
-          <Button asChild className="hidden sm:inline-flex" size="sm">
+          <Button asChild className="hidden rounded-full px-4 shadow-sm shadow-primary/25 sm:inline-flex" size="sm">
             <Link href="/agregar-grupo">Enviar un grupo</Link>
           </Button>
 

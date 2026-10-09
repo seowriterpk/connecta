@@ -34,12 +34,18 @@ export async function GET(req: NextRequest) {
     }
 
     const contentType = res.headers.get("content-type") || "image/jpeg";
+    // Hardening: only ever serve image content from this proxy (never HTML/JS
+    // that could be sniffed/executed from our origin).
+    if (!contentType.startsWith("image/")) {
+      return NextResponse.json({ error: "Not an image" }, { status: 415 });
+    }
     const buffer = Buffer.from(await res.arrayBuffer());
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": "public, max-age=3600",
       },
     });

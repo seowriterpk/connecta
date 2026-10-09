@@ -1,6 +1,7 @@
 import { FileText } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { SITE } from "@/lib/constants";
+import { jsonLdScript } from "@/lib/jsonld";
 
 const articleJsonLd = {
   "@context": "https://schema.org",
@@ -21,7 +22,7 @@ export function LongFormSection() {
     <section id="sobre-whatsapp" className="border-t bg-background">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(articleJsonLd) }}
       />
       <div className="container mx-auto px-4 py-14 sm:py-16">
         <div className="mx-auto max-w-3xl">

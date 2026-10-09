@@ -4,6 +4,7 @@ import * as React from "react";
 import { Building2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
+import { CountryFlag } from "@/components/site/country-flag";
 
 interface CityDTO {
   city: string;
@@ -44,7 +45,7 @@ export function CitiesSection({ cities }: { cities: CityDTO[] }) {
                 href={`/ciudad/${c.slug}`}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                <span className="text-2xl leading-none">{c.countryFlag}</span>
+                <CountryFlag code={c.countryCode} className="h-8 w-12 rounded-[3px]" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{c.city}</span>
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

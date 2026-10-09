@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Building2, MapPin } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getAllCities } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
+import { jsonLdScript } from "@/lib/jsonld";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export const metadata: Metadata = {
     url: `${SITE.url}/ciudades`,
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
 };
 
@@ -38,7 +41,7 @@ export default async function CiudadesPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <SiteHeader />
       <main className="flex-1">
         <nav aria-label="Migas de pan" className="border-b bg-muted/30">
@@ -68,7 +71,7 @@ export default async function CiudadesPage() {
                   href={`/ciudad/${c.slug}`}
                   className="group flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <span className="text-2xl leading-none">{c.countryFlag}</span>
+                  <CountryFlag code={c.countryCode} className="h-8 w-12 rounded-[3px]" />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{c.city}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

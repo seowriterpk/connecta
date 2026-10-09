@@ -104,10 +104,12 @@ async function main() {
       urlEntry(`${BASE_URL}/reportar-grupo`, undefined, "monthly", "0.5"),
     ]);
 
-    // Author profiles — staff uploaders + community contributors (+ index page)
+    // Author profiles — staff uploaders ONLY (+ index page).
+    // UGC contributors never get author pages (they only appear as
+    // "publicado por" credits on group pages), so they must NOT be here.
     const autores = await q(
       pool,
-      "SELECT `slug` FROM `uploaders` UNION SELECT `displaySlug` FROM `ugc_contributors` WHERE `isBlocked` = 0 AND `isRemoved` = 0"
+      "SELECT `slug` FROM `uploaders`"
     );
     writeSitemap(
       "autores.xml",

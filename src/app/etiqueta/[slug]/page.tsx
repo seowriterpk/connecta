@@ -16,8 +16,6 @@ import {
   getGroupsByTagPaginated,
   getRelatedTags,
   getRatingsBatch,
-  getCategories,
-  getCountries,
   citySlug,
 } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
@@ -25,7 +23,6 @@ import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
-import { SubmitDialog } from "@/components/site/submit-dialog";
 import { Pagination } from "@/components/site/pagination";
 
 export const dynamic = "force-dynamic";
@@ -99,11 +96,9 @@ export default async function TagPage({ params, searchParams }: PageProps) {
   const tag = await getTagBySlug(slug);
   if (!tag) notFound();
 
-  const [result, relatedTags, categories, countries] = await Promise.all([
+  const [result, relatedTags] = await Promise.all([
     getGroupsByTagPaginated(tag.name, page),
     getRelatedTags(tag.name, 16),
-    getCategories(),
-    getCountries(),
   ]);
   const groups = result.groups;
   const basePath = `/etiqueta/${tag.slug}`;
@@ -260,15 +255,12 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                   </p>
                 )}
               </div>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar un grupo
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar un grupo
+              </Link>
             </div>
 
             {groups.length === 0 ? (
@@ -284,15 +276,12 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                   y ayuda a otros hispanohablantes a encontrar tu grupo.
                 </p>
                 <div className="mt-6 flex justify-center">
-                  <SubmitDialog
-                    categories={categories}
-                    countries={countries}
-                    trigger={
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]">
-                        <Plus className="h-4 w-4" /> Enviar mi grupo
-                      </button>
-                    }
-                  />
+                  <Link
+                    href="/agregar-grupo"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    <Plus className="h-4 w-4" /> Enviar mi grupo
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -421,15 +410,12 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                 que están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y
                 lo etiquetamos para que aparezca en esta página.
               </p>
-              <SubmitDialog
-                categories={categories}
-                countries={countries}
-                trigger={
-                  <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                    <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                  </button>
-                }
-              />
+              <Link
+                href="/agregar-grupo"
+                className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+              </Link>
             </div>
           </div>
         </section>

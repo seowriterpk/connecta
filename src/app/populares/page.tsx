@@ -14,7 +14,7 @@ import {
   Sparkles,
   Clock,
 } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import {
   getGroups,
   getTopRatedGroups,
@@ -33,6 +33,7 @@ import { Reveal } from "@/components/site/reveal";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 import { PopularesFilters } from "@/components/site/populares-filters";
 import { MoversSection } from "@/components/site/movers-section";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -100,8 +101,10 @@ export async function generateMetadata({
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
+      images: [OG_IMAGE],
     },
-    twitter: { card: "summary_large_image", title, description },
+    twitter: { card: "summary_large_image",
+      images: ["/og.svg"], title, description },
     keywords: [
       "grupos de WhatsApp populares",
       "grupos de WhatsApp más activos",
@@ -194,7 +197,7 @@ export default async function PopularesPage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <SiteHeader />
 
       <main className="flex-1">

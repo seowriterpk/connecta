@@ -56,7 +56,13 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
     "Accept-Encoding": "gzip, deflate",
   };
 
-  // Attempt 1: direct (2s timeout)
+  // WhatsApp og:title can appear deep in the <head> after large inline
+  // scripts. 8KB occasionally CUT AN HTML ENTITY IN HALF
+  // ("&#x1d431;" → "&#x1"), producing broken group names like
+  // "&#x1d431; &#x30fb; &#x1d400;… &#x1". 64KB keeps every meta tag intact.
+  const HTML_PREVIEW_BYTES = 65536;
+
+  // Attempt 1: direct (5s timeout)
   let html = "";
   try {
     const controller = new AbortController();
@@ -68,9 +74,8 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
     });
     clearTimeout(timeout);
     if (res.ok) {
-      // Read response and take first 8KB (og tags are always in first 4KB)
       const text = await res.text();
-      html = text.slice(0, 8192);
+      html = text.slice(0, HTML_PREVIEW_BYTES);
     }
   } catch {
     // direct failed, try proxy
@@ -91,7 +96,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       clearTimeout(timeout);
       if (res.ok) {
         const text = await res.text();
-        html = text.slice(0, 8192);
+        html = text.slice(0, HTML_PREVIEW_BYTES);
       }
     } catch {
       // proxy also failed
@@ -114,9 +119,45 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
   const ogImage = extractMetaTag(html, "og:image");
   const ogDesc = extractMetaTag(html, "og:description");
 
-  // Decode HTML entities in title (e.g. &amp; → &)
-  const decodeEntities = (s: string) =>
-    s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+  // Decode HTML entities in title.
+  //
+  // WhatsApp encodes styled/gaming names (mathematical Unicode fonts such as
+  // "𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊") as NUMERIC entities: &#x1d431; &#x30fb; &#x1d400; …
+  // The old decoder only handled named entities (&amp; &lt; …), so those names
+  // surfaced in the UI as literal "&#x1d431;" text. This decoder handles:
+  //   - hex numeric:  &#x1D431;  / &#X1D431;
+  //   - dec numeric:  &#119825;
+  //   - named:        &amp; &lt; &gt; &quot; &#39; &apos; &nbsp;
+  const decodeEntities = (s: string): string =>
+    s
+      .replace(/&#x([0-9a-f]+);?/gi, (m, hex: string) => safeFromCodePoint(parseInt(hex, 16), m))
+      .replace(/&#(\d+);?/g, (m, dec: string) => safeFromCodePoint(parseInt(dec, 10), m))
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/gi, "'")
+      // Strip zero-width / directional characters WhatsApp mixes in, plus any
+      // C0 control characters (a half-cut entity like "&#x1" would otherwise
+      // decode to \u0001 and end up inside the group name).
+      .replace(/[\u0000-\u0008\u000b-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060\ufeff\u00ad]/g, "")
+      .trim();
+
+  // Convert a code point to a string, defensively: invalid code points
+  // (surrogates, > 0x10FFFF) would throw from String.fromCodePoint and kill
+  // the whole fetch — on failure we drop the entity instead of crashing.
+  function safeFromCodePoint(cp: number, original: string): string {
+    if (!Number.isFinite(cp) || cp < 0 || cp > 0x10ffff) return "";
+    // Skip surrogate halves — they are not valid standalone characters.
+    if (cp >= 0xd800 && cp <= 0xdfff) return "";
+    try {
+      return String.fromCodePoint(cp);
+    } catch {
+      return "";
+    }
+  }
 
   // Determine status
   if (ogTitle && ogTitle !== "WhatsApp Group Invite" && ogTitle.trim() !== "") {

@@ -373,6 +373,28 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       KEY \`idx_gds_day\` (\`day\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
+  {
+    name: "blog_posts",
+    sql: `CREATE TABLE IF NOT EXISTS \`blog_posts\` (
+      \`id\` VARCHAR(191) NOT NULL PRIMARY KEY,
+      \`slug\` VARCHAR(191) NOT NULL UNIQUE,
+      \`title\` VARCHAR(255) NOT NULL,
+      \`excerpt\` VARCHAR(500) DEFAULT NULL,
+      \`content\` MEDIUMTEXT NOT NULL,
+      \`coverEmoji\` VARCHAR(16) DEFAULT '📝',
+      \`tags\` VARCHAR(500) DEFAULT NULL,
+      \`authorName\` VARCHAR(120) DEFAULT 'Equipo ConectaGrupos',
+      \`status\` VARCHAR(32) NOT NULL DEFAULT 'draft',
+      \`metaTitle\` VARCHAR(255) DEFAULT NULL,
+      \`metaDescription\` VARCHAR(500) DEFAULT NULL,
+      \`readingMinutes\` INT NOT NULL DEFAULT 4,
+      \`views\` INT NOT NULL DEFAULT 0,
+      \`publishedAt\` DATETIME DEFAULT NULL,
+      \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY \`idx_blog_status_published\` (\`status\`, \`publishedAt\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
 ];
 
 /**

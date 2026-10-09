@@ -6,6 +6,11 @@ export const dynamic = "force-dynamic";
 
 const WHATSAPP_INVITE_RE = /^https?:\/\/(chat\.whatsapp\.com|wa\.me)\/[A-Za-z0-9\-_]+/i;
 
+// Code-point based limit: styled Unicode names (math bold "𝐀𝐃𝐈𝐋") count as
+// 1 char per glyph here, not 2 UTF-16 units.
+const TITLE_MAX_CP = 120;
+const INVISIBLE_RE = /[\u200b-\u200f\u202a-\u202e\u2060\ufeff\u00ad]/g;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
@@ -16,7 +21,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const title = String(body.title ?? "").trim();
+    const title = String(body.title ?? "").replace(INVISIBLE_RE, "").trim();
     const description = String(body.description ?? "").trim();
     const inviteLink = String(body.inviteLink ?? "").trim();
     const categoryId = String(body.categoryId ?? "").trim();
@@ -26,10 +31,11 @@ export async function POST(req: NextRequest) {
     const imageUrl = body.imageUrl ? String(body.imageUrl).trim() : "";
     const tags = Array.isArray(body.tags) ? body.tags.map(String).slice(0, 8) : [];
 
-    // Validaciones
-    if (title.length < 5 || title.length > 80) {
+    // Validaciones (longitud por PUNTOS DE CÓDIGO — los nombres con fuentes
+    // estilizadas usan glifos SMP que valen 2 unidades UTF-16 cada uno)
+    if ([...title].length < 5 || [...title].length > TITLE_MAX_CP) {
       return NextResponse.json(
-        { ok: false, error: "El título debe tener entre 5 y 80 caracteres." },
+        { ok: false, error: `El título debe tener entre 5 y ${TITLE_MAX_CP} caracteres.` },
         { status: 400 }
       );
     }

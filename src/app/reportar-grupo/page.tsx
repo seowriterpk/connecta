@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Flag, ChevronRight, ShieldAlert } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { ReportGroupClient } from "@/components/site/report-group-client";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
   title: { absolute: `Reportar un Grupo — ${SITE.name}` },
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
   keywords: [
     "reportar grupo WhatsApp",
@@ -90,11 +92,11 @@ export default function ReportarGrupoPage() {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd) }}
       />
       <SiteHeader />
       <main className="flex-1">

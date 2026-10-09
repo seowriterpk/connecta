@@ -1,11 +1,7 @@
-"use client";
-
-import * as React from "react";
+import Link from "next/link";
 import { Plus, MessageCircle } from "lucide-react";
-import { SubmitDialog } from "@/components/site/submit-dialog";
-import type { CategoryDTO, CountryDTO } from "@/lib/types";
 
-export function CtaBanner({ categories, countries }: { categories: CategoryDTO[]; countries: CountryDTO[] }) {
+export function CtaBanner() {
   return (
     <section id="enviar" className="border-t bg-gradient-to-br from-primary to-emerald-700 text-primary-foreground">
       <div className="container mx-auto px-4 py-14 sm:py-16">
@@ -21,15 +17,12 @@ export function CtaBanner({ categories, countries }: { categories: CategoryDTO[]
             Revisamos cada envío para mantener el directorio limpio y útil para todos.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <SubmitDialog
-              categories={categories}
-              countries={countries}
-              trigger={
-                <button className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]">
-                  <Plus className="h-4 w-4" /> Enviar mi grupo ahora
-                </button>
-              }
-            />
+            <Link
+              href="/agregar-grupo"
+              className="inline-flex items-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background/90 active:scale-[0.98]"
+            >
+              <Plus className="h-4 w-4" /> Enviar mi grupo ahora
+            </Link>
             <a
               href="/"
               className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-white/10"

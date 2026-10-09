@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, ChevronRight, ArrowRight, Clock } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal, StaggerGrid, StaggerItem } from "@/components/site/reveal";
 import { Badge } from "@/components/ui/badge";
 import { GUIDES } from "@/lib/guides";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
   title: { absolute: `Guías y Tutoriales — ${SITE.name}` },
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
   keywords: [
     "guías grupos WhatsApp",
@@ -63,7 +65,7 @@ export default function GuiasPage() {
     <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
       />
       <SiteHeader />
       <main className="flex-1">
@@ -108,7 +110,7 @@ export default function GuiasPage() {
               {GUIDES.map((g, i) => (
                 <StaggerItem key={g.title}>
                   <Link
-                    href={`/guias`}
+                    href="/blog"
                     className="group flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                   >
                     <div className="flex items-start gap-3">

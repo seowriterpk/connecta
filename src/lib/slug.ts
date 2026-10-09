@@ -13,6 +13,13 @@
  * 6. Collapse multiple hyphens
  * 7. Trim hyphens from start/end
  * 8. Truncate to 80 chars
+ *
+ * Unicode note (styled/gaming names):
+ * WhatsApp groups use mathematical alphanumeric symbols ("𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆")
+ * which NFKD-normalize to plain ASCII ("ADIL PUBG"), circled digits (➊→1),
+ * fullwidth forms, etc. Without NFKD, "𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊" would strip
+ * down to a useless "grupo" slug. We normalize FIRST so styled names
+ * produce real, indexable URLs like "x-adil-pubg-shop-1".
  */
 
 const ACCENT_MAP: Record<string, string> = {
@@ -26,9 +33,13 @@ const ACCENT_MAP: Record<string, string> = {
 export function generateSlug(text: string): string {
   if (!text) return "grupo";
 
-  let s = text;
+  // Step 0: NFKD normalization — converts styled Unicode fonts
+  // (math bold/italic, circled digits, fullwidth…) to their ASCII base
+  // characters. Also decomposes accented letters (á → a + combining mark),
+  // which the filter below strips, so accents are handled twice, safely.
+  let s = text.normalize("NFKD");
 
-  // Step 2: Replace accented characters
+  // Step 2: Replace accented characters (precomposed forms)
   for (const [from, to] of Object.entries(ACCENT_MAP)) {
     s = s.split(from).join(to);
   }
@@ -43,10 +54,15 @@ export function generateSlug(text: string): string {
   s = s.replace(/%/g, "por");
   s = s.replace(/@/g, "en");
 
+  // Middle dots / bullets / tildes used as decorative separators in styled
+  // names (・ • · ~ ✦ etc.) → hyphen so "𝐱・𝐀𝐃𝐈𝐋" becomes "x-adil", not "xadil".
+  s = s.replace(/[\u30fb\u2022\u00b7\u2024\u2027\u00b7\uff0e\u002e\u2013\u2014\u2192\u2013]+/g, "-");
+
   // Step 4: Replace spaces with hyphens
   s = s.replace(/\s+/g, "-");
 
   // Step 5: Remove everything not a-z, 0-9, or hyphen
+  // (this also strips combining marks left over from NFKD + all emoji)
   s = s.replace(/[^a-z0-9-]/g, "");
 
   // Step 6: Collapse multiple hyphens

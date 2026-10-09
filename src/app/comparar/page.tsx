@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Scale, Sparkles } from "lucide-react";
-import { SITE } from "@/lib/constants";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getGroups } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 import { CompareTool } from "@/components/site/compare-tool";
+import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +28,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: SITE.name,
+      images: [OG_IMAGE],
   },
-  twitter: { card: "summary_large_image", title, description },
+  twitter: { card: "summary_large_image",
+      images: ["/og.svg"], title, description },
   keywords: [
     "comparar grupos de WhatsApp",
     "cual grupo de WhatsApp es mejor",
@@ -65,7 +68,7 @@ export default async function CompararPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <SiteHeader />
 
       <main className="flex-1">
