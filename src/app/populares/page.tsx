@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -6,7 +7,6 @@ import {
   MousePointerClick,
   Eye,
   Users,
-  Star,
   Trophy,
   Medal,
   Award,
@@ -17,14 +17,11 @@ import {
 import { SITE, OG_IMAGE } from "@/lib/constants";
 import {
   getGroups,
-  getTopRatedGroups,
-  getRatingsBatch,
   getStats,
   getCategories,
   getCountries,
   getTrendingMovers,
 } from "@/lib/data";
-import type { GroupDTO } from "@/lib/types";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -37,12 +34,11 @@ import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
-type Orden = "vistos" | "clics" | "valorados" | "recientes";
+type Orden = "vistos" | "clics" | "recientes";
 
 const ORDENES: { value: Orden; label: string; icon: typeof Eye; desc: string }[] = [
   { value: "vistos", label: "Más vistos", icon: Eye, desc: "Grupos que más gente está explorando ahora mismo." },
   { value: "clics", label: "Más clics", icon: MousePointerClick, desc: "Los grupos que más gente está intentando compartir y visitar." },
-  { value: "valorados", label: "Mejor valorados", icon: Star, desc: "Comunidades con las mejores notas de la comunidad." },
   { value: "recientes", label: "Recién llegados", icon: Clock, desc: "Lo último publicado en el directorio." },
 ];
 
@@ -86,8 +82,8 @@ export async function generateMetadata({
     ? `Grupos de WhatsApp más populares ${contextLabel.includes(" · ") ? "— " : "en "}${contextLabel} — ${SITE.name}`
     : `Grupos de WhatsApp más populares — ${SITE.name}`;
   const description = contextLabel
-    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking en vivo por vistas, clics y valoraciones de la comunidad.`
-    : "Descubre los grupos de WhatsApp en español más populares del momento: los más vistos, los que más gente se une y los mejor valorados por la comunidad.";
+    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking en vivo por vistas y clics de la comunidad.`
+    : "Descubre los grupos de WhatsApp en español más populares del momento: los más vistos, los con más clics de unión y lo último publicado en el directorio.";
   return {
     title: { absolute: title },
     description,
@@ -125,6 +121,14 @@ export default async function PopularesPage({
   const pais = cleanParam(sp.pais);
   const cat = cleanParam(sp.cat);
 
+  // Single curated page by design: any ?page= other than a bare "1" would be
+  // fake pagination (same content, duplicate URLs) → 404 instead of silently
+  // serving the identical first page again.
+  const pageParam = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  if (pageParam !== undefined && (!/^\d+$/.test(pageParam) || Number(pageParam) !== 1)) {
+    notFound();
+  }
+
   // Resolve active filters into ids (unknown codes/slugs are ignored).
   const [allCountries, allCategories] = await Promise.all([getCountries(), getCategories()]);
   const activeCountry = pais ? allCountries.find((c) => c.code === pais) ?? null : null;
@@ -135,32 +139,15 @@ export default async function PopularesPage({
   };
 
   // Fetch the ranking for the active tab + filters.
-  let groups: GroupDTO[];
-  if (orden === "valorados") {
-    // Top-rated has no filter support — fetch a wide set and filter locally.
-    let rated = await getTopRatedGroups(60);
-    if (activeCountry) rated = rated.filter((g) => g.country?.code === activeCountry.code);
-    if (activeCategory) rated = rated.filter((g) => g.category?.slug === activeCategory.slug);
-    groups = rated.slice(0, PER_PAGE);
-    // Top-rated groups may be few — pad with filtered popular ones to keep the grid lively.
-    if (groups.length < 8) {
-      const extra = (await getGroups({ ...filters, sort: "populares", limit: PER_PAGE })).filter(
-        (g) => !groups.some((x) => x.id === g.id)
-      );
-      groups = [...groups, ...extra].slice(0, PER_PAGE);
-    }
-  } else {
-    const sortMap: Record<Exclude<Orden, "valorados">, "populares" | "destacados" | "recientes"> = {
-      vistos: "populares",
-      clics: "destacados",
-      recientes: "recientes",
-    };
-    groups = await getGroups({ ...filters, sort: sortMap[orden], limit: PER_PAGE });
-  }
+  const sortMap: Record<Orden, "populares" | "destacados" | "recientes"> = {
+    vistos: "populares",
+    clics: "destacados",
+    recientes: "recientes",
+  };
+  const groups = await getGroups({ ...filters, sort: sortMap[orden], limit: PER_PAGE });
 
-  const [stats, ratings, movers] = await Promise.all([
+  const [stats, movers] = await Promise.all([
     getStats(),
-    getRatingsBatch(groups.map((g) => g.id)),
     // Movers are a global signal — only fetched/rendered on the unfiltered view.
     pais || cat ? Promise.resolve([]) : getTrendingMovers(6),
   ]);
@@ -224,7 +211,7 @@ export default async function PopularesPage({
               </h1>
               <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
                 {active.desc} El ranking se recalcula en cada visita con las métricas reales
-                del directorio: vistas, clics y valoraciones de la comunidad.
+                del directorio: vistas y clics de la comunidad.
               </p>
 
               {/* Stats chips */}
@@ -239,7 +226,7 @@ export default async function PopularesPage({
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
                   <Users className="h-3.5 w-3.5 text-primary" />
-                  <span className="tabular-nums">{totalMembers.toLocaleString("es-ES")}</span> miembros
+                  <span className="tabular-nums">{totalMembers.toLocaleString("es-ES")}</span> miembros estimados
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
@@ -336,12 +323,11 @@ export default async function PopularesPage({
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {groups.map((g, i) => {
-                  const rating = ratings[g.id] ?? null;
                   return (
                     <Reveal key={g.id} delay={Math.min(i * 0.03, 0.3)}>
                       <div className="relative">
                         <RankBadge rank={i + 1} />
-                        <GroupCard group={g} rating={rating} />
+                        <GroupCard group={g} />
                       </div>
                     </Reveal>
                   );
@@ -380,16 +366,14 @@ export default async function PopularesPage({
                   En {SITE.name} la popularidad no se inventa: se mide. Cada vez que alguien
                   abre la ficha de un grupo contamos una <strong className="font-semibold text-foreground">vista</strong>,
                   y cuando pulsa el botón para unirse, un <strong className="font-semibold text-foreground">clic</strong>.
-                  Sumamos también las <strong className="font-semibold text-foreground">valoraciones</strong> de
-                  1 a 5 estrellas que dejan quienes ya forman parte de la comunidad. Con esas tres
-                  señales construimos los rankings de esta página.
+                  Con esas dos señales — reales y medibles, sin notas inventadas — construimos
+                  los rankings de esta página.
                 </p>
                 <p>
-                  El ranking <em>Más vistos</em> refleja la curiosidad: grupos que mucha gente está
-                  descubriendo. El de <em>Más clics</em> refleja la intención real de unirse. Y el de{" "}
-                  <em>Mejor valorados</em> recoge la experiencia de quienes ya están dentro, por lo que
-                  suele ser el más fiable si buscas calidad. Si acabas de llegar, también tienes la
-                  pestaña de <em>Recién llegados</em> para no perderte nada nuevo.
+                  El ranking <em>Más vistos</em> refleja la curiosidad: grupos que mucha gente
+                  está descubriendo. El de <em>Más clics</em> refleja la intención real de
+                  unirse. Y si acabas de llegar, tienes la pestaña de <em>Recién llegados</em>
+                  para no perderte nada nuevo.
                 </p>
                 <p>
                   La sección <strong className="font-semibold text-foreground">En ascenso</strong> va un paso
@@ -402,7 +386,7 @@ export default async function PopularesPage({
                 <p>
                   ¿Dudas entre varios? Ponlos frente a frente en el{" "}
                   <Link href="/comparar" className="font-medium text-primary hover:underline">comparador de grupos</Link>{" "}
-                  para ver miembros, clics y valoraciones lado a lado. También puedes afinar con el{" "}
+                  para ver miembros, vistas y clics lado a lado. También puedes afinar con el{" "}
                   <Link href="/buscar" className="font-medium text-primary hover:underline">buscador</Link>, las{" "}
                   <Link href="/categorias" className="font-medium text-primary hover:underline">categorías</Link> y
                   los <Link href="/paises" className="font-medium text-primary hover:underline">países</Link> para

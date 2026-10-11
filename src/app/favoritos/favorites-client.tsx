@@ -38,14 +38,11 @@ import { RecentlyViewed } from "@/components/site/recently-viewed";
 import type { GroupDTO } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
-type Ratings = Record<string, { avg: number; count: number }>;
-
-type SortMode = "recent" | "members" | "rating";
+type SortMode = "recent" | "members";
 
 const SORT_LABELS: Record<SortMode, string> = {
   recent: "Añadidos recientemente",
   members: "Más miembros",
-  rating: "Mejor valorados",
 };
 
 interface ExportFile {
@@ -66,9 +63,7 @@ export function FavoritesClient() {
   const { toast } = useToast();
 
   const [groups, setGroups] = React.useState<GroupDTO[] | null>(null);
-  const [ratings, setRatings] = React.useState<Ratings>({});
   const [suggestions, setSuggestions] = React.useState<GroupDTO[]>([]);
-  const [suggestionRatings, setSuggestionRatings] = React.useState<Ratings>({});
   const [shareState, setShareState] = React.useState<"idle" | "copied">("idle");
   const [linkState, setLinkState] = React.useState<"idle" | "creating" | "copied">("idle");
   const [importing, setImporting] = React.useState(false);
@@ -95,13 +90,6 @@ export function FavoritesClient() {
         if (cancelled) return;
         const data: GroupDTO[] = Array.isArray(json?.data) ? json.data : [];
         setGroups(data);
-        if (data.length > 0) {
-          const rb = await fetch(
-            `/api/groups/ratings-batch?ids=${encodeURIComponent(data.map((g) => g.id).join(","))}`
-          );
-          const rbJson = await rb.json();
-          if (!cancelled && rbJson?.ok) setRatings(rbJson.data ?? {});
-        }
       } catch {
         if (!cancelled) setGroups([]);
       }
@@ -124,13 +112,6 @@ export function FavoritesClient() {
         if (cancelled || !trJson?.ok) return;
         const data: GroupDTO[] = Array.isArray(trJson.data) ? trJson.data : [];
         setSuggestions(data);
-        if (data.length > 0) {
-          const r2 = await fetch(
-            `/api/groups/ratings-batch?ids=${encodeURIComponent(data.map((g) => g.id).join(","))}`
-          );
-          const r2Json = await r2.json();
-          if (!cancelled && r2Json?.ok) setSuggestionRatings(r2Json.data ?? {});
-        }
       } catch {
         /* suggestions are best-effort */
       }
@@ -152,12 +133,6 @@ export function FavoritesClient() {
     const orderIndex = new Map(orderedIds.map((id, i) => [id, i]));
     if (sortMode === "members") {
       list.sort((a, b) => (b.members ?? 0) - (a.members ?? 0));
-    } else if (sortMode === "rating") {
-      list.sort(
-        (a, b) =>
-          (ratings[b.id]?.count ? ratings[b.id].avg : -1) -
-          (ratings[a.id]?.count ? ratings[a.id].avg : -1)
-      );
     } else {
       // "recent" = the order the user saved them (newest first).
       list.sort(
@@ -165,7 +140,7 @@ export function FavoritesClient() {
       );
     }
     return list;
-  }, [groups, sortMode, ratings, orderedIds]);
+  }, [groups, sortMode, orderedIds]);
 
   async function shareList() {
     if (!groups || groups.length === 0) return;
@@ -403,7 +378,7 @@ export function FavoritesClient() {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {suggestions.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={suggestionRatings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>
@@ -574,7 +549,7 @@ export function FavoritesClient() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
             >
-              <GroupCard group={g} rating={ratings[g.id] ?? null} />
+              <GroupCard group={g} />
             </motion.div>
           ))}
         </div>

@@ -2,15 +2,14 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Users, Eye, BadgeCheck, Star, CalendarDays, MessageCircle, Flag,
+  Users, Eye, BadgeCheck, CalendarDays, MessageCircle, Flag,
   MapPin, Tag, ChevronRight, Share2, Globe2,
   Flame, Clock, Scale, Link2Off,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
-import { query, queryOne } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 import {
   getGroupBySlug,
-  getRatingsBatch,
   getGroupActivity,
   incrementViews,
   touchGroupActivity,
@@ -21,7 +20,6 @@ import { GroupActivityCard } from "@/components/site/group-activity";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { GroupImage } from "@/components/site/group-image";
-import { StarRating } from "@/components/site/star-rating";
 import { ReportDialog } from "@/components/site/report-dialog";
 import { ShareMenu } from "@/components/site/share-menu";
 import { JoinButton, ClickCount } from "@/components/site/join-button";
@@ -35,12 +33,6 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-}
-
-interface ReviewEntryRow {
-  id: string;
-  rating: number;
-  createdAt: Date;
 }
 
 interface UploaderRow {
@@ -101,20 +93,14 @@ export default async function GroupPage({ params }: PageProps) {
   incrementViews(group.id).catch(() => {});
   touchGroupActivity(group.id).catch(() => {});
 
-  const [related, ratingsBatch, ratingEntries, activity] = await Promise.all([
+  const [related, activity] = await Promise.all([
     // Siloed linking: adult groups only see adult related, clean only clean.
     // Deterministic "clicks + old" ordering, max 2 indexed queries.
     getRelatedGroups(group.id, group.category?.id ?? "", group.country?.id ?? "", 8, {
       isAdult: group.isAdult,
     }),
-    getRatingsBatch([group.id]),
-    query<ReviewEntryRow>(
-      "SELECT `id`, `rating`, `createdAt` FROM `group_reviews` WHERE `groupId` = ? ORDER BY `createdAt` DESC LIMIT 10",
-      [group.id]
-    ),
     getGroupActivity(group.id),
   ]);
-  const rating = ratingsBatch[group.id] ?? { avg: 0, count: 0 };
   const uploader = group.uploaderId
     ? await queryOne<UploaderRow>(
         "SELECT `id`, `name`, `slug`, `jobTitle`, `description`, `facebookUrl`, `twitterUrl`, `linkedinUrl`, `websiteUrl`, `imageUrl`, `createdAt`, `lastActiveAt` FROM `uploaders` WHERE `id` = ? LIMIT 1",
@@ -152,13 +138,6 @@ export default async function GroupPage({ params }: PageProps) {
           { "@type": "ListItem", position: group.category ? 4 : 3, name: group.title, item: `${SITE.url}/grupo/${group.slug}` },
         ],
       },
-      ...(rating.count > 0 ? [{
-        "@type": "AggregateRating",
-        ratingValue: rating.avg,
-        reviewCount: rating.count,
-        bestRating: 5,
-        worstRating: 1,
-      }] : []),
       ...(uploader ? [{
         "@type": "Person",
         "@id": `${SITE.url}/autor/${uploader.slug}#person`,
@@ -211,9 +190,13 @@ export default async function GroupPage({ params }: PageProps) {
                     </span>
                   )}
                   {group.isVerified && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    <Link
+                      href="/sobre-nosotros#verificado"
+                      title="Enlace comprobado manualmente por el equipo antes de publicar"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/25 dark:text-emerald-300"
+                    >
                       <BadgeCheck className="h-3 w-3" /> Verificado
-                    </span>
+                    </Link>
                   )}
                   {group.linkStatus === "revoked" && (
                     <span
@@ -248,7 +231,6 @@ export default async function GroupPage({ params }: PageProps) {
               <span className="inline-flex items-center gap-0.5"><Users className="h-3 w-3 text-primary" /> {group.members.toLocaleString("es-ES")}</span>
               <span className="inline-flex items-center gap-0.5"><Eye className="h-3 w-3 text-primary" /> {group.views.toLocaleString("es-ES")}</span>
               {group.clicks > 0 && <span className="inline-flex items-center gap-0.5"><Users className="h-3 w-3 text-primary" /> {group.clicks}</span>}
-              {rating.count > 0 && <span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {rating.avg.toFixed(1)}</span>}
             </div>
           </div>
         </section>
@@ -285,39 +267,7 @@ export default async function GroupPage({ params }: PageProps) {
                 </section>
               )}
 
-              {/* Rating */}
-              <section className="mt-5 flex items-center gap-3">
-                {rating.count > 0 ? (
-                  <>
-                    <span className="text-lg font-bold tabular-nums">{rating.avg.toFixed(1)}</span>
-                    <StarRating groupId={group.id} />
-                    <span className="text-xs text-muted-foreground">({rating.count})</span>
-                  </>
-                ) : (
-                  <StarRating groupId={group.id} />
-                )}
-              </section>
-
-              {/* Review history toggle */}
-              {ratingEntries.length > 0 && (
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-primary">
-                    Ver historial ({ratingEntries.length})
-                  </summary>
-                  <div className="mt-1.5 space-y-1">
-                    {ratingEntries.map((r) => (
-                      <div key={r.id} className="flex items-center gap-2 text-xs">
-                        <span className="flex">
-                          {[1,2,3,4,5].map((i) => (<Star key={i} className={`h-3 w-3 ${i <= r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />))}
-                        </span>
-                        <span className="text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              )}
-
-              {/* Report group — moved below rating */}
+              {/* Report group */}
               <section className="mt-5 border-t pt-4">
                 <ReportDialog group={group} trigger={
                   <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive">
@@ -346,7 +296,7 @@ export default async function GroupPage({ params }: PageProps) {
                     </Link>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {related.map((r) => (<GroupCard key={r.id} group={r} rating={ratingsBatch[r.id]} />))}
+                    {related.map((r) => (<GroupCard key={r.id} group={r} />))}
                   </div>
                 </section>
               )}

@@ -5,10 +5,14 @@ import { useInView } from "framer-motion";
 import { ShieldCheck, Globe2, Zap, Heart, Users, Sparkles, MessageCircle } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { TRUST_POINTS } from "@/lib/constants";
+import { formatMembersEs } from "@/lib/members";
 import type { StatsDTO } from "@/lib/types";
 
 function useCountUp(target: number, inView: boolean, duration = 1400) {
-  const [val, setVal] = React.useState(0);
+  // Estado inicial = valor REAL: el HTML del servidor y el primer render del
+  // cliente muestran el número de verdad (Googlebot sin JS incluido). La
+  // animación 0→target solo corre en el cliente, al entrar en viewport.
+  const [val, setVal] = React.useState(target);
   React.useEffect(() => {
     if (!inView) return;
     let raf = 0;
@@ -35,11 +39,13 @@ function AnimatedStat({
   suffix = "",
   label,
   icon: Icon,
+  format = fmtCount,
 }: {
   value: number;
   suffix?: string;
   label: string;
   icon: React.ElementType;
+  format?: (n: number) => string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
@@ -50,7 +56,7 @@ function AnimatedStat({
         <Icon className="h-5 w-5" />
       </span>
       <div className="text-2xl font-extrabold tabular-nums sm:text-3xl">
-        {fmtCount(v)}
+        {format(v)}
         <span className="text-primary">{suffix}</span>
       </div>
       <div className="text-xs text-muted-foreground">{label}</div>
@@ -87,13 +93,13 @@ export function AboutSection({ stats }: { stats: StatsDTO }) {
         {/* Animated stats band */}
         <Reveal delay={0.1}>
           <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-6 rounded-2xl border bg-gradient-to-br from-primary/5 to-background p-6 sm:grid-cols-4">
-            <AnimatedStat value={stats.groups} suffix="+" label="Grupos activos" icon={Users} />
+            <AnimatedStat value={stats.groups} label="Grupos activos" icon={Users} />
             <AnimatedStat value={stats.categories} label="Categorías" icon={Sparkles} />
             <AnimatedStat value={stats.countries} label="Países hispanos" icon={Globe2} />
             <AnimatedStat
-              value={Math.round(stats.members / 1000)}
-              suffix="k+"
-              label="Miembros totales"
+              value={stats.members}
+              format={formatMembersEs}
+              label="Miembros estimados"
               icon={MessageCircle}
             />
           </div>

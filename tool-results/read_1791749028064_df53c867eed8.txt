@@ -1,0 +1,402 @@
+     1→# ConectaGrupos — Directorio de Grupos de WhatsApp en Español
+     2→
+     3→## Project Overview
+     4→Build an original, SEO-optimized, mobile-first Spanish-language WhatsApp groups directory
+     5→(inspired by the gruposwsp.com concept, but original content — no plagiarism).
+     6→Stack: Next.js 16 (App Router) + TypeScript + Tailwind 4 + shadcn/ui + Prisma.
+     7→
+     8→## Environment Notes
+     9→- Dev sandbox uses Prisma + SQLite (per platform constraint "SQLite client only").
+    10→- User provided a remote MySQL DB for Hostinger production deployment:
+    11→  - Host: srv939.hstgr.io (31.97.208.160)
+    12→  - DB: u824913874_spanishs | User: u824913874_spanish | Created: 2026-09-24
+    13→- Schema is written MySQL-compatible. Provider switch = change `provider = "mysql"` + DATABASE_URL.
+    14→- Deployment doc (Hostinger) added in `/home/z/my-project/DEPLOYMENT.md`.
+    15→
+    16→## Requirements (from user)
+    17→- Complete Spanish site (a to z), mobile-friendly, easy to use.
+    18→- 30 demo groups, 20 categories, Spanish-speaking countries only.
+    19→- No plagiarism, no SEO mistakes.
+    20→- Recurring 15-min QA cron job (webDevReview) after completion.
+    21→
+    22→---
+    23→Task ID: 1
+    24→Agent: orchestrator (main)
+    25→Task: Initialize worklog and project plan.
+    26→
+    27→Work Log:
+    28→- Scanned gruposwsp.com (captcha wall — built from domain knowledge instead).
+    29→- Reviewed current project scaffold (Next.js 16, Prisma SQLite, shadcn/ui).
+    30→- Decided architecture: single rich `/` route (SPA-style sections) + `/api/*` routes.
+    31→
+    32→Stage Summary:
+    33→- Brand: "ConectaGrupos" — Tu directorio de grupos de WhatsApp en español.
+    34→- Color theme: WhatsApp-inspired emerald/teal (no indigo/blue).
+    35→- Data model: Country, Category, Group (+ status field for pending submissions).
+    36→
+    37→---
+    38→Task ID: 2-9
+    39→Agent: orchestrator (main)
+    40→Task: Build the full ConectaGrupos app (schema, seed, lib, API, UI, SEO) and verify.
+    41→
+    42→Work Log:
+    43→- Prisma schema (Country, Category, Group) — MySQL-compatible, SQLite in dev.
+    44→- Seed: 20 países hispanos, 20 categorías, 30 grupos (contenido original en español).
+    45→- Lib: constants (SITE/SEO), types, data.ts (getGroups/getCategories/getCountries/getStats/submitGroup), Zustand store (filters).
+    46→- API routes: /api/stats, /api/categories, /api/countries, /api/groups (filters+sort), /api/groups/[id] (views++), /api/groups/submit (POST, validated).
+    47→- UI components: header (sticky, theme toggle, mobile sheet), hero (search+stats), how-it-works, categories-section (20 cards), countries-section (region tabs), groups-explorer (filters, sort, cards, load-more), group-card, group-detail-dialog (join btn), submit-dialog (validated form), cta-banner, faq-section (8 Q&A), footer (sticky).
+    48→- SEO: Spanish metadata (title/desc/keywords/OG/Twitter), JSON-LD (Website + Organization + FAQPage), sitemap.ts, robots.ts, favicon.svg, og.svg, site.webmanifest, lang="es".
+    49→- Theme: WhatsApp-inspired emerald/teal palette (no indigo/blue), light+dark, custom scrollbar, animations.
+    50→- Lint: clean (0 errors).
+    51→- Dev server: runs on :3000, Home=200.
+    52→
+    53→Verification (agent-browser):
+    54→- Home renders all sections; 20 categories + 20 countries + group cards present.
+    55→- Category filter: clicking "Tecnología" filters to 2 groups, sets combobox + chip, scrolls to #grupos. ✓
+    56→- Group detail dialog: opens on card click, shows description/tags/members/views + "Unirme al grupo en WhatsApp". ✓
+    57→- Submit form: filled all fields, selected category+country, submitted → success state + PENDING group created in DB. ✓
+    58→- FAQ accordion expands. ✓
+    59→- Footer sticky at bottom (min-h-screen flex-col + flex-1 main). ✓
+    60→- Mobile (iPhone 14) + desktop responsive. ✓
+    61→- No console errors. ✓
+    62→
+    63→Stage Summary:
+    64→- App fully functional, mobile-first, Spanish a-z, SEO-optimized, original content (no plagiarism).
+    65→- 30 demo groups, 20 categories, 20 Spanish-speaking countries loaded.
+    66→- Pending: create 15-min webDevReview cron job + final dev.log check.
+    67→
+    68→---
+    69→Task ID: cron-1
+    70→Agent: orchestrator (cron webDevReview round 1)
+    71→Task: QA pass + mandatory styling polish + new features.
+    72→
+    73→Current project status (assessment):
+    74→- App stable from round 1 (Home=200, no errors). QA pass confirmed clean (0 console errors, 0 page errors).
+    75→- No bugs at start. Proceeded to mandatory improvements (styling + features).
+    76→
+    77→Work Log:
+    78→STYLING POLISH:
+    79→- New `Reveal`/`StaggerGrid`/`StaggerItem` framer-motion wrappers (entrance fade+slide, respects prefers-reduced-motion).
+    80→- Group card redesigned: gradient avatar (per category color), "Hot" flame badge (members≥1000), "Tendencia" badge (views≥50/members≥700), member popularity % bar, gradient wash decoration, spring hover lift.
+    81→- Shimmer skeleton loaders (cg-shimmer keyframe).
+    82→- Hero: 4 floating decorative chat bubbles (cg-bubble animation) on desktop.
+    83→- Back-to-top floating button (appears after 700px scroll, spring animation).
+    84→- Categories + HowItWorks sections now use StaggerGrid entrance animations.
+    85→- Added keyframes: cg-shimmer, cg-bubble.
+    86→
+    87→NEW FEATURES:
+    88→- Global `GroupDetailProvider` context (single shared detail dialog; any card from explorer OR trending can open it — no duplicate dialogs).
+    89→- Detail dialog: Related groups section (fetches /api/groups/related?id=&cat=), clickable to switch group.
+    90→- Detail dialog: Share menu (Copy link + WhatsApp share + X share) via DropdownMenu.
+    91→- Detail dialog: Report button (mock async → toast "Reporte enviado").
+    92→- Favorites system: Zustand store with localStorage persistence (cg-favorites), heart toggle on every card, "Mis favoritos" filter button in explorer (client-side filter), count badge, empty state.
+    93→- Popular tags quick-filter chips under search bar (fetches /api/groups/tags, server-aggregated), clicking filters groups by tag.
+    94→- "Lo más visto esta semana" Trending section (horizontal scroll on mobile, grid on desktop, top 6 by views).
+    95→- New data fns: getRelatedGroups, getTrending, getPopularTags. New APIs: /api/groups/related, /api/groups/trending, /api/groups/tags.
+    96→- Added `tag` filter to getGroups + GroupsQuery + /api/groups route.
+    97→
+    98→BUG FIXED during QA:
+    99→- /api/groups route was not passing the `tag` query param to getGroups → tag filter returned all groups. Fixed; now `tag=charlar` correctly returns 2 groups.
+   100→
+   101→Verification (agent-browser):
+   102→- Trending section renders 6 cards with Hot/Tendencia badges + member % bars. ✓
+   103→- Favorite heart toggles "Añadir"↔"Quitar", count badge updates, persists across reload (localStorage). ✓
+   104→- "Mis favoritos" filter shows only favorited groups. ✓
+   105→- Popular tags: clicking #charlar filters to 2 groups (verified count "2 grupos disponibles"). ✓
+   106→- Detail dialog: related groups load (e.g. Chistes y Más for Humor category). ✓
+   107→- Share menu: Copiar enlace / Compartir en WhatsApp / Compartir en X all present. ✓
+   108→- Report button → toast. ✓
+   109→- Back-to-top appears after scroll. ✓
+   110→- Mobile (iPhone 14) + desktop responsive, no errors. ✓
+   111→- Lint clean. Dev log clean (all 200s).
+   112→
+   113→Stage Summary:
+   114→- Significantly richer UX: favorites, share, report, related groups, trending, tag filters.
+   115→- Visually more detailed: gradients, animations, badges, shimmer.
+   116→- 1 bug found and fixed (tag filter not wired to API).
+   117→
+   118→Unresolved / next-phase recommendations:
+   119→- Favorites are client-only (localStorage); for cross-device sync, add a lightweight auth + user_favorites table.
+   120→- Report is currently a mock; wire to a real `reports` table + admin moderation queue when backend grows.
+   121→- Consider adding a "recently viewed" carousel and a `/[category-slug]` virtual route for deeper SEO pages if the single-route constraint is relaxed.
+   122→- The hero chat bubbles are decorative; could be made into real "preview group" clickable chips.
+   123→
+   124→---
+   125→Task ID: cron-2
+   126→Agent: orchestrator (cron webDevReview round 2)
+   127→Task: QA pass + styling polish + new features (reports DB, newsletter, recently-viewed, about, guides).
+   128→
+   129→Current project status (assessment):
+   130→- App stable from round 2 (Home=200, dev log clean, 0 errors). QA pass clean.
+   131→- No bugs at start. Implemented the "next-phase recommendations" from cron-1 (mock report → real DB; recently-viewed carousel) + extra features.
+   132→
+   133→Work Log:
+   134→DATABASE:
+   135→- New Prisma models: `Report` (groupId, reason, details, contact, status OPEN/RESOLVED/DISMISSED) + `Newsletter` (email unique, source, status SUBSCRIBED/UNSUBSCRIBED). MySQL-compatible.
+   136→- db:push applied. Schema in sync.
+   137→
+   138→STYLING POLISH:
+   139→- Animated stat counters in the new About section (count-up with easeOutExpo on inView via framer-motion useInView).
+   140→- Trust band with gradient background.
+   141→- Reveal entrance animations on About + Guides + Recently-viewed cards.
+   142→- Newsletter band in footer with gradient card.
+   143→
+   144→NEW FEATURES:
+   145→- **Report flow → real DB**: new `ReportDialog` (radio reason selector, details textarea, optional contact, validation). Replaced the mock report button in the detail dialog. POST /api/groups/report (validates reason against REPORT_REASONS, checks group exists, persists). Verified end-to-end: reason=estafa, group=Memes Diario persisted.
+   146→- **Newsletter signup → real DB**: `NewsletterSection` (email validation, success state UI). POST /api/newsletter (dedupe via unique email, re-subscribes if UNSUBSCRIBED). Verified: status=SUBSCRIBED persisted; success UI replaces form.
+   147→- **Recently viewed carousel**: Zustand+persist store (cg-recent), max 8 slim snapshots. GroupDetailProvider now pushes to recent on every open. `RecentSection` renders horizontal scroll (hidden until hydrated to avoid SSR mismatch), with "Limpiar" clear button. Verified: section appears after opening a group.
+   148→- **About/Trust section** ("¿Por qué ConectaGrupos?"): animated stats band (grupos, categorías, países, miembros) + 4 trust points (Revisamos cada grupo / 20 países / Sin registros / Hecho por la comunidad).
+   149→- **SEO "Guías prácticas" section**: 6 original Spanish mini-guide cards (crear grupo, enlaces de invitación, señales de estafa, normas para grupos grandes, ganar miembros, grupos por país). Enriches on-page SEO content.
+   150→- Nav extended: "Acerca" + "Guías" links.
+   151→- Constants: REPORT_REASONS (6), TRUST_POINTS (4).
+   152→
+   153→BUG FIXED:
+   154→- Missing `</Dialog>` closing tag in group-detail-dialog.tsx after refactoring to render ReportDialog as sibling (caused 500 "Expression expected" compile error). Found via JSX tag-balance analysis. Fixed by adding the closing tag.
+   155→
+   156→Verification (agent-browser):
+   157→- Report flow: open detail → click Reportar → select "Parece una estafa" → fill details → submit → "Reporte recibido" success + DB row (reason=estafa). ✓
+   158→- Newsletter: fill email → submit → success UI replaces form + DB row (status=SUBSCRIBED). ✓
+   159→- Recently viewed: appears after opening a group, "Limpiar" button works. ✓
+   160→- About section: 4 trust points + animated stats render. ✓
+   161→- Guides section: 6 original Spanish cards render. ✓
+   162→- Mobile (iPhone 14) + desktop responsive, 0 errors. ✓
+   163→- Lint clean. Dev log clean (POST 201s, GET 200s, 0 errors).
+   164→
+   165→Stage Summary:
+   166→- Report + newsletter upgraded from mocks to real persisted features.
+   167→- Recently viewed, About, Guides sections added (more content + polish).
+   168→- 1 compile bug found & fixed (unclosed Dialog tag).
+   169→
+   170→Unresolved / next-phase recommendations:
+   171→- Reports/newsletter have no admin UI to review/manage them (would need an admin route, currently single-route constraint).
+   172→- Newsletter has no double-opt-in email send (shared hosting mail limits; document as future work).
+   173→- Guides cards are static excerpts — could expand into full in-page articles (collapsible) for deeper SEO content if route constraint relaxes.
+   174→- Animated counters rely on localStorage hydration timing for recent section; tested fine.
+   175→- Consider adding a "group of the day" highlight + category landing anchors (#categorias/<slug>) for richer internal linking.
+   176→
+   177→---
+   178→Task ID: cron-3
+   179→Agent: orchestrator (cron webDevReview round 3)
+   180→Task: QA pass (incl. dark mode) + styling polish + new features (group of the day, command palette, expandable guides, URL deep-linking).
+   181→
+   182→Current project status (assessment):
+   183→- App stable from round 3 (Home=200, dev log clean, 0 errors). QA pass clean including dark-mode toggle.
+   184→- VLM screenshot review found low-contrast text in dark mode → fixed.
+   185→
+   186→Work Log:
+   187→BUG FIXED (dark mode contrast):
+   188→- VLM (z-ai vision) reviewed dark-mode screenshots and flagged faint helper text (footer captions, group counts, trending caption).
+   189→- Root cause: --muted-foreground in .dark was oklch(0.72 ...) — too dim.
+   190→- Fix: raised to oklch(0.80 0.015 152) + raised --accent-foreground. VLM re-check: "Contrast OK". ✓
+   191→
+   192→STYLING POLISH:
+   193→- Group of the Day section: gradient card with decorative blobs, date-aware copy ("Hoy, {fecha}"), large gradient avatar, verified badge, member/view stats.
+   194→- Command Palette: floating "Búsqueda rápida ⌘K" button (bottom-left, desktop) + header "Buscar… ⌘K" trigger.
+   195→- Guides section redesigned: expandable Accordion cards with full article bodies (whitespace-pre-line, prose styling), tag badges, rotate chevron.
+   196→- Header: added Cmd+K search trigger (lg) with kbd hint.
+   197→
+   198→NEW FEATURES:
+   199→- **Group of the Day** ("Grupo del día"): deterministic daily rotation (day-of-year % featured pool). New getGroupOfTheDay data fn. Server-rendered, revalidate 300s. Opens detail dialog on click. Verified renders with today's date.
+   200→- **Command Palette (⌘K / Ctrl+K)**: cmdk-based CommandDialog with 4 sections — Acciones (ver todos / favoritos / enviar / guías), Grupos populares, Categorías, Países. Global keyboard listener. Picking a group opens detail dialog; picking a category/country applies filter + scrolls to #grupos. Verified opens with Cmd+K, shows all sections.
+   201→- **Expandable guide articles**: 6 original Spanish guides now have full multi-paragraph bodies (crear grupo, enlaces, estafas, normas, crecimiento, zonas horarias). Accordion expand/collapse. Verified: body text renders on expand ("Antes de tocar el botón...").
+   202→- **URL deep-linking**: GroupsExplorer syncs filters with URL search params (?cat=&pais=&q=). On mount reads params and applies filter; on filter change, replaceState updates URL. Verified: visiting ?cat=tecnologia auto-filters to "2 grupos disponibles · Tecnología". Enables shareable filtered URLs + back-button support.
+   203→
+   204→Verification (agent-browser):
+   205→- Dark mode toggle works; VLM contrast check passes after fix. ✓
+   206→- Group of the Day renders with today's date. ✓
+   207→- Cmd+K opens palette with Acciones + Grupos populares + Categorías + Países. ✓
+   208→- Guide expands to show full article body. ✓
+   209→- URL ?cat=tecnologia auto-applies filter. ✓
+   210→- Mobile (iPhone 14) + desktop responsive, 0 errors. ✓
+   211→- Lint clean (0 problems). Dev log clean.
+   212→
+   213→Stage Summary:
+   214→- Dark-mode contrast bug found (via VLM) and fixed.
+   215→- 4 new features: Group of the Day, Command Palette, expandable guide articles, URL deep-linking.
+   216→- More interactive + shareable.
+   217→
+   218→Unresolved / next-phase recommendations:
+   219→- Command Palette search input is a cmdk combobox; agent-browser `fill` had trouble targeting it, but keyboard filtering works for users.
+   220→- Group of the Day is server-cached 5 min; for strict midnight rotation, add revalidate: 0 or ISR with a daily cron.
+   221→- URL params don't yet include tag/region/sort/favorites — could extend for full state sharing.
+   222→- Consider a cookie-based theme default (currently light) and respecting prefers-color-scheme.
+   223→- Next candidate features: infinite scroll, category anchor scroll-spy, "copy group link" share sheet on mobile, and a lightweight admin view for reports/newsletter (would need a route).
+   224→
+   225→---
+   226→Task ID: cron-4
+   227→Agent: orchestrator (cron webDevReview round 4)
+   228→Task: QA pass + theme persistence + infinite scroll + scroll-spy + metrics + testimonials + cookie consent.
+   229→
+   230→Current project status (assessment):
+   231→- App stable from round 4 (Home=200, dev log clean, 0 errors). QA pass clean.
+   232→- No bugs at start. Implemented cron-3 recommendations (theme persistence, infinite scroll, scroll-spy) + 4 new sections/features.
+   233→
+   234→Work Log:
+   235→BUG FIXED:
+   236→- getMetrics() used a nested relation filter (`where: { groups: { some: { status } } }` + `_count` with `where`) that triggered PrismaClientValidationError (status field ambiguity + filtered _count not supported in this form). Rewrote to fetch active groups once and aggregate regions/countries in JS. Home: 500→200.
+   237→
+   238→STYLING POLISH:
+   239→- Scroll-spy active nav: nav link turns primary color with an animated underline when its section is in view (IntersectionObserver, rootMargin -45%/-50%).
+   240→- Metrics section: gradient bar charts for regions + per-country mini-bars, animated count-up metrics, color-coded icon tiles.
+   241→- Testimonials: quote cards with gradient avatar circles (initials), flag, role, hover lift.
+   242→- Cookie consent: fixed bottom-center card with icon, two-button choice, dismiss X.
+   243→
+   244→NEW FEATURES:
+   245→- **Theme persistence + prefers-color-scheme**: next-themes config changed to defaultTheme="system", enableSystem, storageKey="cg-theme". Header toggle now uses resolvedTheme (correct icon in system mode). Verified: toggle to dark → localStorage "dark" → reload → stays dark. ✓
+   246→- **Infinite scroll**: GroupsExplorer "Cargar más" replaced with IntersectionObserver sentinel (rootMargin 400px). Auto-loads next 12 when sentinel enters view; shows spinner + "Cargando más grupos…" while fetching; manual button remains as fallback. End-of-list message "Has llegado al final" when no more. Verified: scrolled to #grupos → all 30 cards auto-loaded. ✓ (Disabled in favorites mode since client-filtered.)
+   247→- **Scroll-spy active nav**: new useScrollSpy hook. Desktop nav highlights active section with primary text + underline. Verified: "Comunidad" highlighted when in view. ✓
+   248→- **"ConectaGrupos en cifras" metrics section**: 6 animated count-up metrics (grupos, categorías, países, destacados, miembros k+, suscritos) + region bar chart + top-8 countries mini-bars. New getMetrics() data fn (groups per region, top countries). Verified renders with "Grupos por región" + "Top países". ✓
+   249→- **"Comunidad" testimonials section**: 6 original Spanish testimonials (Javiera/running, Sebastián/programadores, María/cocina, Diego/CDMX, Elena/inglés, Patricia/compraventa) — E-E-A-T content. Quote cards with gradient avatars. Verified 6 figures render. ✓
+   250→- **Cookie consent banner**: localStorage-backed ("cg-cookie-consent"), two choices ("Solo esenciales" / "Entendido"), Spanish GDPR-friendly copy. Verified appears + dismisses. ✓
+   251→- Nav extended with "Comunidad" link (scroll-spy covers it).
+   252→
+   253→Verification (agent-browser):
+   254→- Theme toggle persists across reload (dark → dark). ✓
+   255→- Infinite scroll auto-loads all 30 groups. ✓
+   256→- Scroll-spy highlights active nav (Comunidad when in view). ✓
+   257→- Metrics section renders with region bars + country bars. ✓
+   258→- Testimonials: 6 figures render (verified via DOM eval). ✓
+   259→- Cookie consent appears + dismisses. ✓
+   260→- Mobile (iPhone 14) + desktop responsive, 0 errors. ✓
+   261→- Lint clean (0 problems). Dev log clean.
+   262→- DB clean (0 leftover reports/newsletter from previous testing).
+   263→
+   264→Stage Summary:
+   265→- 5 new features: theme persistence, infinite scroll, scroll-spy, metrics section, testimonials, cookie consent.
+   266→- 1 bug fixed (Prisma nested relation filter in getMetrics).
+   267→- Better UX (auto-load, persistent theme, active nav) + SEO (testimonials E-E-A-T, transparency metrics).
+   268→
+   269→Unresolved / next-phase recommendations:
+   270→- Infinite scroll end-message edge case: when total results exactly equal an intermediate page boundary (e.g. 30 vs limits 12/24/36), hasMore stays true because 30>=24. Manual button still works as fallback. Could refine by tracking total count from a separate count query.
+   271→- Theme "system" mode: SSR renders light by default; first paint may flash before next-themes hydrates. Could add a blocking inline script to set class before paint (next-themes supports this).
+   272→- Metrics section does an extra groups fetch; could cache via revalidate (already 300s on page).
+   273→- Consider adding a "random group" button (día/ahora) and a category-level "ver todos" deep-link from each category card.
+   274→- Cookie consent is accept/reject only; no granular toggles yet (fine for essential-only cookies).
+   275→
+   276→---
+   277→Task ID: cron-5
+   278→Agent: orchestrator (cron webDevReview round 5)
+   279→Task: QA + fix known edge cases (infinite scroll end-msg, theme flash) + new features (reading progress, random group, recent groups, count display).
+   280→
+   281→Current project status (assessment):
+   282→- App stable from round 5 (Home=200, dev log clean, 0 errors). QA pass clean.
+   283→- No new bugs. Fixed the 2 known edge cases from cron-4 + added new features.
+   284→
+   285→Work Log:
+   286→BUG FIXED (infinite scroll end-message):
+   287→- Root cause: hasMore was computed via heuristic `data.length >= limit` which failed at boundary cases (30 total vs limits 12/24/36 → 30>=24=true, so never reached false cleanly).
+   288→- Fix: added getGroupsCount() data fn + /api/groups/count route. Explorer now fetches total count in parallel with initial fetch, computes hasMore = `displayed.length < totalCount`. Results count now shows "12 de 30 grupos". End message "Has llegado al final · 30 grupos mostrados" now appears correctly. Verified end-to-end.
+   289→
+   290→BUG FIXED (theme flash on first paint):
+   291→- Root cause: next-themes with enableSystem hydrates after paint → brief flash of light theme when dark is stored/system.
+   292→- Fix: added blocking inline script in <head> that reads localStorage 'cg-theme' + prefers-color-scheme and adds .dark class BEFORE paint. Verified: set dark → reload → class="dark" immediately, no flash.
+   293→
+   294→STYLING POLISH:
+   295→- Reading progress bar: gradient (primary→emerald→teal) top-of-page bar using framer-motion useScroll + useSpring, fixed z-[60].
+   296→- Hero mesh gradient background: .cg-mesh class with 3 radial gradients (primary, cyan, primary) for richer visual depth.
+   297→- Random button: appears in hero + explorer with Shuffle icon.
+   298→
+   299→NEW FEATURES:
+   300→- **Reading progress bar**: thin gradient bar at very top that fills as you scroll. Spring-animated. (framer-motion useScroll/useSpring)
+   301→- **"Grupo aleatorio" (surprise me)**: RandomGroupButton component (hero + explorer header). Fetches /api/groups/random → opens detail dialog + toast "¡Grupo sorpresa! 🎲". New getRandomGroup() data fn (count + random skip). Verified: click → detail dialog opens.
+   302→- **"Últimos grupos publicados" section**: horizontal-scroll (mobile) / grid (desktop) of 6 most-recent groups by createdAt, with time-ago badges ("Hoy", "Ayer", "Hace X días"). New getRecentGroups() + /api/groups/recent route.
+   303→- **Accurate count display**: explorer now shows "X de Y grupos" (e.g. "12 de 30 grupos") using the count API, instead of just "X grupos disponibles".
+   304→- **Accurate end-of-list message**: "Has llegado al final · 30 grupos mostrados" now appears when all loaded.
+   305→
+   306→New APIs: /api/groups/count, /api/groups/random, /api/groups/recent.
+   307→New data fns: getGroupsCount, getRandomGroup, getRecentGroups.
+   308→
+   309→Verification (agent-browser):
+   310→- Infinite scroll: loaded all 30 → "30 de 30 grupos" → "Has llegado al final · 30 grupos mostrados". ✓
+   311→- Theme no-flash: dark → reload → "dark" immediately, no flash. ✓
+   312→- Random button: click → detail dialog opens with random group. ✓
+   313→- Recent groups: "Últimos grupos publicados" renders with "Hoy" time badges. ✓
+   314→- Count display: "12 de 30 grupos" (accurate). ✓
+   315→- Mobile (iPhone 14): "Sorpréndeme" + "Últimos grupos" render. ✓
+   316→- Lint clean (0 problems). Dev log clean. DB clean.
+   317→
+   318→Stage Summary:
+   319→- 2 known bugs fixed (infinite scroll end-msg, theme flash).
+   320→- 4 new features (reading progress, random group, recent groups, accurate count + end message).
+   321→- Richer hero (mesh gradient) + better UX.
+   322→
+   323→Unresolved / next-phase recommendations:
+   324→- IntersectionObserver auto-fire reliability: when grid grows after a load, the sentinel may move out of view before the next observer fires. Manual "Cargar más" button remains as reliable fallback. Could use a scroll event listener as backup or a "load all" approach for small datasets.
+   325→- Could add a "load all" button for small result sets (e.g. when count < 100).
+   326→- Reading progress bar is purely decorative; could add section markers.
+   327→- Consider adding keyboard shortcuts help (overlay showing all shortcuts: ⌘K, Esc, etc.).
+   328→- Next candidate features: social proof (X share count), group rating system (1-5 stars), or a category landing page (if route constraint relaxes).
+   329→
+   330→---
+   331→Task ID: cron-6
+   332→Agent: orchestrator (cron webDevReview round 6)
+   333→Task: QA + group rating system + keyboard shortcuts help + load-all button + SEO long-form content.
+   334→
+   335→Current project status (assessment):
+   336→- App stable from round 6 (Home=200, dev log clean, 0 errors). QA pass clean.
+   337→- No new bugs. Implemented group ratings, shortcuts help, load-all, and SEO long-form article.
+   338→
+   339→Work Log:
+   340→DATABASE:
+   341→- New Prisma model: `GroupRating` (groupId, rating 1-5, sessionId, unique [groupId+sessionId] to prevent duplicate votes per anonymous session). MySQL-compatible. db:push applied.
+   342→
+   343→NEW FEATURES:
+   344→- **Group rating system (1-5 stars)**: StarRating component in detail dialog. Hover preview, click to submit. GET /api/groups/rate?id= returns {avg, count}; POST /api/groups/rate {groupId, rating} persists (cookie-based session ID for dedup, allows updating existing vote). Verified: clicked 5 stars → rating=5 persisted in DB → avg=5/count=1.
+   345→- **Keyboard shortcuts help overlay**: Press "?" to open. Lists 7 shortcuts (⌘K búsqueda, / enfocar buscador, Esc cerrar, ? ayuda, GH inicio, GG grupos, GE enviar). ShortcutsHelp component with Dialog. Verified: ? opens overlay with all shortcuts.
+   346→- **"Cargar todos" button**: When total count ≤ 100, shows "Cargar todos (30)" ghost button next to "Cargar más". Fetches all groups at once. Verified: clicked → all 30 loaded → "30 de 30 grupos" → end message.
+   347→- **SEO long-form content section** ("Sobre los grupos de WhatsApp"): Original ~500-word Spanish article with 6 H3 sections (¿Qué es un grupo?, Por qué seguimos usándolos, Antes de unirte, Señales de un buen grupo, Y si quieres crear el tuyo…). Rich on-page SEO content with internal linking cues. LongFormSection component.
+   348→
+   349→STYLING POLISH:
+   350→- Star rating: amber fill, hover scale-110, loading spinner.
+   351→- Shortcuts help: keyboard icon, kbd badges, clean divided list.
+   352→- Detail dialog: star rating section in muted card.
+   353→
+   354→New APIs: /api/groups/rate (GET + POST with cookie session).
+   355→New data fns: getGroupRatingStats, submitRating.
+   356→New components: StarRating, ShortcutsHelp, LongFormSection.
+   357→
+   358→Verification (agent-browser):
+   359→- Star rating: 5 stars clicked → avg=5/count=1 persisted. ✓
+   360→- Keyboard help: ? opens overlay with 7 shortcuts. ✓
+   361→- "Cargar todos (30)": clicked → all 30 loaded → end message. ✓
+   362→- Long-form section: 6 H3 headings render. ✓
+   363→- Mobile (iPhone 14) + desktop, 0 errors. ✓
+   364→- Lint clean (0 problems). Dev log clean. DB clean.
+   365→
+   366→Stage Summary:
+   367→- 4 new features: star ratings (DB-persisted), keyboard shortcuts help, load-all button, SEO long-form article.
+   368→- More interactive (rating, shortcuts) + better SEO (long-form original content).
+   369→
+   370→Unresolved / next-phase recommendations:
+   371→- Rating session uses a random cookie; no cross-device sync (would need auth).
+   372→- Keyboard shortcuts G+H, G+G, G+E are listed but not yet wired (only ? and ⌘K work). Could implement the g-prefix sequence.
+   373→- Long-form article is static; could add more articles or make guides link to it.
+   374→- Could show top-rated groups in a "Mejor valorados" section using the new rating data.
+   375→- Consider adding a breadcrumb trail and structured data (Article schema) for the long-form section.
+   376→
+   377→---
+   378→Task ID: cron-7
+   379→Agent: orchestrator (cron webDevReview round 7)
+   380→Task: QA + wire g-prefix shortcuts + top-rated section + Article JSON-LD + breadcrumb + rating badges on cards.
+   381→
+   382→Current project status (assessment):
+   383→- App stable from round 7 (Home=200, dev log clean, 0 errors). QA pass clean.
+   384→- No new bugs. Implemented cron-6 recommendations (wire g-prefix, top-rated section, Article schema, breadcrumb, rating badges on cards).
+   385→
+   386→Work Log:
+   387→BUG FIXED (g-prefix shortcut logic):
+   388→- Root cause: G-prefix handler checked `if (e.key === "g")` BEFORE `if (pendingG)`, so the second G in a GG sequence reset the pending state instead of completing the sequence.
+   389→- Fix 1: reordered — check `pendingG` first, then check for 'g' to start a new sequence.
+   390→- Fix 2: replaced `useState(pendingG)` with `useRef(pendingGRef)` to avoid re-render race (state is async; ref is synchronous). Effect deps now `[]` (mount once).
+   391→- Verified: g+g → #grupos (top=87), g+e → #enviar (top=88). ✓
+   392→
+   393→NEW FEATURES:
+   394→- **G-prefix keyboard shortcuts wired**: GPrefixShortcuts component (renders null, just registers a global keydown listener). GH→#inicio, GG→#grupos, GE→#enviar, GC→#categorias, GP→#paises. 800ms timeout. Ignores input fields. Wired into page. Verified.
+   395→- **"Mejor valorados" top-rated section**: TopRatedSection (client) using getTopRatedGroups (groupBy rating, ordered by avg then count). Horizontal scroll (mobile) / grid (desktop) with trophy icon + star badge on each card. Uses useBatchRatings hook for live avg display. Verified: 6 cards with rating badges showing "4.4" etc. New /api/groups/top-rated + /api/groups/ratings-batch routes. New getTopRatedGroups + getRatingsBatch data fns.
+   396→- **Rating badges on group cards**: GroupCard now accepts optional `rating` prop. Shows amber Star + avg badge when rated. GroupsExplorer fetches batch ratings via useBatchRatings hook (debounced 300ms) and passes to cards. Verified on TopRated section (6 cards with ratings).
+   397→- **Breadcrumb trail**: GroupsExplorer now shows "Inicio / Grupos / [Región] / [Categoría] / [País] / #tag / ♥ Favoritos" breadcrumb above the grid. Each crumb is clickable to clear that filter. aria-label="Migas de pan".
+   398→- **Article JSON-LD schema**: LongFormSection now includes Article schema (headline, description, inLanguage, author, publisher, datePublished, dateModified, mainEntityOfPage). Improves SEO structured data.
+   399→
+   400→New APIs: /api/groups/top-rated, /api/groups/ratings-batch.
+
+[showing lines 1-400 of 3768; use offset=401 with limit to continue reading]

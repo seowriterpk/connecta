@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, ShieldCheck, ExternalLink, Clock, CheckCircle2 } from "lucide-react";
 import { SITE } from "@/lib/constants";
-import { getGroupBySlug, getRatingsBatch } from "@/lib/data";
+import { getGroupBySlug } from "@/lib/data";
 import { getRecentRelatedGroups } from "@/lib/related-groups";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -36,11 +36,8 @@ export default async function VerifyPage({ params }: PageProps) {
   const group = await getGroupBySlug(slug);
   if (!group) notFound();
 
-  const [related, ratingsBatch] = await Promise.all([
-    // Most recent groups in the same category (siloed by adult flag).
-    getRecentRelatedGroups(group.id, group.category?.id, group.isAdult, 9),
-    getRatingsBatch([group.id]),
-  ]);
+  // Most recent groups in the same category (siloed by adult flag).
+  const related = await getRecentRelatedGroups(group.id, group.category?.id, group.isAdult, 9);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -94,7 +91,7 @@ export default async function VerifyPage({ params }: PageProps) {
               <h2 className="mb-4 text-lg font-bold">Grupos nuevos de la misma categoría</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((r) => (
-                  <GroupCard key={r.id} group={r} rating={ratingsBatch[r.id]} />
+                  <GroupCard key={r.id} group={r} />
                 ))}
               </div>
             </section>

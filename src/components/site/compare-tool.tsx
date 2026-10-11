@@ -13,7 +13,6 @@ import {
   Plus,
   Search,
   Scale,
-  Star,
   Trophy,
   Users,
   X,
@@ -22,8 +21,6 @@ import type { GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
 import { useCompare, MAX_COMPARE } from "@/lib/compare";
 import { CountryFlag } from "@/components/site/country-flag";
-
-type Ratings = Record<string, { avg: number; count: number }>;
 
 function timeAgoShort(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -55,7 +52,6 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
   const hydrated = useCompare((s) => s.hydrated);
 
   const [groups, setGroups] = useState<GroupDTO[]>([]);
-  const [ratings, setRatings] = useState<Ratings>({});
   const [loadedKey, setLoadedKey] = useState("");
 
   // Search picker state
@@ -99,7 +95,6 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
         const json = await res.json();
         if (cancelled || !json.ok) return;
         setGroups(json.data.groups);
-        setRatings(json.data.ratings ?? {});
         setLoadedKey(activeKey);
       } catch {
         /* keep previous data on transient errors */
@@ -181,16 +176,13 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
     [shownGroups]
   );
 
-  const ratingOf = useCallback((g: GroupDTO) => ratings[g.id] ?? null, [ratings]);
-
   const winners = useMemo(
     () => ({
       members: winner((g) => g.members || 0),
       views: winner((g) => g.views || 0),
       clicks: winner((g) => g.clicks || 0),
-      rating: winner((g) => (ratingOf(g) && ratingOf(g)!.count > 0 ? ratingOf(g)!.avg : 0)),
     }),
-    [winner, ratingOf]
+    [winner]
   );
 
   const slots = toSlots(storeSlugs);
@@ -407,23 +399,6 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
                 winnerId: winners.clicks,
               },
               {
-                label: "Valoración",
-                icon: Star,
-                value: (g: GroupDTO) => {
-                  const r = ratingOf(g);
-                  return r && r.count > 0 ? (
-                    <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                      <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
-                      {r.avg.toFixed(1)}
-                      <span className="text-[10px] font-normal text-muted-foreground">({r.count})</span>
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Sin reseñas</span>
-                  );
-                },
-                winnerId: winners.rating,
-              },
-              {
                 label: "Categoría",
                 icon: LayoutGrid,
                 value: (g: GroupDTO) => <span className="text-[13px]">{g.category?.name ?? "—"}</span>,
@@ -519,7 +494,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
           <h2 className="text-lg font-bold">Elige dos o tres grupos para comparar</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Añade grupos con el buscador o toca una de las sugerencias populares. Verás
-            miembros, vistas, clics y valoraciones lado a lado, con el mejor de cada métrica destacado.
+            miembros, vistas y clics lado a lado, con el mejor de cada métrica destacado.
           </p>
           <p className="mx-auto mt-4 inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/5 px-3.5 py-1.5 text-xs font-medium text-teal-700 dark:text-teal-300">
             <Scale className="h-3.5 w-3.5" aria-hidden />

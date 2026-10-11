@@ -180,20 +180,30 @@ export async function getCountries(): Promise<CountryDTO[]> {
 
 export async function getStats(): Promise<StatsDTO> {
   // Clean-only counts: global stats describe the clean, indexable directory.
+  // "members" = sum of the per-group derived estimates (computeDisplayedMembers:
+  // ≈0.2 members per real click, capped under WhatsApp's 1,024 limit) — never raw
+  // click sums, which would inflate the figure ~5×.
   const row = await queryOne<Row>(
     `SELECT
        (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
        (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)                    AS \`categories\`,
        (SELECT COUNT(*) FROM \`countries\`)                     AS \`countries\`,
-       (SELECT COALESCE(SUM(\`clicks\`), 0) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`members\`,
        (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
+  );
+  const memberRows = await query<Row>(
+    "SELECT `id`, `clicks`, `joinCount` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0"
+  );
+  const members = (memberRows as any[]).reduce(
+    (acc, g) =>
+      acc + computeDisplayedMembers(Number(g.clicks ?? 0), Number(g.joinCount ?? 0), String(g.id)),
+    0
   );
   const r: any = row ?? {};
   return {
     groups: Number(r.groups ?? 0),
     categories: Number(r.categories ?? 0),
     countries: Number(r.countries ?? 0),
-    members: Number(r.members ?? 0),
+    members,
     featured: Number(r.featured ?? 0),
   };
 }
@@ -375,27 +385,39 @@ export async function submitGroup(payload: {
 }
 
 export async function getMetrics() {
+  // CLEAN-ONLY (matches getStats): public "en cifras" describes the clean,
+  // indexable directory — the adult silo is opt-in and never counted here,
+  // so the homepage figures stay consistent (hero vs metrics grid) and
+  // don't advertise adult content.
   const row = await queryOne<Row>(
     `SELECT
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live')    AS \`groups\`,
-       (SELECT COUNT(*) FROM \`categories\`)                         AS \`categories\`,
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
+       (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)  AS \`categories\`,
        (SELECT COUNT(*) FROM \`countries\`)                          AS \`countries\`,
        (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'pending') AS \`pending\`,
        (SELECT COUNT(*) FROM \`group_reports\` WHERE \`status\` = 'OPEN') AS \`reports\`,
        (SELECT COUNT(*) FROM \`newsletter\` WHERE \`status\` = 'SUBSCRIBED') AS \`newsletter\`,
-       (SELECT COALESCE(SUM(\`clicks\`), 0) FROM \`groups\` WHERE \`status\` = 'live') AS \`members\`,
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`popularityBadge\` = 'featured') AS \`featured\``
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
   );
   const r: any = row ?? {};
 
+  // Single pass: per-group member estimates + region/country aggregation.
+  // "members" uses the same derived formula shown on cards (≈0.2 per click,
+  // capped under 1,024) so the homepage figure matches the detail pages.
   const activeGroups = await query<Row>(
-    `SELECT co.\`name\`, co.\`code\`, co.\`flag\`, co.\`region\`
+    `SELECT g.\`id\`, g.\`clicks\`, g.\`joinCount\`, co.\`name\`, co.\`code\`, co.\`flag\`, co.\`region\`
      FROM \`groups\` g JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
-     WHERE g.\`status\` = 'live'`
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0`
   );
+  let members = 0;
   const regionMap = new Map<string, number>();
   const countryMap = new Map<string, { name: string; code: string; flag: string; count: number }>();
   for (const g of activeGroups as any[]) {
+    members += computeDisplayedMembers(
+      Number(g.clicks ?? 0),
+      Number(g.joinCount ?? 0),
+      String(g.id)
+    );
     if (!g.region) continue;
     regionMap.set(g.region, (regionMap.get(g.region) ?? 0) + 1);
     const existing = countryMap.get(g.name);
@@ -417,7 +439,7 @@ export async function getMetrics() {
     reports: Number(r.reports ?? 0),
     newsletter: Number(r.newsletter ?? 0),
     featured: Number(r.featured ?? 0),
-    members: Number(r.members ?? 0),
+    members,
     regions,
     topCountries,
   };
@@ -914,7 +936,10 @@ export async function getAllCountryCodes(): Promise<string[]> {
 // Slug-based + paginated data functions
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 120;
+// Shared page size for every paginated listing page (categoria / país /
+// ciudad / etiqueta). Exported so the pages can render an accurate
+// "Mostrando X–Y de Z" range from the single source of truth.
+export const PAGE_SIZE = 60;
 
 export async function getGroupBySlug(slug: string): Promise<GroupDTO | null> {
   const g = await queryOne<GroupRow>(
@@ -950,19 +975,28 @@ export interface PaginatedGroups {
   hasNext: boolean;
 }
 
+/**
+ * Strict pagination: returns null for invalid pages (page < 1, beyond the
+ * last page, or non-integer) so listing pages can 404 instead of silently
+ * clamping (clamping produced duplicate/soft-404 content). NaN / non-finite
+ * junk (e.g. ?page=abc) is treated as page 1.
+ */
 async function buildPaginated(
   where: BuiltWhere,
   orderBy: string,
   page: number
-): Promise<PaginatedGroups> {
+): Promise<PaginatedGroups | null> {
   const totalRow = await queryOne<Row>(
     `SELECT COUNT(*) AS \`c\` ${GROUP_FROM} WHERE ${where.where}`,
     where.params
   );
   const total = Number((totalRow as any)?.c ?? 0);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const skip = (safePage - 1) * PAGE_SIZE;
+  const requested = Number.isFinite(page) ? page : 1;
+  if (!Number.isInteger(requested) || requested < 1 || requested > totalPages) {
+    return null;
+  }
+  const skip = (requested - 1) * PAGE_SIZE;
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE ${where.where}
@@ -973,14 +1007,17 @@ async function buildPaginated(
   return {
     groups: rows.map(toGroupDTO),
     total,
-    page: safePage,
+    page: requested,
     totalPages,
-    hasPrev: safePage > 1,
-    hasNext: safePage < totalPages,
+    hasPrev: requested > 1,
+    hasNext: requested < totalPages,
   };
 }
 
-export async function getGroupsByCategorySlugPaginated(slug: string, page: number) {
+export async function getGroupsByCategorySlugPaginated(
+  slug: string,
+  page: number
+): Promise<{ category: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
   const cat = await queryOne<Row>("SELECT * FROM `categories` WHERE `slug` = ? LIMIT 1", [slug]);
   if (!cat) return null;
   const result = await buildPaginated(
@@ -988,10 +1025,13 @@ export async function getGroupsByCategorySlugPaginated(slug: string, page: numbe
     "g.`clicks` DESC, g.`views` DESC",
     page
   );
-  return { category: cat, ...result };
+  return result ? { category: cat, ...result } : null;
 }
 
-export async function getGroupsByCountryCodePaginated(code: string, page: number) {
+export async function getGroupsByCountryCodePaginated(
+  code: string,
+  page: number
+): Promise<{ country: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
   const country = await queryOne<Row>(
     "SELECT * FROM `countries` WHERE `code` = ? LIMIT 1",
     [code.toLowerCase()]
@@ -1002,10 +1042,13 @@ export async function getGroupsByCountryCodePaginated(code: string, page: number
     "g.`clicks` DESC, g.`views` DESC",
     page
   );
-  return { country, ...result };
+  return result ? { country, ...result } : null;
 }
 
-export async function getGroupsByCityPaginated(city: string, page: number) {
+export async function getGroupsByCityPaginated(
+  city: string,
+  page: number
+): Promise<PaginatedGroups | null> {
   return buildPaginated(
     { where: "g.`status` = 'live' AND g.`city` = ?", params: [city] },
     "g.`clicks` DESC, g.`views` DESC",
@@ -1159,34 +1202,15 @@ export async function getTagBySlug(
 export async function getGroupsByTagPaginated(
   tagName: string,
   page: number
-): Promise<PaginatedGroups> {
-  const PAGE = 48;
-  const where = "g.`status` = 'live' AND g.`isAdult` = 0 AND g.`tags` LIKE ?";
-  const params: unknown[] = [like(`"${tagName}"`)];
-
-  const totalRow = await queryOne<Row>(
-    `SELECT COUNT(*) AS \`c\` ${GROUP_FROM} WHERE ${where}`,
-    params
+): Promise<PaginatedGroups | null> {
+  return buildPaginated(
+    {
+      where: "g.`status` = 'live' AND g.`isAdult` = 0 AND g.`tags` LIKE ?",
+      params: [like(`"${tagName}"`)],
+    },
+    "g.`clicks` DESC, g.`views` DESC, g.`createdAt` DESC",
+    page
   );
-  const total = Number((totalRow as any)?.c ?? 0);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const skip = (safePage - 1) * PAGE;
-  const rows = await query<GroupRow>(
-    `SELECT ${GROUP_SELECT} ${GROUP_FROM}
-     WHERE ${where}
-     ORDER BY g.\`clicks\` DESC, g.\`views\` DESC, g.\`createdAt\` DESC
-     LIMIT ? OFFSET ?`,
-    [...params, PAGE, skip]
-  );
-  return {
-    groups: rows.map(toGroupDTO),
-    total,
-    page: safePage,
-    totalPages,
-    hasPrev: safePage > 1,
-    hasNext: safePage < totalPages,
-  };
 }
 
 export async function getRelatedTags(

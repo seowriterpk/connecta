@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown } from "lucide-react";
-import type { GroupDTO } from "@/lib/types";
+import type { GroupCardDTO } from "@/lib/lite-dto";
 import { Badge } from "@/components/ui/badge";
 import { useFavorites } from "@/lib/favorites";
 import { CompareIconButton } from "@/components/site/compare-button";
@@ -67,13 +67,12 @@ function HeartButton({ id }: { id: string }) {
   );
 }
 
-export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: number; count: number } | null }) {
+export function GroupCard({ group }: { group: GroupCardDTO }) {
   const searchQuery = useGroupsFilter((s) => s.search);
   const gradient = AVATAR_GRADIENTS[group.category?.color ?? "emerald"] ?? AVATAR_GRADIENTS.emerald;
   const memberPct = Math.min(100, Math.round((group.members / MEMBER_CAP) * 100));
   const isTrending = group.views >= 50 || group.members >= 700;
   const isHot = group.members >= 1000;
-  const hasRating = rating && rating.count > 0;
   // Adult directive: blank image title/alt on adult groups (SEO safety).
   const imgAlt = group.isAdult ? "" : group.title;
   const imgTitle = group.isAdult ? undefined : group.title;
@@ -155,22 +154,11 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
         </div>
       </div>
 
-      {/* === ALWAYS VISIBLE: rating · members (one compact line) === */}
+      {/* === ALWAYS VISIBLE: members (one compact line) === */}
       <div className="flex min-h-[1.25rem] items-center gap-2 text-xs text-muted-foreground">
-        {hasRating ? (
-          <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-            <Star className="h-3.5 w-3.5 fill-current" /> {rating!.avg.toFixed(1)}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-            <Users className="h-3.5 w-3.5 text-primary/70" /> {fmt(group.members)} miembros
-          </span>
-        )}
-        {hasRating && (
-          <span className="inline-flex items-center gap-1 tabular-nums">
-            · <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
-          </span>
-        )}
+        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
+          <Users className="h-3.5 w-3.5 text-primary/70" /> {fmt(group.members)} miembros
+        </span>
       </div>
 
       {/* === COLLAPSIBLE META (native <details>): país · ciudad · categoría ·
@@ -254,10 +242,16 @@ export function GroupCard({ group, rating }: { group: GroupDTO; rating?: { avg: 
 
       {/* === ALWAYS VISIBLE: CTA row (compare + join) === */}
       <div className="mt-auto flex items-end justify-between gap-3 pt-1">
-        <div className="flex min-w-0 items-center gap-1.5">
+        {/* z-[2] keeps these informational badges above the stretched link
+            so their title tooltip is actually reachable on hover. */}
+        <div className="relative z-[2] flex min-w-0 items-center gap-1.5">
           {group.isVerified && (
-            <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              <BadgeCheck className="h-3 w-3" /> Verificado
+            <Badge
+              variant="secondary"
+              className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              title="Enlace comprobado manualmente por el equipo antes de publicar"
+            >
+              <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
             </Badge>
           )}
           {isActiveRecently && (

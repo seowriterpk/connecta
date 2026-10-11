@@ -1,0 +1,202 @@
+  3412→- UNRESOLVED / RISKS: (1) dev-mode flight debug channel leaks raw rows in DEV HTML only (React __DEV__ artifact — production clean; documented above). (2) dev server OOM under heavy QA concurrency — run tools sequentially. (3) load-more batch is 24 (demo data has 4-6 per category; real data will exercise it). (4) blog has no cover images yet (emoji covers) — image upload is a next-phase candidate.
+  3413→- Next-phase candidates: (1) blog cover image upload + og:image, (2) blog tags pages (/blog/etiqueta/x), (3) per-group admin time-series charts, (4) 18+ quick-action in command palette, (5) newsletter digest of new posts + movers.
+  3414→
+  3415→---
+  3416→Task ID: VERIFY-RELATED-SITEWIDE-QA-2026-10-08
+  3417→Agent: orchestrator (main)
+  3418→Task: (1) Fix verify-page related groups — must be the MOST RECENT groups in the SAME category as the verifying group, matching its content silo (adult↔adult); (2) sitewide backend+frontend testing, bug-fixing and optimization pass.
+  3419→
+  3420→Current project status (assessment):
+  3421→- Entering this session the app was STABLE (launch-ready; adult silo homepage/category features + blog system live from prior session). Dev server + MariaDB up.
+  3422→- Primary complaint confirmed live: /verificar/solteras-y-solteros-18mas-conoce-gente showed CLEAN groups (fútbol/memes) in "Grupos que también te pueden interesar" — root cause: verificar/[slug]/page.tsx called getRelatedGroups WITHOUT opts.isAdult (defaults to clean silo) and used the 4-newest+4-lowclick+2-random mix instead of most-recent-same-category.
+  3423→
+  3424→Work Log:
+  3425→PRIMARY FIX (verify page related groups):
+  3426→- NEW getRecentRelatedGroups(currentGroupId, categoryId, isAdult, limit) in src/lib/related-groups.ts: SELECTs the most recent live+active groups from the SAME categoryId within the SAME content silo (isAdult = ?), fills shortfall with most-recent same-silo groups (never cross-silo). Returns GroupDTO[].
+  3427→- verificar/[slug]/page.tsx now calls it with (group.id, group.categoryId, group.isAdult, 10) + RTA-5042-1996-1400-1577-1 meta label on adult verify pages (consistency with adult group/category pages).
+  3428→- VERIFIED: adult verify page → 5 related links, ALL isAdult=1, cat-citas-18 groups ordered by createdAt DESC then same-silo newest fill; clean verify page → 10/10 clean, 0 adult leaked, Humor-category groups first in DOM. VLM visual audit confirms all related cards 18+-themed.
+  3429→- /api/groups/related rewritten: was a dead endpoint bypassing the silo entirely (accepted cat param, no adult filter). Now derives the group's categoryId+isAdult from the DB by id and returns getRecentRelatedGroups — silo-safe for both (tested: g-adult-001 → adult; g-demo-001 → clean flags [F,F,F]).
+  3430→
+  3431→SITEWIDE QA + BUGS FIXED (16 total):
+  3432→1. (above) verify related-groups silo + ordering.
+  3433→2. (above) /api/groups/related silo bypass.
+  3434→3. RSS feed was UNDISCOVERABLE: no <link rel="alternate" type="application/rss+xml"> anywhere, no visible link. Added layout.tsx alternates.types + footer "Feed RSS" link (COMPANY_LINKS). Verified: link tag renders on all pages, footer link present.
+  3435→4. Verify-page breadcrumb linked to /{slug} (404 — the only broken internal link of 141 tested sitewide) → /grupo/{slug}.
+  3436→5. getRandomGroup() served ADULT groups at random to the hero "Sorpréndeme" button (clean surface) → both COUNT and SELECT now filter isAdult=0. 8/8 random draws clean.
+  3437→6. getRecentGroups() (/api/groups/recent) also leaked adult rows → isAdult=0 (clean-by-default posture).
+  3438→7. JSON-LD injection hardening: 38 dangerouslySetInnerHTML JSON.stringify sites across 24 files → NEW src/lib/jsonld.ts jsonLdScript() escaping <, >, &, U+2028/9 (prevents </script> breakout via DB-derived titles). All 41 JSON-LD blocks on 10 pages still parse valid.
+  3439→8. og:image + twitter:image MISSING sitewide (20 pages override openGraph without images — Next replaces the whole object, root layout images lost) → NEW OG_IMAGE constant in constants.ts + images: [OG_IMAGE] injected into all 19 static/dynamic pages + fallbacks in grupo/[slug] (no-image groups), autor/[slug], blog/[slug] (twitter too). Verified og+tw images on 14/14 sampled pages.
+  3440→9. Header icon buttons (favorites, theme, menu) 36px on mobile → h-11 w-11 sm:h-9 (44px touch standard). Re-measured live: [44,44,44].
+  3441→10. RATING INFLATION: /api/groups/rate generated a NEW random reviewer identity (cg-sid) per cookieless POST → unlimited scripted 5-star rows. Fixed: identity = sha256(IP) (unique key groupId+ipHash → one review per IP per group, re-rate updates in place; legacy sid reviews still updatable) + 15 POSTs/hour/IP rate limit (ugc_rate_limits infra). Verified: 15 rapid POSTs → 1 review row, 16th → 429.
+  3442→11. SHARE counter had NO rate limit (scripted inflation) → 5/hour/IP/group (same pattern as click). 
+  3443→12. /api/img proxy passed through any content-type (HTML could be served from our origin) → image/* whitelist + X-Content-Type-Options: nosniff.
+  3444→13. OUT-OF-RANGE ?page=N duplicate content on pais/ciudad/categoria/etiqueta: buildPaginated clamps the page but canonical used the RAW page → /pais/es?page=2 rendered page-1 content with self-canonical ?page=2. Fixed: page component redirects (307) to the clamped canonical URL when page !== result.page. Verified on all 4 page types.
+  3445→14. Group-page <title> exceeded 65 chars for long names (75/73 measured) → smart ellipsis (48-char name) + separate og:title (60-char threshold).
+  3446→15. Meta descriptions >175 chars trimmed: pais (207→~150), ciudad (188→~140), agregar-grupo (187→~160), politica-de-cookies (185→~160).
+  3447→16. Adult verify pages lacked the RTA label → added (matches adult group/category pages).
+  3448→
+  3449→QA / VERIFICATION (agent-browser + curl):
+  3450→- Route sweep: 25 routes → all 200 except intentional /enviar-grupo 308→/agregar-grupo; /pagina-inexistente 404 (renders chrome client-side, standard Next shell).
+  3451→- Internal link crawl: 141 unique internal links across 24 pages → 1 broken (verify breadcrumb, fixed) → 0 after fix.
+  3452→- API sweep: 30 endpoints → all 200/405/429 as designed; newsletter/contact native + server validation OK; report endpoint per-IP dedup OK.
+  3453→- XSS: /buscar?q=<script> properly escaped (&lt;script&gt;) — no reflection hole.
+  3454→- RSS: XML valid (21KB), 0 adult slugs (all 6 checked). Sitemap index + 6 child sitemaps valid, country URLs use codes (/pais/ar), blog URL resolves 200.
+  3455→- A11y: 0 img-no-alt, 0 button-no-name, 0 unlabeled icon links (2 regex false-positives manually cleared), 1 h1 per page.
+  3456→- 18+ flow E2E: toggle → cookie banner dismissal interplay OK → age gate → confirm → 6 adult rows only (sample titles all 18+); toggle off → 31 clean rows restored. Console errors/warnings: 0 on all pages (incl. SPA navigation sweep).
+  3457→- Interactions: random button → clean group nav; command palette Ctrl+K opens/searches (clean-only results); favorites toggle persists (cg-favorites g-demo-001); recently-viewed (cg-recent) records; newsletter footer subscribe E2E success; contact form native required validation; category Populares|Nuevos tabs render; load-more correctly absent for 2-group category.
+  3458→- Admin: login persists; 12 admin routes all 200; blog list + editor (post-001) load correctly post-changes.
+  3459→- Mobile 390px: no horizontal overflow, footer flush (gap=0), sticky bar targets [44,44,44,44], header targets now 44px.
+  3460→- VLM: homepage 9/10 visual; verify-page related section 100% adult-themed.
+  3461→- lint: 0 errors. tsc --noEmit: 0. Dev server crashed 4× under sequential compile + browser + VLM concurrency (4GB cgroup kernel OOM — known environment limit; Next self-restarts near threshold; ./start-dev.sh recovers; production build unaffected).
+  3462→
+  3463→Stage Summary:
+  3464→- Status: STABLE. Primary directive (verify-page related = most-recent same-category same-silo) fixed and triple-verified (HTML links, DB rows, VLM visual). 16 real bugs fixed sitewide (safety leaks: random/recent/related-API adult exposure; integrity: rating/share inflation; SEO: RSS discovery, og images, duplicate ?page= canonicals, title/desc lengths; UX: breadcrumb 404, touch targets; hardening: JSON-LD + img proxy).
+  3465→- Known dev-only artifacts (documented, no production impact): React 19 dev flight channel serializes mysql2 rows (incl. transient mysql2 "not a promise" warnings on first compile) — production builds emit neither.
+  3466→- Next-phase candidates: blog cover images + og:image per post; tag pages for blog; per-group admin time-series charts; newsletter digest; content-type strictness on /api/groups/[id].
+  3467→
+  3468→---
+  3469→Task ID: REPO-PUSH-CONNECTA-2026-10-08
+  3470→Agent: orchestrator (main)
+  3471→Task: Create new GitHub repo "connecta" and push all build-relevant source files (skip sandbox junk), explicitly keeping md docs including worklog.md.
+  3472→
+  3473→Work Log:
+  3474→- Inspected project root to classify build files vs junk: build = src/, public/, scripts/ (migrate/seed/crons), package.json, bun.lock, next.config.ts, tsconfig.json, postcss.config.mjs, eslint.config.mjs, components.json, .env.example, DEPLOYMENT.md (Hostinger v3.0 mysql2 guide), GROUPIZO_MANUAL.md + VIP_LOGIC.md (engineering manuals for the shipped cron/backend systems), worklog.md (explicit user request). Junk skipped = node_modules/, .next/, .git (sandbox history), .env (SECRETS), mysql-runtime/, db/ binaries, qa-*.png screenshots, dev.log/dev.pid, logs/, .zscripts/, examples/, mini-services/ (empty), download/, Caddyfile, next-env.d.ts, old zips.
+  3475→- Secret scan before push: grepped all staged files for PAT (ghp_) / plaintext passwords → ZERO matches; .env.example has placeholders only (change-me).
+  3476→- Created repo via API: POST /user/repos → seowriterpk/connecta (public, default branch main, empty).
+  3477→- Staged fresh git tree at /tmp/connecta-stage: git init -b main, 297 files committed (369 src files incl. all app routes: public site, admin/blog CRUD, verificar silo-fixed, comparar, guias; lib incl. db.ts, related-groups.ts, jsonld.ts hardening).
+  3478→- Fixed .gitignore in both stage + project: `.env*` now has `!.env.example` exception so the env template is committable.
+  3479→- Pushed commit 1c6ba9a with token embedded in push URL ONLY (not in git config, not in any committed file).
+  3480→- API verification: repo tree = 424 entries; spot-checked 12 must-have paths all OK; junk/secrets scan = NONE; .env.example present; .env absent.
+  3481→- Pushed follow-up docs commit (this worklog entry) to the same repo.
+  3482→- Recreated the 15-minute webDevReview cron job (list was empty — previous job #443967 no longer exists).
+  3483→- Dev server health checked during push: /api/health → 200.
+  3484→
+  3485→Stage Summary:
+  3486→- Status: STABLE. New public repo live at https://github.com/seowriterpk/connecta with the complete buildable source (Next.js 16 + mysql2 + Tailwind 4/shadcn + scripts + docs + worklog). No secrets, no sandbox artifacts.
+  3487→- Build from repo: cp .env.example → .env, fill DB/admin/session values, bun install, bun run dev (or build+start per DEPLOYMENT.md); DB schema auto-created by Schema Guard on first request; scripts/patches/seed.sql for demo data.
+  3488→- Repo layout: 2 commits (source + worklog update), branch main.
+  3489→- Risks: none identified; PAT never persisted in repo/config.
+  3490→- Next-phase candidates: blog cover image upload + per-post og:image; blog tag pages; per-group admin time-series charts; newsletter digest; keep 15-min webDevReview cron running QA.
+  3491→
+  3492→---
+  3493→Task ID: SQL-MD-DEMO-IMPORT-2026-10-08
+  3494→Agent: orchestrator (main)
+  3495→Task: (1) Provide correct production .env variables for the new Hostinger DB (localhost, same server); (2) create sql.md — a complete, production-ready, SEO-optimized SQL import for the new empty DB (u824913874_connector) with realistic unique demo data.
+  3496→
+  3497→Work Log:
+  3498→- Read app truth sources before writing a single INSERT: src/lib/db.ts (18-table Schema Guard, exact columns/keys), live DB taxonomy (20 países co-*, 22 categorías cat-* incl. cat-citas-18/cat-exclusivo-18), live data formats (status='live', linkStatus='active', tags/keywords as JSON array strings, submitSource, uploader ids, popularityBadge='featured'), queries filters (status='live', tags LIKE '%"t"%', city = exact match).
+  3499→- Built generator /home/z/scratch/gen-sql.py with handcrafted content: 104 groups (92 clean + 12 adult), each with unique name/slug/description/tags/keywords; 12 groups reassigned to under-covered countries with culturally adapted copy (Bolivia, CR, Cuba, Ecuador, Honduras, Nicaragua, Panamá, PR, Paraguay, El Salvador, Uruguay); city hygiene (no city with a single group); 76 reviews consistent with avgRating/ratingCount; 2 published blog posts (existing safety guide reused + new "Cómo moderar un grupo de WhatsApp exitoso: 6 reglas de oro" with internal links).
+  3500→- Anti-thin-content system: tag normalization pass (core category tag + country tag + city tag + curated pairs; auto-drop any tag with <2 occurrences → 124 tags all >=2; every category 4-7 groups; every country >=2; 104 distinct tag sets). Validation asserts uniqueness of names/slugs/ids, country/category coverage, adult-silo integrity, review targets.
+  3501→- Schema block extracted programmatically from db.ts (unescaped template backticks) — 18 CREATE TABLE IF NOT EXISTS, identical to the app's Schema Guard.
+  3502→- LIVE END-TO-END TEST: created scratch DB u824913874_connector on local MariaDB → imported SQL → 104/104 unique slugs, all counts exact → granted app user → pointed .env DB_NAME at it → restarted dev server → verified: homepage renders clean demo groups (0 adult on clean surface), /categoria/humor (5 groups incl. reassigned Bolivian/Salvadoran), /pais/bolivia (2), /ciudad/madrid (4), /etiqueta/memes (5), group detail page, /blog + new article, adult category (client-side silo, noindex), /autor/ana-torres, /populares, /rss (valid XML, new slugs, 0 adult).
+  3503→- Restored sandbox: .env back to gruposwhatsapp, dev server healthy (200), scratch DB dropped.
+  3504→- Wrote /home/z/my-project/sql.md (220KB): instructions (phpMyAdmin + SSH, idempotency notes, post-import checklist: replace demo invite links via /admin, regenerate sitemaps, run verification queries) + full SQL in one ```sql block. Roundtrip-verified: SQL extracted from the md is byte-identical to the tested import.sql.
+  3505→- Secret scan: sql.md contains 0 secrets (env section uses placeholders). Pushed sql.md to seowriterpk/connecta (commit d8f0f65). 15-min webDevReview cron #444623 still active from earlier this session.
+  3506→
+  3507→Stage Summary:
+  3508→- Status: STABLE. sql.md is production-ready and triple-verified (generator assertions → scratch-DB import → live app rendering). Repo connecta now includes the full build + import file.
+  3509→- User env vars (Hostinger, same server): DB_HOST=localhost, DB_PORT=3306, DB_USER=u824913874_connector, DB_PASSWORD=mh/iW=O0, DB_NAME=u824913874_connector, ADMIN_USER=admin, ADMIN_PASS=Grupos2024!, SESSION_SECRET=cg-2026-strong-secret-kj4n9f2m8v7xq1w6z3r5t8y0u. (Delivered in chat; NOT committed anywhere.)
+  3510→- Remaining user actions on their server: import sql.md via phpMyAdmin, set .env, replace demo WhatsApp invite links with real ones, run sitemap generator.
+  3511→- Next-phase candidates: blog cover images; tag pages for blog; per-group admin charts; replace demo invite links with real ones as they come.
+  3512→
+  3513→---
+  3514→Task ID: BUILD-FIX-WEBPACK-2026-10-08
+  3515→Agent: orchestrator (main)
+  3516→Task: Fix Hostinger build failure — Turbopack panic during `next build` (PostCSS worker child node process exits before connection while processing src/app/globals.css).
+  3517→
+  3518→Work Log:
+  3519→- Diagnosis: platform build (Node 22 / npm / `npm run build`) crashed inside Turbopack's PostCSS worker process-spawn bridge ("creating new process / node process exited before we could connect, status 0") — an environment-specific Turbopack issue on the hosting build runner, not a code defect. Dependency updates were NOT needed: package.json uses caret ranges (next ^16.1.1, tailwindcss ^4, @tailwindcss/postcss ^4), so the platform's npm install already resolves the latest 16.x/4.x (platform log confirms Next 16.4.0 installed; crash is Turbopack-internal).
+  3520→- Fix applied to package.json (both sandbox + repo): build script now `next build --webpack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/` — bypasses Turbopack entirely for production builds. Also hardened start script: `NODE_ENV=production HOSTNAME=0.0.0.0 node .next/standalone/server.js ...` (prevents the classic standalone EADDRNOTAVAIL crash when a container-style HOSTNAME env var makes server.js bind to a nonexistent host).
+  3521→- Generated package-lock.json in the stage repo via npm install (922 packages, lockfileVersion 3, resolves next 16.4.0) — makes platform installs deterministic; committed per user request.
+  3522→- FULL LOCAL MIRROR of the platform pipeline: verified `--webpack` flag exists in Next 16 CLI → stopped dev server (freed 1.4GB) → `npm install` + `npm run build` in /tmp/connecta-stage → webpack production build SUCCEEDED (▲ Next.js 16.4.0, full route table, .next/standalone/server.js + static + public all copied, build id I3az3pDmemDgTrYzuKHhZ, no OOM).
+  3523→- Standalone artifact smoke test: `node --env-file=.env .next/standalone/server.js` on internal port 3100 → GET /api/health 200 {"db":{"ok":true}} + GET / 200 (560KB HTML, correct SEO title). Test server killed afterwards.
+  3524→- Restarted sandbox dev server via ./start-dev.sh (PID 14323) → /api/health 200, DB ok.
+  3525→- Committed + pushed package.json, package-lock.json, worklog.md to seowriterpk/connecta (main).
+  3526→
+  3527→Stage Summary:
+  3528→- Status: deployment build pipeline FIXED and verified end-to-end with the exact commands the platform runs (npm install → next build --webpack → standalone server boot → live DB queries → rendered HTML). User action: re-trigger the Hostinger build; it should complete and start from .next/standalone/server.js.
+  3529→- Note: sandbox dev has been running `next dev --webpack` since earlier sessions (start-dev.sh), so webpack compilation of this codebase was already exercised; the webpack production build confirms the full path.
+  3530→- Risks: none new. Turbopack remains the dev default on the platform if they ever run `next dev` there, but production builds are webpack now.
+  3531→- Next-phase candidates: after deploy works — import sql.md demo data on the production DB, replace demo invite links via /admin, regenerate sitemaps, then blog covers + per-group admin charts.
+  3532→
+  3533→
+  3534→---
+  3535→Task ID: 4-b
+  3536→Agent: general-purpose (flag sweep)
+  3537→Task: Replace emoji country flags with self-hosted PNG CountryFlag component across public display components.
+  3538→
+  3539→Work Log:
+  3540→- countries-section.tsx: grid flag emoji span → <CountryFlag code name className="h-8 w-12 rounded-[3px]"> (large grid preset).
+  3541→- paises/page.tsx: same large-grid conversion in the by-region country cards.
+  3542→- pais/[code]/page.tsx: hero box (aria-hidden, text-4xl emoji → img h-8 w-12), empty-state box (h-8 w-12), CTA badge inline after MapPin (default h-3.5 w-5); <title>/meta strings with country.flag left untouched on purpose.
+  3543→- grupo/[slug]/page.tsx: country Link in header meta + "Explora más" country info row → CountryFlag default size, inline-flex wrappers for baseline alignment (guards already present).
+  3544→- verificar/[slug]/page.tsx: subtitle line under group title → conditional {group.country && <>flag + name</>} adapted to the centered sentence.
+  3545→- groups-directory-table.tsx: country SelectItem option label + group row country chip → CountryFlag default.
+  3546→- command-palette.tsx: recents line, popular-groups line (both guarded g.country &&), and Países command item (replaced text-base emoji span) → CountryFlag default.
+  3547→- compare-tool.tsx: 4 spots (slot card meta, suggestion chip, search result line, comparison "País" row) — all were aria-hidden emoji spans → conditional CountryFlag WITHOUT name (keeps decorative/aria-hidden semantics, alt="").
+  3548→- recently-viewed.tsx: {g.country?.flag && <span>…} → {g.country && <CountryFlag code name/>}.
+  3549→- movers-section.tsx: mover row country chip → CountryFlag default + name.
+  3550→- metrics-section.tsx: topCountries emoji → CountryFlag h-6 w-9 rounded-[2px]; added `code: string` to the local Metrics.topCountries item type (getMetrics() already returns code).
+  3551→- populares-filters.tsx: country chip emoji (aria-hidden) → <CountryFlag code name/>; FilterCountry props type already had code, populares/page.tsx already passes it.
+  3552→- ciudades/page.tsx: city card text-2xl flag → <CountryFlag code={c.countryCode} className="h-8 w-12 rounded-[3px]"/> (no name — decorative, alt="").
+  3553→- ciudad/[slug]/page.tsx: hero box + empty-state box → h-8 w-12 rounded-[3px]; countryCode badge next to Building2 and CTA inline after MapPin → default size; metadata strings (lines ~59/~130) left untouched.
+  3554→- cities-section.tsx: city grid card emoji → h-8 w-12 rounded-[3px]; local CityDTO interface already had countryCode (getAllCities provides it; homepage passes cities directly, no mapping change needed; grep confirmed CitiesSection used only by src/app/page.tsx).
+  3555→- testimonials-section.tsx: replaced flag emoji fields with code fields (🇨🇱→cl, 🇨🇴→co, 🇻🇪→ve, 🇲🇽→mx, 🇸🇻→sv, 🇲🇽→mx; removed the now-unused `flag` fields — no other consumer of TESTIMONIALS), figcaption renders <CountryFlag code={t.code} name={t.role}/> + t.role.
+  3556→- lint: `bun run lint` → 0 errors, 1 warning (unused eslint-disable directive in country-flag.tsx — pre-existing, file owned by task 4-a, left alone). `bunx tsc --noEmit` → 0 errors.
+  3557→- Smoke test on live dev server: flag <img src="/flags/xx.png" alt="Bandera de …"> renders on / (76), /paises, /pais/es, /grupo/…, /verificar/…, /populares (40), /ciudades, /ciudad/madrid, /comparar; zero raw emoji flags left anywhere in src (python regional-indicator sweep: only the doc comment in country-flag.tsx).
+  3558→
+  3559→Stage Summary:
+  3560→- 16 files changed, 30 emoji render spots converted (2 large grids, 6 hero/large boxes, rest inline default). No spots skipped except by design: emoji inside <title>/meta strings (pais ~59, ciudad ~59/~130) left as emoji — invisible-renderer issue does not apply to text metadata.
+  3561→- Interface/type additions: metrics-section Metrics.topCountries + code (required — data always provides); cities-section CityDTO already had countryCode (no change needed); testimonials flag→code (removed dead field).
+  3562→- Untouched per rules: admin components (emoji flags remain there by design), add-group-form/submit-dialog/group-card/country-flag (done by 4-a), lib/data.ts (already extended by 4-a), API routes.
+  3563→- Risks: none — component degrades to null on invalid/empty code and never breaks layout (inline-block shrink-0).
+  3564→
+  3565→---
+  3566→Task ID: UX-FIXES-4-2026-10-08
+  3567→Agent: orchestrator (main) + general-purpose subagent (Task 4-b flag sweep)
+  3568→Task: Four production fixes from user report: (1) styled/gaming Unicode group names broken as "&#x1d431;" entities + name length limit; (2) no 18+ toggle in the add-group category step; (3) group cards too content-heavy — collapse país/ciudad/categoría/descripción behind a click dropdown while Google sees full HTML; (4) country flags not rendering (Windows shows emoji as letter pairs).
+  3569→
+  3570→Work Log:
+  3571→- FIX A (Unicode names): root cause = whatsapp-validator decodeEntities only handled named entities, but WhatsApp og:title encodes styled fonts as NUMERIC entities (&#x1d431;); html.slice(0,8192) could also cut an entity mid-way (the "&#x1" fragment). Fix: full hex/decimal entity decode with safeFromCodePoint guards (surrogates/invalid cps dropped, never throws), preview buffer 8KB→64KB, zero-width/directional/C0 control chars stripped. Limits now count CODE POINTS ([...s].length): client NAME_MAX_CP=120 with live counter + onChange clamp, server TITLE_MAX=120 in both submit routes + cleanName() invisible-char strip. DB columns already VARCHAR(255) utf8mb4 — no migration. slug.ts: NFKD normalization FIRST so "𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊" slugs to "x-adil-pubg-shop" instead of "grupo"; middle dots/bullets map to hyphens.
+  3572→- FIX B (18+ gate): add-group-form step 3 + submit-dialog now have a rose-styled 18+ Switch ("Contenido para adultos — confirmas 18+"). Adult categories are fetched ON DEMAND from /api/categories?adult=only only when toggled (SSR props stay clean-only — silo preserved; getCategories() defaults to exclude, which was why the first attempt showed an empty adult list). Gate-off auto-deselects an adult category. Server defense-in-depth: submitGroup() now derives isAdult from the category on INSERT (dialog path previously never set it); submit-ugc already did.
+  3573→- FIX C (collapsible cards): group-card.tsx + groups-directory-table.tsx (homepage 30-row listing) restructured: ALWAYS VISIBLE = image, name, verify/featured/hot icons, 18+ badge, rating star, members count, heart, compare, Unirme. COLLAPSED behind native <details>/<summary> chevron row ("País, ciudad, categoría y descripción") = country+flag, city, category badge, views, trending, full description, member bar. Content stays in server HTML (30 details + 30 descriptions verified in / HTML — Googlebot sees everything; we only minimize visually). Stretched-link overlay (z-[1]) keeps whole card clickable; summary + actions z-[2]; chevron rotates via group-open/details.
+  3574→- FIX D (flags): Windows does not render Unicode flag emoji → downloaded 20 optimized w160 PNGs from flagcdn to public/flags/ (84KB total, self-hosted). New src/components/site/country-flag.tsx (server+client safe, alt="Bandera de X", lazy loading, emoji fallback). Subagent Task 4-b swept 16 display files (countries-section, paises, pais/[code], grupo/[slug], verificar, command-palette, compare-tool, recently-viewed, movers-section, metrics-section, populares-filters, ciudades, ciudad/[slug], cities-section, testimonials + directory table); admin tools intentionally left with emoji (staff-only). data.ts: getMetrics topCountries now includes co.code; submitGroup isAdult fix; entity-decode + NFKD slug as above.
+  3575→- E2E VERIFIED with agent-browser on /agregar-grupo using the EXACT user name: verify-invite (sandbox WhatsApp=429 → fail-safe "unknown" path, preview + warning toast) → España + Madrid (20 country pills with PNG flags) → step 3: toggle 18+ → both adult categories lazy-load ("Citas y Encuentros 18+", "Contenido Exclusivo 18+"), rose note "Se publicará en la zona 18+" → step 4: styled name accepted, counter 19/120 (UTF-16 would be 33) → submit → AUTO-PUBLISHED to /grupo/x-adil-pubg-shop: DB row groupName=𝐱・𝐀𝐃𝐈𝐋 𝐏𝐔𝐁𝐆 𝐒𝐡𝐨𝐩 •➊ (utf8mb4 glyphs, 19 chars), isAdult=1 (server-derived), slug=x-adil-pubg-shop, excluded from clean feeds (silo verified). Test group + ugc_submissions row deleted afterwards.
+  3576→- Homepage verified: 30/30 rows render collapsed <details> in SSR HTML (Google-visible), toggle click expands description+meta+flag, VLM 2-pass visual check clean (compact rows, chevrons aligned, Mexico flag renders). /categoria/videojuegos card toggle verified too.
+  3577→- One dev-only artifact: form froze once mid-test due to HMR fast-refresh during sequential edits (clean reload → full flow passes; NOT a code bug). Dev server OOM-killed once under compile+browser+VLM load (known 4GB sandbox limit) — ./start-dev.sh recovered; production build unaffected.
+  3578→- Gates: tsc --noEmit 0 errors, eslint exit 0, /api/health 200 (db ok).
+  3579→- Pushed all changes + public/flags to seowriterpk/connecta.
+  3580→
+  3581→Stage Summary:
+  3582→- Status: STABLE. All four user-reported issues fixed and E2E-verified. Styled names fetch, display, store, slug and publish correctly; 18+ submissions now have a proper gated path + server-side enforcement; cards/rows are compact with Google-visible collapsed content; real flag images render on every OS.
+  3583→- User impact: Windows/Android/iOS all see real PNG flags; adult groups can be published correctly instead of leaking into clean categories; long styled names (120 code points) accepted everywhere; directory is visually minimal but content-complete for SEO.
+  3584→- Risks: WhatsApp fetch behavior on production (numeric entities) verified by code-level decode test — real-link re-test recommended after deploy; flag PNGs need to ship with the repo (done — public/flags committed).
+  3585→- Next-phase candidates: blog cover images; per-group admin charts; sitemap regeneration after new groups; consider batching flag img preload on paises page.
+  3586→---
+  3587→Task ID: 2-a
+  3588→Agent: fullstack-developer
+  3589→Task: Remove SubmitDialog popup — link all add-group triggers to /agregar-grupo; remove "Enviar grupo" header nav item while keeping the corner CTA.
+  3590→
+  3591→Work Log:
+  3592→- Read worklog context; located SubmitDialog component and all 15 usages across 8 files (cta-banner + 7 route pages).
+  3593→- src/components/site/cta-banner.tsx: replaced the SubmitDialog trigger with a plain <Link href="/agregar-grupo"> keeping the exact button classes/label/icons ("Enviar mi grupo ahora", Plus icon); dropped now-unused categories/countries props, React import and "use client" (component is server-safe now).
+  3594→- src/app/page.tsx: updated the single CtaBanner call site to <CtaBanner /> (categories/countries still used by Hero/CategoriesSection/CountriesSection in the same file — untouched).
+  3595→- src/app/pais/[code]/page.tsx (3 usages), ciudad/[slug]/page.tsx (3), etiqueta/[slug]/page.tsx (3), categoria/[slug]/page.tsx (3), autor/[slug]/page.tsx (1), autores/page.tsx (1), buscar/page.tsx (2): every <SubmitDialog …> replaced with <Link href="/agregar-grupo" className="…same classes…"> preserving Plus/Send icons and Spanish labels ("Enviar un grupo" / "Enviar mi grupo" / "Enviar mi grupo ahora").
+  3596→- Removed now-dead plumbing: getCategories/getCountries imports and Promise.all fetches dropped in pais, ciudad, etiqueta (relatedTags kept), autor (categoriesCovered kept), autores, categoria, and buscar's results view (BuscarLanding keeps its fetch — still used for category/country counts).
+  3597→- DELETED src/components/site/submit-dialog.tsx after grep confirmed zero remaining imports anywhere in src/.
+  3598→- src/lib/constants.ts: removed { href: "/agregar-grupo", label: "Enviar grupo" } from NAV_LINKS → item disappears from desktop nav AND mobile sheet menu (both map over NAV_LINKS; header.tsx menu logic untouched). Mobile sheet bottom full-width "Enviar un grupo" CTA kept.
+  3599→- src/components/site/header.tsx: CSS-only tweak to the desktop corner CTA — className "hidden rounded-full px-4 shadow-sm shadow-primary/25 sm:inline-flex" (was "hidden sm:inline-flex") so it reads as the primary corner button. No logic touched.
+  3600→- Verification: rg "SubmitDialog|submit-dialog" over src/ → 0 matches; no dangling categories/countries refs in edited files; TypeScript parse check (ts.createSourceFile) passed on all 11 changed files. Dev server not reachable during this task (orchestrator manages lifecycle; a full tsc --noEmit run was in progress) — live HTTP smoke test deferred to orchestrator.
+  3601→
+  3602→Stage Summary:
+  3603→- All 9 files' add-group/share-group popup triggers now navigate directly to the dedicated /agregar-grupo page instead of opening the link-paste dialog; the dialog component is fully removed.
+  3604→- Header menu no longer shows a redundant "Enviar grupo" entry; the prominent corner button (desktop, now pill-shaped with subtle shadow) and the mobile sheet bottom CTA remain the single header entry points.
+  3605→- Spanish UI text and all original styling classes preserved; no new dependencies; no unrelated refactors.
+  3606→
+  3607→---
+  3608→Task ID: 2-c
+  3609→Agent: fullstack-developer
+  3610→Task: Group detail + verify pages — always-on analytics card, split related-groups (popular/old vs newest-in-category, max 2 indexed queries), and expired-link red badge with functional buttons.
+  3611→
+
+[showing lines 3412-3611 of 3768; use offset=3612 with limit to continue reading]

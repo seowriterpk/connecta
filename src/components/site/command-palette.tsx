@@ -12,16 +12,20 @@ import {
 } from "@/components/ui/command";
 import { Search, Users, Globe2, Home, Send, BookOpen, Heart, History, Flame, Scale } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
+import type {
+  CategoryLiteDTO,
+  CountryLiteDTO,
+  GroupCardDTO,
+} from "@/lib/lite-dto";
 import { useGroupsFilter } from "@/lib/store";
 import { useRecent } from "@/lib/recent";
 import { useCompare, MAX_COMPARE } from "@/lib/compare";
 import { CountryFlag } from "@/components/site/country-flag";
 
 interface Props {
-  categories: CategoryDTO[];
-  countries: CountryDTO[];
-  groups: GroupDTO[];
+  categories: CategoryLiteDTO[];
+  countries: CountryLiteDTO[];
+  groups: GroupCardDTO[];
 }
 
 export function CommandPalette({ categories, countries, groups }: Props) {
@@ -55,7 +59,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
     }, 60);
   }
 
-  function pickGroup(g: GroupDTO) {
+  function pickGroup(g: GroupCardDTO) {
     setOpen(false);
     setTimeout(() => router.push(`/grupo/${g.slug}`), 60);
   }

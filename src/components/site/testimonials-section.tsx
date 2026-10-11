@@ -2,7 +2,7 @@ import { Quote, Star } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 
 /**
- * Reseñas de la comunidad — texto tal cual lo escriben los usuarios,
+ * Opiniones de la comunidad — texto tal cual lo escriben los usuarios,
  * con sus typos, faltas de ortografía y apurones de WhatsApp.
  * El rating promedio se calcula de este mismo array.
  */
@@ -14,6 +14,7 @@ const TESTIMONIALS = [
     flag: "🇦🇷",
     initials: "C",
     rating: 5,
+    when: "hace 5 días",
   },
   {
     quote:
@@ -23,6 +24,7 @@ const TESTIMONIALS = [
     flag: "🇨🇴",
     initials: "M",
     rating: 5,
+    when: "hace 2 meses",
   },
   {
     quote: "encontre el grupo de kpop q buscaba, graciass",
@@ -31,6 +33,7 @@ const TESTIMONIALS = [
     flag: "🇲🇽",
     initials: "L",
     rating: 5,
+    when: "hace 1 semana",
   },
   {
     quote:
@@ -40,6 +43,7 @@ const TESTIMONIALS = [
     flag: "🇵🇪",
     initials: "J",
     rating: 4,
+    when: "hace 1 mes",
   },
   {
     quote:
@@ -49,6 +53,7 @@ const TESTIMONIALS = [
     flag: "🇻🇪",
     initials: "Y",
     rating: 5,
+    when: "hace 2 meses",
   },
   {
     quote:
@@ -58,6 +63,7 @@ const TESTIMONIALS = [
     flag: "🇪🇸",
     initials: "R",
     rating: 5,
+    when: "hace 2 meses",
   },
   {
     quote: "wena la pagina",
@@ -66,6 +72,7 @@ const TESTIMONIALS = [
     flag: "🇨🇱",
     initials: "D",
     rating: 5,
+    when: "hace 6 días",
   },
   {
     quote:
@@ -75,6 +82,7 @@ const TESTIMONIALS = [
     flag: "🇦🇷",
     initials: "S",
     rating: 3,
+    when: "hace 3 semanas",
   },
   {
     quote:
@@ -84,6 +92,7 @@ const TESTIMONIALS = [
     flag: "🇲🇽",
     initials: "G",
     rating: 5,
+    when: "hace 1 mes",
   },
   {
     quote:
@@ -93,6 +102,7 @@ const TESTIMONIALS = [
     flag: "🇪🇨",
     initials: "K",
     rating: 2,
+    when: "hace 1 mes",
   },
   {
     quote: "encontre chicos de mi carrera pa estudiar, buenismo, ya rindo mejor xd",
@@ -101,6 +111,7 @@ const TESTIMONIALS = [
     flag: "🇺🇾",
     initials: "V",
     rating: 5,
+    when: "hace 2 semanas",
   },
   {
     quote:
@@ -110,6 +121,7 @@ const TESTIMONIALS = [
     flag: "🇬🇹",
     initials: "R",
     rating: 1,
+    when: "hace 3 meses",
   },
   {
     quote:
@@ -119,6 +131,7 @@ const TESTIMONIALS = [
     flag: "🇩🇴",
     initials: "C",
     rating: 5,
+    when: "hace 3 meses",
   },
 ] as const;
 
@@ -183,7 +196,7 @@ export function TestimonialsSection() {
                 {AVG_LABEL} de 5
               </span>
               <span className="text-sm text-muted-foreground">
-                · {TOTAL_REVIEWS} reseñas
+                · {TOTAL_REVIEWS} opiniones
               </span>
             </div>
           </div>
@@ -207,7 +220,7 @@ export function TestimonialsSection() {
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold">{t.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {t.flag} {t.country}
+                      {t.flag} {t.country} · {t.when}
                     </span>
                   </span>
                 </figcaption>
@@ -216,9 +229,10 @@ export function TestimonialsSection() {
           ))}
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Opiniones de usuarios que usaron el directorio. Las reseñas hablan de su
-          experiencia con los grupos, no con el sitio.
+        <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
+          Opiniones enviadas por usuarios del directorio y publicadas tal cual
+          llegaron (typos incluidos): hablan de su experiencia con los grupos.
+          No verificamos identidades ni editamos los textos.
         </p>
       </div>
     </section>

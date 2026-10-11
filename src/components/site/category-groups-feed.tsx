@@ -36,7 +36,6 @@ interface Props {
   isAdult: boolean;
   initialGroups: GroupDTO[];
   initialTotal: number;
-  initialRatings?: Record<string, { avg: number; count: number }>;
 }
 
 export function CategoryGroupsFeed({
@@ -44,12 +43,10 @@ export function CategoryGroupsFeed({
   isAdult,
   initialGroups,
   initialTotal,
-  initialRatings = {},
 }: Props) {
   const [sort, setSort] = React.useState<SortKey>("populares");
   const [groups, setGroups] = React.useState<GroupDTO[]>(initialGroups);
   const [total, setTotal] = React.useState<number>(initialTotal);
-  const [ratings, setRatings] = React.useState<Record<string, { avg: number; count: number }>>(initialRatings);
   const [loading, setLoading] = React.useState(false);
   const [loadingMore, setLoadingMore] = React.useState(false);
 
@@ -68,17 +65,6 @@ export function CategoryGroupsFeed({
     return params;
   };
 
-  const fetchRatings = React.useCallback((list: GroupDTO[]) => {
-    if (list.length === 0) return;
-    const ids = list.map((g) => g.id).join(",");
-    fetch(`/api/groups/ratings-batch?ids=${encodeURIComponent(ids)}&XTransformPort=3000`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.ok && j.data) setRatings((prev) => ({ ...prev, ...j.data }));
-      })
-      .catch(() => {});
-  }, []);
-
   // Adult categories: fetch the first batch on mount (client-only).
   React.useEffect(() => {
     if (!isAdult) return;
@@ -94,7 +80,6 @@ export function CategoryGroupsFeed({
         if (cancelled) return;
         if (json?.ok && Array.isArray(json.data)) {
           setGroups(json.data);
-          fetchRatings(json.data);
         }
         if (countJson?.ok && typeof countJson.data === "number") setTotal(countJson.data);
       })
@@ -103,7 +88,7 @@ export function CategoryGroupsFeed({
     return () => {
       cancelled = true;
     };
-  }, [isAdult, categoryId, fetchRatings]);
+  }, [isAdult, categoryId]);
 
   // Filter change → refetch the first batch (clean categories only; the adult
   // bootstrap above already handles its own initial load).
@@ -116,7 +101,6 @@ export function CategoryGroupsFeed({
       .then((json) => {
         if (json?.ok && Array.isArray(json.data)) {
           setGroups(json.data);
-          fetchRatings(json.data);
         }
       })
       .catch(() => {})
@@ -132,7 +116,6 @@ export function CategoryGroupsFeed({
         if (json?.ok && Array.isArray(json.data)) {
           const fresh = json.data.filter((g: GroupDTO) => !groups.some((x) => x.id === g.id));
           setGroups((prev) => [...prev, ...fresh]);
-          if (fresh.length > 0) fetchRatings(fresh);
         }
       })
       .catch(() => {})
@@ -214,7 +197,7 @@ export function CategoryGroupsFeed({
           )}
         >
           {groups.map((g) => (
-            <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+            <GroupCard key={g.id} group={g} />
           ))}
         </div>
       )}

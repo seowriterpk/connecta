@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const title = `Comparar grupos de WhatsApp — ${SITE.name}`;
 const description =
-  "Compara hasta 3 grupos de WhatsApp lado a lado: miembros, vistas, clics y valoraciones de la comunidad, con el mejor de cada métrica destacado.";
+  "Compara hasta 3 grupos de WhatsApp lado a lado: miembros, vistas, clics y estado del enlace, con el mejor de cada métrica destacado.";
 
 export const metadata: Metadata = {
   title: { absolute: title },
@@ -95,8 +95,8 @@ export default async function CompararPage() {
               </h1>
               <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
                 ¿Dudando entre dos o tres comunidades? Elige hasta 3 grupos y verás sus
-                miembros, vistas, clics y valoraciones en una sola tabla, con el mejor de
-                cada métrica destacado para que decidas más rápido.
+                miembros, vistas y clics en una sola tabla, junto al estado del enlace, con
+                el mejor de cada métrica destacado para que decidas más rápido.
               </p>
             </div>
           </div>
@@ -130,24 +130,23 @@ export default async function CompararPage() {
                 <p>
                   No todos los grupos de WhatsApp son iguales: hay comunidades enormes y
                   ruidosas, y otras pequeñas y muy activas. Con este comparador puedes poner
-                  hasta 3 grupos frente a frente y observar cuatro señales clave: los{" "}
+                  hasta 3 grupos frente a frente y observar tres señales clave: los{" "}
                   <strong className="font-semibold text-foreground">miembros estimados</strong> (tamaño de la
                   comunidad), las <strong className="font-semibold text-foreground">vistas</strong> (cuánta gente los
-                  descubre), los <strong className="font-semibold text-foreground">clics de unión</strong> (intención
-                  real de entrar) y la <strong className="font-semibold text-foreground">valoración</strong> de quienes
-                  ya participan. El «mejor» de cada fila se recalcula en vivo con los datos
-                  actuales del directorio.
+                  descubre) y los <strong className="font-semibold text-foreground">clics de unión</strong> (intención
+                  real de entrar), además del estado verificado del enlace. El «mejor» de cada
+                  fila se recalcula en vivo con los datos actuales del directorio.
                 </p>
                 <p>
                   Un consejo práctico: no elijas solo por tamaño. Un grupo con menos miembros
-                  pero mejor nota media suele ofrecer conversaciones de más calidad y menos
+                  pero más clics de unión suele ser una comunidad más activa y con menos
                   spam. Si buscas volumen (por ejemplo, para comprar-vender), prioriza clics y
-                  miembros; si buscas comunidad (idiomas, fe, hobbies), prioriza la valoración
-                  y el estado del enlace.
+                  miembros; si buscas comunidad (idiomas, fe, hobbies), prioriza la
+                  antigüedad y el estado del enlace.
                 </p>
                 <p>
                   Cuando tengas tus finalistas, entra en la ficha de cada uno para leer la
-                  descripción completa y las reseñas, o explora el{" "}
+                  descripción completa y los detalles de la comunidad, o explora el{" "}
                   <Link href="/populares" className="font-medium text-primary hover:underline">ranking de populares</Link>, el{" "}
                   <Link href="/buscar" className="font-medium text-primary hover:underline">buscador</Link> y las{" "}
                   <Link href="/categorias" className="font-medium text-primary hover:underline">categorías</Link> para

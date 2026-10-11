@@ -231,7 +231,7 @@ export function SiteFooter() {
         <div className="container mx-auto px-4 py-5">
           <div className="flex flex-col items-center justify-between gap-3 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
             <p>
-              © {year} {SITE.name}. Hecho con{" "}
+              © {year} {SITE.name} · Un proyecto de Antonio C. · Hecho con{" "}
               <Heart className="inline h-3 w-3 fill-current text-rose-500" /> para la comunidad
               hispanohablante.
             </p>

@@ -5,6 +5,7 @@ import { useInView } from "framer-motion";
 import { Users, Star, Globe2, CheckCircle2, BarChart3, MapPin } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { CountryFlag } from "@/components/site/country-flag";
+import { formatMembersEs } from "@/lib/members";
 
 interface Metrics {
   groups: number;
@@ -20,7 +21,10 @@ interface Metrics {
 }
 
 function useCountUp(target: number, inView: boolean, duration = 1200) {
-  const [val, setVal] = React.useState(0);
+  // Estado inicial = valor REAL: el HTML del servidor y el primer render del
+  // cliente muestran el número de verdad (Googlebot sin JS incluido). La
+  // animación 0→target solo corre en el cliente, al entrar en viewport.
+  const [val, setVal] = React.useState(target);
   React.useEffect(() => {
     if (!inView) return;
     let raf = 0;
@@ -47,12 +51,14 @@ function Metric({
   label,
   icon: Icon,
   color,
+  format = fmt,
 }: {
   value: number;
   suffix?: string;
   label: string;
   icon: React.ElementType;
   color: string;
+  format?: (n: number) => string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
@@ -66,7 +72,7 @@ function Metric({
         <Icon className="h-5 w-5" />
       </span>
       <div className="text-2xl font-extrabold tabular-nums sm:text-3xl">
-        {fmt(v)}
+        {format(v)}
         <span className="text-primary">{suffix}</span>
       </div>
       <div className="text-xs leading-tight text-muted-foreground">{label}</div>
@@ -91,26 +97,41 @@ export function MetricsSection({ metrics }: { metrics: Metrics }) {
             </h2>
           </div>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Transparencia total: esto es lo que hay dentro del directorio ahora mismo. Actualizado
-            en tiempo real con cada envío y revisión.
+            Transparencia total: esto es lo que hay dentro del directorio ahora
+            mismo. Las cifras se leen de la base de datos con cada visita.
           </p>
         </Reveal>
 
-        {/* Top metrics grid */}
-        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Metric value={metrics.groups} suffix="+" label="Grupos activos" icon={Users} color="bg-primary/10 text-primary" />
+        {/* Top metrics grid — "Suscritos" hidden while 0 (empty newsletter):
+            showing a dead 0 reads as broken, hiding it is the honest option
+            until there is a real number to show. */}
+        <div
+          className={`mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 ${
+            metrics.newsletter > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5"
+          }`}
+        >
+          <Metric value={metrics.groups} label="Grupos activos" icon={Users} color="bg-primary/10 text-primary" />
           <Metric value={metrics.categories} label="Categorías" icon={Star} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" />
           <Metric value={metrics.countries} label="Países hispanos" icon={Globe2} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
           <Metric value={metrics.featured} label="Destacados" icon={Star} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" />
           <Metric
-            value={Math.round(metrics.members / 1000)}
-            suffix="k+"
-            label="Miembros totales"
+            value={metrics.members}
+            format={formatMembersEs}
+            label="Miembros estimados"
             icon={Users}
             color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           />
-          <Metric value={metrics.newsletter} label="Suscritos" icon={CheckCircle2} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
+          {metrics.newsletter > 0 && (
+            <Metric value={metrics.newsletter} label="Suscritos" icon={CheckCircle2} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
+          )}
         </div>
+
+        {/* Metodología: qué se mide y qué se estima */}
+        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          * Miembros estimados a partir de los clics reales de cada enlace (≈1
+          de cada 5 clics se convierte en unión; WhatsApp limita los grupos a
+          1.024 miembros). Las demás cifras son mediciones del directorio.
+        </p>
 
         {/* Breakdowns */}
         <div className="mt-6 grid gap-4 lg:grid-cols-2">

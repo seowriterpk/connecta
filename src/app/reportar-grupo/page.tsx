@@ -33,37 +33,6 @@ export const metadata: Metadata = {
   ],
 };
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "¿Qué pasa después de reportar un grupo en ConectaGrupos?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Nuestro equipo de moderación revisa el grupo reportado con prioridad. Si se confirma la infracción, retiramos el grupo del directorio, lo marcamos como inactivo o, en casos graves, lo bloqueamos. Si dejaste un contacto, te avisamos del resultado.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "¿Pueden saber quién ha reportado un grupo?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "No. Tu identidad no se comparte con el administrador del grupo. El contacto que dejas es opcional y solo se usa para avisarte del resultado, nunca se hace público.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "¿Cuántas veces puedo reportar el mismo grupo?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Limitamos a un reporte por grupo e IP para evitar abusos. Si el grupo ya fue reportado, sigue visible mientras lo revisamos; cuando se resuelva, lo retiramos o lo dejamos según corresponda.",
-      },
-    },
-  ],
-};
-
 const webPageJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebPage",
@@ -93,10 +62,6 @@ export default function ReportarGrupoPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd) }}
       />
       <SiteHeader />
       <main className="flex-1">

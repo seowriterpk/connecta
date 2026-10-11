@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
 import { Reveal } from "@/components/site/reveal";
-import { getGroupsByIds, getRatingsBatch } from "@/lib/data";
+import { getGroupsByIds } from "@/lib/data";
 import { getFavListByCode, parseListIds, bumpFavListView } from "@/lib/fav-lists";
 import { SharedListActions } from "./shared-list-actions";
 import { Link2, Users, CalendarDays, Eye } from "lucide-react";
@@ -49,7 +49,6 @@ export default async function SharedListPage({ params }: Props) {
   const groups = ids.length > 0 ? await getGroupsByIds(ids) : [];
   await bumpFavListView(code);
 
-  const ratings = await getRatingsBatch(groups.map((g) => g.id));
   const totalMembers = groups.reduce((acc, g) => acc + (g.members || 0), 0);
   const createdLabel = new Date(list.createdAt).toLocaleDateString("es-ES", {
     day: "numeric",
@@ -125,7 +124,7 @@ export default async function SharedListPage({ params }: Props) {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>

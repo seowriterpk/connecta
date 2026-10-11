@@ -16,7 +16,7 @@ import { CountryFlag } from "@/components/site/country-flag";
 import {
   getCityBySlug,
   getGroupsByCityPaginated,
-  getRatingsBatch,
+  PAGE_SIZE,
 } from "@/lib/data";
 import {
   getTaxonomyContent,
@@ -36,13 +36,23 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+// Strict page parsing: absent param or junk (?page=abc → NaN) falls back to
+// page 1; 0/negative/non-integer values pass through and are rejected by the
+// paginated data function (out of range → notFound).
+function parsePageParam(sp: { [key: string]: string | string[] | undefined }): number {
+  const raw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  if (raw === undefined) return 1;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 1;
+}
+
 export async function generateMetadata({
   params,
   searchParams,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const sp = await searchParams;
-  const page = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1;
+  const page = parsePageParam(sp);
   const city = await getCityBySlug(slug);
   if (!city) {
     return {
@@ -56,6 +66,12 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const title = `Grupos de WhatsApp en ${city.city} | ConectaGrupos`;
+  // D-4 thin-content rule: city pages with fewer than 3 groups are
+  // template-swapped thin pages → keep them live for users but noindex.
+  const robots =
+    city.groupCount >= 3
+      ? { index: true, follow: true }
+      : { index: false, follow: true };
   // Dynamic meta description: custom hero override wins, else keyword-derived
   // from the oldest groups of this city (one keyword per group).
   const taxContent = await getTaxonomyContent("city", city.city);
@@ -70,6 +86,7 @@ export async function generateMetadata({
     title: { absolute: title },
     description,
     alternates: { canonical },
+    robots,
     openGraph: {
       title,
       description,
@@ -102,19 +119,18 @@ export default async function CityPage({
 }: PageProps) {
   const { slug } = await params;
   const sp = await searchParams;
-  const page = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1;
+  const page = parsePageParam(sp);
   const city = await getCityBySlug(slug);
   if (!city) notFound();
 
+  // Out-of-range page (0, negative, beyond last) → 404, matching the strict
+  // validation in getGroupsByCityPaginated.
   const result = await getGroupsByCityPaginated(city.city, page);
   if (!result) notFound();
   const groups = result.groups;
   const basePath = `/ciudad/${slug}`;
-  const PAGE_SIZE = 120;
   const rangeStart = (result.page - 1) * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + groups.length - 1;
-
-  const ratings = await getRatingsBatch(groups.map((g) => g.id));
 
   // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
   // shares the lookup with generateMetadata.
@@ -323,7 +339,7 @@ export default async function CityPage({
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>

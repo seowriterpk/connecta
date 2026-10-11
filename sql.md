@@ -759,72 +759,35 @@ SESSION_SECRET=genera-con-openssl-rand-hex-32
 
 ---
 
-## MIGRACIÓN AUTORES (2026-10-08) — ejecutar tras importar el dump base
+## MIGRACIÓN AUTORES (2026-10-11) — ejecutar tras importar el dump base
 
-Objetivo: dejar exactamente 5 autores reales y casuales (sin categoría asignada,
-presentados como expertos curadores), reasignar los grupos del autor eliminado
-y borrar los uploaders sobrantes. Idempotente: puede re-ejecutarse sin efectos
-secundarios (los UPDATE por slug dejan de coincidir tras la primera pasada y
-el DELETE por slug solo afecta a los eliminados).
+Objetivo: consolidar TODOS los autores en uno solo. El dump base crea 5–6
+curadores individuales (Lucía Martínez, Carlos Ramírez, … hasta `up-luis`) y la
+versión anterior de esta migración creaba 5 personas ficticias (Karina Roldán,
+Toto Vélez, …). Ninguna de esas personas existe: quien publica los grupos es el
+**Equipo ConectaGrupos** (el equipo editorial). Esta migración:
+
+1. Crea/actualiza `up-equipo` (Equipo ConectaGrupos, slug `equipo-conectagrupos`).
+2. Reasigna TODOS los grupos con uploader a `up-equipo`.
+3. Borra cualquier otro uploader (los del dump base y las personas ficticias).
+
+El fundador y propietario (**Antonio C.**) NO es un uploader: no publica grupos,
+así que no aparece en `uploaders` ni en `/autor/...` — su historia vive en
+`/sobre-nosotros` y el crédito del proyecto en el pie de página. Idempotente:
+el INSERT es `ON DUPLICATE KEY` y los UPDATE/DELETE dejan de coincidir tras la
+primera pasada (sirve tanto sobre el dump base como sobre la versión con las
+5 personas ficticias).
 
 ```sql
 -- ============================================================
--- 1) Reasignar los grupos del autor eliminado (up-luis /
---    luis-caminos) entre los 5 que quedan (reparto determinista
---    por CRC32 del id del grupo; idempotente por el WHERE).
--- ============================================================
-UPDATE `groups` SET `uploaderId` = 'up-lucia'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 0;
-UPDATE `groups` SET `uploaderId` = 'up-carlos' WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 1;
-UPDATE `groups` SET `uploaderId` = 'up-maria'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 2;
-UPDATE `groups` SET `uploaderId` = 'up-diego'  WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 3;
-UPDATE `groups` SET `uploaderId` = 'up-ana'    WHERE `uploaderId` = 'up-luis' AND CRC32(`id`) % 5 = 4;
-UPDATE `groups_queue` SET `uploaderId` = 'up-lucia' WHERE `uploaderId` = 'up-luis';
-
--- ============================================================
--- 2) Los 5 autores finales (INSERT ... ON DUPLICATE KEY por id:
---    si el dump base ya trae la fila la reescribe; si faltara, la crea).
---    Gente normal de clase media, tono casual, sin categoría asignada,
---    sin redes sociales (imageUrl NULL → la UI muestra las iniciales).
+-- 1) El Equipo ConectaGrupos como único autor (INSERT ...
+--    ON DUPLICATE KEY por id: si existe la fila la reescribe;
+--    si faltara, la crea). Sin redes ni imagen (imageUrl NULL
+--    → la UI muestra las iniciales "EC").
 -- ============================================================
 INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
-VALUES ('up-lucia','Karina Roldán','karina-r','Curadora de comunidades',
-        'estoy en como 40 grupos de todo, memes, recetas, ofertas. acá me toca revisar que los grupos que subimos funcionen de verdad, si encontrás uno caído avisame',
-        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
-ON DUPLICATE KEY UPDATE
-  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
-  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
-  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
-
-INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
-VALUES ('up-carlos','Toto Vélez','toto-v','Curador de comunidades',
-        'deportero de corazón, ando en grupos de memes y de ofertas en las noches. yo me encargo de que los grupos que suben acá no sean puro spam',
-        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
-ON DUPLICATE KEY UPDATE
-  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
-  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
-  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
-
-INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
-VALUES ('up-maria','Male Duarte','male-d','Curadora de comunidades',
-        'soy la de la familia que siempre manda grupos buenos jaja, ahora también curo los del directorio. reviso los enlaces antes de que suban',
-        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
-ON DUPLICATE KEY UPDATE
-  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
-  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
-  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
-
-INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
-VALUES ('up-diego','JP Ferrer','jp-f','Curador de comunidades',
-        'me hice adicto a los grupos de ofertas y de segunda mano, sé cuales van y cuales no. ayudo con esto del directorio por las tardes',
-        NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
-ON DUPLICATE KEY UPDATE
-  `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
-  `description`=VALUES(`description`), `facebookUrl`=NULL, `twitterUrl`=NULL,
-  `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
-
-INSERT INTO `uploaders` (`id`,`name`,`slug`,`jobTitle`,`description`,`facebookUrl`,`twitterUrl`,`linkedinUrl`,`websiteUrl`,`imageUrl`,`createdAt`,`lastActiveAt`)
-VALUES ('up-ana','Gisela Ruiz','gisela-r','Curadora de comunidades',
-        'me gustan los grupos de futbol y de memes, aquí ayudo a que los grupos buenos lleguen a la gente. si algo raro pasa en un grupo, avisen y lo miramos',
+VALUES ('up-equipo','Equipo ConectaGrupos','equipo-conectagrupos','Equipo editorial',
+        'Publicamos y revisamos los grupos del directorio: cada enlace pasa por nuestras manos antes de aparecer. Si algo deja de funcionar, avísanos y lo comprobamos de nuevo.',
         NULL,NULL,NULL,NULL,NULL,NOW(),NOW())
 ON DUPLICATE KEY UPDATE
   `name`=VALUES(`name`), `slug`=VALUES(`slug`), `jobTitle`=VALUES(`jobTitle`),
@@ -832,20 +795,43 @@ ON DUPLICATE KEY UPDATE
   `linkedinUrl`=NULL, `websiteUrl`=NULL, `imageUrl`=NULL;
 
 -- ============================================================
--- 3) Eliminar SOLO los autores sobrantes (por slug del dump base).
---    Los grupos ya fueron reasignados en el paso 1.
+-- 2) Reasignar TODOS los grupos al equipo (da igual qué uploader
+--    —o qué nombre— tuvieran antes).
 -- ============================================================
-DELETE FROM `uploaders` WHERE `slug` = 'luis-caminos';
+UPDATE `groups` SET `uploaderId` = 'up-equipo'
+WHERE `uploaderId` IS NOT NULL AND `uploaderId` <> 'up-equipo';
 
--- Verificación esperada: 5 filas en uploaders, 0 grupos con uploaderId='up-luis'.
--- SELECT id, name, slug, jobTitle FROM `uploaders`;
--- SELECT COUNT(*) FROM `groups` WHERE `uploaderId` = 'up-luis';
+-- Misma limpieza en la cola de importación (por si quedara algo pendiente).
+UPDATE `groups_queue` SET `uploaderId` = 'up-equipo'
+WHERE `uploaderId` IS NOT NULL AND `uploaderId` <> 'up-equipo';
+
+-- ============================================================
+-- 3) Eliminar todos los demás uploaders (los del dump base y
+--    las personas ficticias de la migración anterior).
+-- ============================================================
+DELETE FROM `uploaders` WHERE `id` <> 'up-equipo';
+
+-- ============================================================
+-- Verificación: exactamente 1 fila (up-equipo) con su número de
+-- grupos; 0 grupos apuntando a un uploader inexistente.
+-- ============================================================
+SELECT u.`id`, u.`name`, u.`slug`, COUNT(g.`id`) AS `grupos_publicados`
+FROM `uploaders` u
+LEFT JOIN `groups` g ON g.`uploaderId` = u.`id`
+GROUP BY u.`id`, u.`name`, u.`slug`;
+
+SELECT COUNT(*) AS `grupos_huerfanos`
+FROM `groups` g
+LEFT JOIN `uploaders` u ON u.`id` = g.`uploaderId`
+WHERE g.`uploaderId` IS NOT NULL AND u.`id` IS NULL;
 ```
 
-Nota: no existe tabla `blog_posts` en este proyecto (verificado con SHOW TABLES),
-por lo que no hay reasignación de autores de blog. La tabla `ugc_contributors`
-se mantiene intacta: los contribuidores UGC no son autores y no reciben páginas
-de autor (solo crédito "publicado por" en las páginas de grupo).
+Notas:
+- La tabla `blog_posts` ya usa `authorName` con valor «Equipo ConectaGrupos»
+  (es su DEFAULT), así que no hay nada que reasignar ahí.
+- La tabla `ugc_contributors` se mantiene intacta: los contribuidores UGC no
+  son autores y no reciben páginas de autor (solo crédito «publicado por» en
+  las páginas de grupo).
 
 ## MIGRACIÓN PAÍSES (2026-10-08) — ejecutar tras importar el dump base
 

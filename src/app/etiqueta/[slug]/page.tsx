@@ -15,8 +15,8 @@ import {
   getTagBySlug,
   getGroupsByTagPaginated,
   getRelatedTags,
-  getRatingsBatch,
   citySlug,
+  PAGE_SIZE,
 } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
@@ -32,13 +32,23 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+// Strict page parsing: absent param or junk (?page=abc → NaN) falls back to
+// page 1; 0/negative/non-integer values pass through and are rejected by the
+// paginated data function (out of range → notFound).
+function parsePageParam(sp: { [key: string]: string | string[] | undefined }): number {
+  const raw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  if (raw === undefined) return 1;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 1;
+}
+
 export async function generateMetadata({
   params,
   searchParams,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const sp = await searchParams;
-  const page = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1;
+  const page = parsePageParam(sp);
   const tag = await getTagBySlug(slug);
   if (!tag) {
     return {
@@ -92,7 +102,7 @@ export async function generateMetadata({
 export default async function TagPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const sp = await searchParams;
-  const page = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1;
+  const page = parsePageParam(sp);
   const tag = await getTagBySlug(slug);
   if (!tag) notFound();
 
@@ -100,13 +110,14 @@ export default async function TagPage({ params, searchParams }: PageProps) {
     getGroupsByTagPaginated(tag.name, page),
     getRelatedTags(tag.name, 16),
   ]);
+  // Out-of-range page (0, negative, beyond last) → 404, matching the strict
+  // validation in getGroupsByTagPaginated.
+  if (!result) notFound();
   const groups = result.groups;
   const basePath = `/etiqueta/${tag.slug}`;
-  const PAGE_SIZE = 48;
   const rangeStart = (result.page - 1) * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + groups.length - 1;
 
-  const ratings = await getRatingsBatch(groups.map((g) => g.id));
   const indexable = result.total >= 10;
 
   // JSON-LD: ItemList of groups for this tag.
@@ -288,7 +299,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>

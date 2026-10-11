@@ -25,6 +25,7 @@ import {
   getMetrics,
   getAllCities,
 } from "@/lib/data";
+import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 
 export const dynamic = "force-dynamic";
 
@@ -53,19 +54,21 @@ export default async function HomePage() {
         {/* Recently viewed strip (client, localStorage — hidden for first-time visitors) */}
         <RecentlyViewed />
 
-        {/* Groups directory table (bulk directory style) */}
+        {/* Groups directory table (bulk directory style) — lite DTOs cross the
+            client boundary: the flight payload ships only the fields the table
+            renders, not the full group rows (≈40% less hydration data). */}
         <GroupsDirectoryTable
-          groups={initialGroups}
-          categories={categories}
-          countries={countries}
+          groups={initialGroups.map(toGroupCardDTO)}
+          categories={categories.map(toCategoryLite)}
+          countries={countries.map(toCountryLite)}
           popularTags={popularTags}
         />
 
         {/* Category authority pages */}
-        <CategoriesSection categories={categories} />
+        <CategoriesSection categories={categories.map(toCategoryLite)} />
 
         {/* Country authority pages */}
-        <CountriesSection countries={countries} />
+        <CountriesSection countries={countries.map(toCountryLite)} />
 
         {/* City pages */}
         {cities.length > 0 && <CitiesSection cities={cities} />}

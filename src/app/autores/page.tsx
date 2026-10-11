@@ -4,12 +4,13 @@ import {
   ChevronRight,
   Users,
   BadgeCheck,
-  Heart,
+  Crown,
   Layers,
   Sparkles,
   UserRound,
   ArrowRight,
   Send,
+  MapPin,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { getAllAuthors, type AuthorIndexDTO } from "@/lib/data";
@@ -18,19 +19,20 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { GroupImage } from "@/components/site/group-image";
+import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: `Autores — Curadores de grupos | ${SITE.name}` },
+  title: { absolute: `Autores — Quién publica los grupos | ${SITE.name}` },
   description:
-    "Conoce al equipo detrás del directorio: personas que revisan, verifican y publican los grupos de WhatsApp en español.",
+    "Quién publica los grupos de ConectaGrupos: el Equipo ConectaGrupos, el equipo editorial que revisa, verifica y publica todos los grupos del directorio en español.",
   alternates: { canonical: `${SITE.url}/autores` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Autores — Curadores de grupos | ${SITE.name}`,
+    title: `Autores — Quién publica los grupos | ${SITE.name}`,
     description:
-      "El equipo detrás del directorio: curadores que publican grupos verificados.",
+      "El equipo editorial que revisa, verifica y publica los grupos del directorio.",
     url: `${SITE.url}/autores`,
     locale: "es_ES",
     siteName: SITE.name,
@@ -38,7 +40,6 @@ export const metadata: Metadata = {
 };
 
 function AuthorCard({ author, index }: { author: AuthorIndexDTO; index: number }) {
-  const isStaff = author.kind === "staff";
   return (
     <Reveal delay={Math.min(index, 8) * 0.04}>
       <Link
@@ -48,15 +49,11 @@ function AuthorCard({ author, index }: { author: AuthorIndexDTO; index: number }
       >
         {/* Top accent */}
         <span
-          className={`absolute inset-x-0 top-0 h-1 origin-left scale-x-0 rounded-t-2xl bg-gradient-to-r transition-transform duration-500 ease-out group-hover:scale-x-100 ${
-            isStaff ? "from-emerald-500 to-teal-600" : "from-amber-400 to-orange-500"
-          }`}
+          className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-teal-600 transition-transform duration-500 ease-out group-hover:scale-x-100"
           aria-hidden
         />
         <span
-          className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r opacity-50 ${
-            isStaff ? "from-emerald-500 to-teal-600" : "from-amber-400 to-orange-500"
-          }`}
+          className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-teal-600 opacity-50"
           aria-hidden
         />
 
@@ -67,25 +64,20 @@ function AuthorCard({ author, index }: { author: AuthorIndexDTO; index: number }
             title={author.name}
             size={56}
             className="rounded-2xl transition duration-300 group-hover:scale-105"
-            fallbackEmoji="👤"
           />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-base font-semibold leading-snug transition-colors group-hover:text-primary">
               {author.name}
             </h3>
             <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-muted-foreground">
-              {isStaff ? (
-                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
-              ) : (
-                <Heart className="h-3.5 w-3.5 shrink-0 text-rose-500" />
-              )}
+              <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
               {author.jobTitle}
             </p>
           </div>
         </div>
 
         {author.description && (
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground/90">
+          <p className="line-clamp-3 text-[13px] leading-relaxed text-muted-foreground/90">
             {author.description}
           </p>
         )}
@@ -104,7 +96,7 @@ function AuthorCard({ author, index }: { author: AuthorIndexDTO; index: number }
                   ? `${Math.round(author.totalMembers / 1000)}k`
                   : author.totalMembers.toLocaleString("es-ES")}
               </span>
-              miembros
+              miembros estimados
             </span>
           </div>
           <span
@@ -120,47 +112,9 @@ function AuthorCard({ author, index }: { author: AuthorIndexDTO; index: number }
   );
 }
 
-function AuthorSection({
-  id,
-  title,
-  description,
-  icon: Icon,
-  authors,
-}: {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  authors: AuthorIndexDTO[];
-}) {
-  if (authors.length === 0) return null;
-  return (
-    <section className="mt-10 sm:mt-12" aria-labelledby={`${id}-heading`}>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id={`${id}-heading`} className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
-            <Icon className="h-5 w-5 text-primary" />
-            {title}
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-              {authors.length}
-            </span>
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {authors.map((a, i) => (
-          <AuthorCard key={a.id} author={a} index={i} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default async function AutoresPage() {
   const authors = await getAllAuthors();
 
-  const staff = authors.filter((a) => a.kind === "staff");
   const totalPublished = authors.reduce((acc, a) => acc + a.publishedCount, 0);
   const totalMembers = authors.reduce((acc, a) => acc + a.totalMembers, 0);
 
@@ -172,7 +126,7 @@ export default async function AutoresPage() {
     inLanguage: "es",
     isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
     description:
-      "Directorio de autores: el equipo que revisa y publica los grupos de WhatsApp en español.",
+      "Quién publica los grupos del directorio: el Equipo ConectaGrupos, equipo editorial de ConectaGrupos.",
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: authors.length,
@@ -228,16 +182,17 @@ export default async function AutoresPage() {
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <UserRound className="h-3.5 w-3.5" />
-                {authors.length} {authors.length === 1 ? "autor" : "autores"} en el directorio
+                El equipo editorial
               </span>
               <h1 className="mt-5 text-balance text-2xl font-extrabold tracking-tight sm:text-4xl">
-                Quién cura y publica los{" "}
+                Quién publica los{" "}
                 <span className="cg-gradient-text">grupos del directorio</span>
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-                Cada grupo de {SITE.name} pasa por las manos de una persona real: gente
-                normal, fanática de los grupos de WhatsApp, que revisa cada envío y
-                verifica que los enlaces funcionen. Conoce al equipo.
+                Todos los grupos de {SITE.name} los revisa y publica el Equipo
+                ConectaGrupos: un equipo editorial que abre cada enlace, comprueba que
+                funciona y lo publica donde toca. Conoce aquí al equipo y al propietario
+                del proyecto.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
                 <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur">
@@ -254,47 +209,128 @@ export default async function AutoresPage() {
                       ? `${Math.round(totalMembers / 1000)}k+`
                       : totalMembers.toLocaleString("es-ES")}
                   </span>
-                  <span className="text-xs text-muted-foreground">miembros en total</span>
+                  <span className="text-xs text-muted-foreground">miembros estimados</span>
                 </span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Author grids */}
+        {/* Author cards + owner block */}
         <div className="container mx-auto px-4 py-10 sm:py-12">
-          <AuthorSection
-            id="equipo"
-            title="Equipo de curación"
-            description="Gente como tú, metida en montones de grupos, que revisa cada envío y verifica que los enlaces funcionen antes de publicar."
-            icon={BadgeCheck}
-            authors={staff}
-          />
-
-          {authors.length === 0 && (
-            <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
-              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-primary">
-                <UserRound className="h-7 w-7" />
+          <section aria-labelledby="equipo-heading">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2
+                  id="equipo-heading"
+                  className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  <BadgeCheck className="h-5 w-5 text-primary" />
+                  Equipo editorial
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                    {authors.length}
+                  </span>
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                  El equipo que publica todos los grupos: cada enlace pasa por sus manos
+                  antes de aparecer en el directorio.
+                </p>
               </div>
-              <h3 className="text-lg font-semibold">Todavía no hay autores públicos</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                En cuanto el equipo publique grupos, sus perfiles aparecerán aquí.
-              </p>
             </div>
-          )}
 
-          {/* CTA: become a contributor */}
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              {authors.map((a, i) => (
+                <AuthorCard key={a.id} author={a} index={i} />
+              ))}
+            </div>
+
+            {authors.length === 0 && (
+              <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
+                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-primary">
+                  <UserRound className="h-7 w-7" />
+                </div>
+                <h3 className="text-lg font-semibold">Todavía no hay autores públicos</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  En cuanto el equipo editorial publique grupos, su perfil aparecerá aquí.
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* Owner block — visually distinct, NOT an author (no /autor/ link) */}
+          <section className="mt-10 sm:mt-12" aria-labelledby="propietario-heading">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2
+                  id="propietario-heading"
+                  className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  <Crown className="h-5 w-5 text-amber-500" />
+                  El propietario
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                  El fundador y propietario del proyecto. No es editor: los grupos los
+                  publica el equipo editorial de arriba.
+                </p>
+              </div>
+            </div>
+            <Reveal>
+              <div className="rounded-2xl border border-amber-300/40 bg-gradient-to-br from-amber-500/5 via-card to-card p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col items-start gap-5 sm:flex-row">
+                  <img
+                    src="/fundador-antonio.jpg"
+                    alt="Retrato de Antonio C., fundador y propietario de ConectaGrupos"
+                    width={112}
+                    height={112}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-28 w-28 shrink-0 rounded-2xl border-2 border-amber-300/40 object-cover shadow-sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-bold tracking-tight">Antonio C.</h3>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/50 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        <Crown className="h-3 w-3" aria-hidden />
+                        Fundador y propietario
+                      </span>
+                    </div>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-amber-500/80" aria-hidden />
+                      Freelancer · España
+                      <CountryFlag code="es" name="España" />
+                    </p>
+                    <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground/90">
+                      Freelancer español que construyó ConectaGrupos al no encontrar grupos
+                      de WhatsApp útiles para su trabajo en español. Él no publica los
+                      grupos: el día a día del directorio lo lleva el Equipo ConectaGrupos.
+                    </p>
+                    <Link
+                      href="/sobre-nosotros"
+                      className="mt-3.5 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Conocer su historia
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </section>
+
+          {/* CTA: send a group (publishes groups — never author profiles) */}
           <Reveal>
             <div className="mt-12 rounded-2xl border bg-gradient-to-br from-primary/5 via-card to-card p-6 shadow-sm sm:p-8">
               <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-xl">
                   <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight sm:text-xl">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    ¿Quieres aparecer aquí?
+                    <Send className="h-5 w-5 text-primary" />
+                    Envía un grupo
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Envía tu grupo de WhatsApp: si pasa la revisión de calidad, se publicará con
-                    tu nombre como crédito en la propia página del grupo.
+                    ¿Tienes o conoces un buen grupo de WhatsApp? Mándanos el enlace: el
+                    Equipo ConectaGrupos lo revisará y, si pasa la comprobación, se
+                    publicará en el directorio con tu crédito en la propia página del
+                    grupo.
                   </p>
                 </div>
                 <Link
@@ -317,30 +353,32 @@ export default async function AutoresPage() {
                 <span>Sobre el equipo</span>
               </div>
               <h2 id="seo-heading" className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Curaduría humana, grupo a grupo
+                Quién publica y quién aporta
               </h2>
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
                 <p>
-                  {SITE.name} no es un robot que recolecta enlaces: detrás de cada grupo publicado
-                  hay un proceso de curaduría humana. El{" "}
-                  <strong className="font-semibold text-foreground">equipo de curación</strong>{" "}
-                  revisa cada envío — comprueba que el enlace funciona, que la descripción es
-                  honesta, que la categoría encaja y que el grupo cumple las normas de convivencia.
-                </p>
-                <p>
-                  Los{" "}
+                  Todos los grupos que ves en {SITE.name} los publica el{" "}
                   <strong className="font-semibold text-foreground">
-                    contribuidores de la comunidad
-                  </strong>{" "}
-                  son usuarios que envían sus propios grupos o comunidades que conocen. Cuando su
-                  envío se aprueba, el grupo se publica con su nombre como crédito en la página
-                  del grupo — sin perfiles de autor, para que quede claro quién cura el
-                  directorio y quién aporta cada grupo.
+                    Equipo ConectaGrupos
+                  </strong>
+                  , el equipo editorial del directorio. Su trabajo siempre es el mismo:
+                  abrir el enlace de invitación antes de publicarlo, comprobar que la
+                  descripción se corresponde con el grupo, asignar la categoría correcta y
+                  revisar de vez en cuando que los enlaces siguen vivos.
                 </p>
                 <p>
-                  Si administras una comunidad activa — de fútbol, memes, idiomas, emprendimiento o
-                  lo que sea — puedes unirte: envía tu grupo con el botón de arriba y, si pasa la
-                  revisión, quedará publicado en el directorio con tu crédito.
+                  Las comunidades las aportan personas reales. Si tú envías un grupo y pasa
+                  la revisión, se publica con tu nombre como crédito en la propia página
+                  del grupo — no con un perfil de autor. Los perfiles de autor existen solo
+                  para el equipo editorial, para que quede claro quién cura el directorio y
+                  quién aporta cada comunidad.
+                </p>
+                <p>
+                  Detrás del proyecto está su fundador y propietario,{" "}
+                  <strong className="font-semibold text-foreground">Antonio C.</strong>, un
+                  freelancer de España que creó ConectaGrupos al no encontrar grupos útiles
+                  en español para su trabajo. Puedes leer su historia completa en la página
+                  de sobre nosotros.
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">

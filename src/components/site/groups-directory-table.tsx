@@ -6,7 +6,11 @@ import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, L
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
-import type { CategoryDTO, CountryDTO, GroupDTO } from "@/lib/types";
+import type {
+  CategoryLiteDTO,
+  CountryLiteDTO,
+  GroupCardDTO,
+} from "@/lib/lite-dto";
 import { GroupImage } from "@/components/site/group-image";
 import { SearchPredictive } from "@/components/site/search-predictive";
 import { useFavorites } from "@/lib/favorites";
@@ -24,9 +28,9 @@ import {
 } from "@/components/ui/select";
 
 interface Props {
-  groups: GroupDTO[];
-  categories: CategoryDTO[];
-  countries: CountryDTO[];
+  groups: GroupCardDTO[];
+  categories: CategoryLiteDTO[];
+  countries: CountryLiteDTO[];
   popularTags: { tag: string; count: number }[];
 }
 
@@ -48,7 +52,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
   // swaps to adult categories / adult tags. Adult rows are never in SSR HTML.
   const { enabled: adultMode } = useAdultModeHydrated();
 
-  const [groups, setGroups] = React.useState<GroupDTO[]>(initialGroups);
+  const [groups, setGroups] = React.useState<GroupCardDTO[]>(initialGroups);
   const [loading, setLoading] = React.useState(false);
   const [localSearch, setLocalSearch] = React.useState(search);
   const [limit, setLimit] = React.useState(PAGE_SIZE);
@@ -58,7 +62,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
   // exact default view (see the fetch effect below).
   const skipInitialRef = React.useRef(true);
   // Adult taxonomies — fetched client-side only when 18+ is active.
-  const [adultCategories, setAdultCategories] = React.useState<CategoryDTO[] | null>(null);
+  const [adultCategories, setAdultCategories] = React.useState<CategoryLiteDTO[] | null>(null);
   const [adultTags, setAdultTags] = React.useState<{ tag: string; count: number }[] | null>(null);
 
   // Fetch adult categories + tags for the filter row (client-only, adult silo).
@@ -446,7 +450,7 @@ function RowHeartButton({ id }: { id: string }) {
   );
 }
 
-function GroupRow({ group, searchQuery }: { group: GroupDTO; searchQuery: string }) {
+function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: string }) {
   const isActiveRecently = group.lastActiveAt
     ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
     : false;

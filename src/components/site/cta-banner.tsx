@@ -13,8 +13,9 @@ export function CtaBanner() {
             Da visibilidad a tu comunidad de WhatsApp
           </h2>
           <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
-            Publica tu grupo gratis y llega a miles de hispanohablantes que buscan justo lo que tú ofreces.
-            Revisamos cada envío para mantener el directorio limpio y útil para todos.
+            Publica tu grupo gratis y ponlo delante de quienes ya usan el directorio para
+            encontrar comunidades como la tuya. Revisamos cada envío para mantener el
+            directorio limpio y útil para todos.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link

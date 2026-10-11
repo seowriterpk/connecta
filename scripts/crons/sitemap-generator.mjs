@@ -104,7 +104,9 @@ async function main() {
       urlEntry(`${BASE_URL}/reportar-grupo`, undefined, "monthly", "0.5"),
     ]);
 
-    // Author profiles — staff uploaders ONLY (+ index page).
+    // Author profiles — the uploaders table (+ the /autores index page).
+    // After the AUTORES migration there is a single author: the Equipo
+    // ConectaGrupos (equipo editorial) — /autor/equipo-conectagrupos.
     // UGC contributors never get author pages (they only appear as
     // "publicado por" credits on group pages), so they must NOT be here.
     const autores = await q(

@@ -5,7 +5,7 @@ import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
-import type { CategoryDTO } from "@/lib/types";
+import type { CategoryLiteDTO } from "@/lib/lite-dto";
 import { StaggerGrid, StaggerItem } from "@/components/site/reveal";
 
 const COLOR_STYLES: Record<string, { bg: string; text: string; ring: string }> = {
@@ -30,12 +30,12 @@ const COLOR_STYLES: Record<string, { bg: string; text: string; ring: string }> =
   purple: { bg: "bg-purple-500/10", text: "text-purple-700 dark:text-purple-300", ring: "hover:ring-purple-400/50" },
 };
 
-export function CategoriesSection({ categories }: { categories: CategoryDTO[] }) {
+export function CategoriesSection({ categories }: { categories: CategoryLiteDTO[] }) {
   const setCategory = useGroupsFilter((s) => s.setCategory);
   // 18+ mode: adult categories are fetched client-side only when active —
   // they never appear in the server-rendered DOM (clean silo by default).
   const { enabled: adultMode } = useAdultModeHydrated();
-  const [adultCategories, setAdultCategories] = React.useState<CategoryDTO[]>([]);
+  const [adultCategories, setAdultCategories] = React.useState<CategoryLiteDTO[]>([]);
 
   React.useEffect(() => {
     if (!adultMode) {

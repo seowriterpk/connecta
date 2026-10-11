@@ -11,7 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
-import { searchGroups, getRatingsBatch, getCategories, getCountries } from "@/lib/data";
+import { searchGroups, getCategories, getCountries } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -26,75 +26,35 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-// Cap the displayed query to keep titles/JSON-LD tidy.
+// Cap the displayed query to keep the UI tidy.
 function cleanQuery(q: unknown): string {
   if (Array.isArray(q)) q = q[0];
   if (typeof q !== "string") return "";
   return q.trim().slice(0, 100);
 }
 
-export async function generateMetadata({
-  searchParams,
-}: PageProps): Promise<Metadata> {
-  const sp = await searchParams;
-  const q = cleanQuery(sp.q);
-
-  if (!q) {
-    return {
-      title: { absolute: `Buscar grupos de WhatsApp — ${SITE.name}` },
-      description:
-        "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave. Encuentra tu comunidad ideal en ConectaGrupos.",
-      alternates: { canonical: `${SITE.url}/buscar` },
-      robots: { index: true, follow: true },
-      openGraph: {
-        title: `Buscar grupos de WhatsApp — ${SITE.name}`,
-        description:
-          "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave.",
-        url: `${SITE.url}/buscar`,
-        type: "website",
-        locale: "es_ES",
-        siteName: SITE.name,
-      },
-    };
-  }
-
-  const { total } = await searchGroups(q, 48);
-  const indexable = total >= 5;
-  const title = `Buscar: ${q} — ${SITE.name}`;
+export async function generateMetadata(): Promise<Metadata> {
+  // /buscar is a utility page and is NEVER indexed — not the landing and not
+  // any ?q= view (the user's directive: search URLs completely hidden from
+  // Google). Canonical is ALWAYS the clean /buscar URL and the title is
+  // static, non-query-specific; no DB lookup needed here.
+  const title = `Buscar grupos de WhatsApp — ${SITE.name}`;
   const description =
-    total > 0
-      ? `${total} ${total === 1 ? "grupo de WhatsApp encontrado" : "grupos de WhatsApp encontrados"} para «${q}». ` +
-        `Explora comunidades hispanohablantes activas en ConectaGrupos.`
-      : `No hemos encontrado grupos de WhatsApp para «${q}». Prueba con otra palabra clave o explora nuestras categorías.`;
-
+    "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave. Encuentra tu comunidad ideal en ConectaGrupos.";
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: `${SITE.url}/buscar?q=${encodeURIComponent(q)}` },
-    robots: indexable
-      ? { index: true, follow: true }
-      : { index: false, follow: true },
+    alternates: { canonical: `${SITE.url}/buscar` },
+    robots: { index: false, follow: true },
     openGraph: {
       title,
-      description,
-      url: `${SITE.url}/buscar?q=${encodeURIComponent(q)}`,
+      description:
+        "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave.",
+      url: `${SITE.url}/buscar`,
       type: "website",
       locale: "es_ES",
       siteName: SITE.name,
     },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-    keywords: [
-      "buscar grupos de WhatsApp",
-      `grupos de WhatsApp ${q}`,
-      `${q} en WhatsApp`,
-      "grupos de WhatsApp en español",
-      "directorio de grupos WhatsApp",
-      "encontrar grupos de WhatsApp",
-    ],
   };
 }
 
@@ -109,63 +69,9 @@ export default async function BuscarPage({ searchParams }: PageProps) {
 
   const result = await searchGroups(q, 48);
   const groups = result.groups;
-  const ratings = await getRatingsBatch(groups.map((g) => g.id));
-
-  const indexable = result.total >= 5;
-
-  // JSON-LD: SearchResultsPage (always emitted so consumers can read it;
-  // `robots` noindex controls whether search engines index the page itself).
-  const searchResultsJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SearchResultsPage",
-    name: `Resultados de búsqueda: ${q}`,
-    description: `${result.total} grupos de WhatsApp encontrados para «${q}» en ${SITE.name}.`,
-    url: `${SITE.url}/buscar?q=${encodeURIComponent(q)}`,
-    inLanguage: "es",
-    isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
-    mainContent: {
-      "@type": "ItemList",
-      numberOfItems: groups.length,
-      itemListElement: groups.slice(0, 10).map((g, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        name: g.title,
-        url: `${SITE.url}/${g.slug}`,
-      })),
-    },
-  };
-
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE.url },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Buscar",
-        item: `${SITE.url}/buscar`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: q,
-        item: `${SITE.url}/buscar?q=${encodeURIComponent(q)}`,
-      },
-    ],
-  };
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(searchResultsJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-
       <SiteHeader />
 
       <main className="flex-1">
@@ -225,11 +131,6 @@ export default async function BuscarPage({ searchParams }: PageProps) {
                   <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                     <MessageCircle className="h-3.5 w-3.5 text-primary" /> Comunidades en español
                   </span>
-                  {!indexable && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                      Pocos resultados · noindexado
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -281,7 +182,7 @@ export default async function BuscarPage({ searchParams }: PageProps) {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>
@@ -291,55 +192,10 @@ export default async function BuscarPage({ searchParams }: PageProps) {
               <p className="mt-8 text-center text-xs text-muted-foreground">
                 Mostrando {groups.length} de {result.total}{" "}
                 {result.total === 1 ? "resultado" : "resultados"} para «{q}».
-                {!indexable && " Esta página no está indexada por tener pocos resultados."}
               </p>
             )}
           </div>
         </section>
-
-        {/* SEO long-form content (only when there are results, to add context to thin search pages) */}
-        {result.total > 0 && (
-          <section className="border-t bg-muted/20 py-10 sm:py-12">
-            <div className="container mx-auto px-4">
-              <article className="mx-auto max-w-3xl text-pretty">
-                <div className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span>Sobre tu búsqueda</span>
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  Grupos de WhatsApp sobre «{q}»: qué encontrarás en ConectaGrupos
-                </h2>
-                <div className="mt-6 space-y-4 text-sm leading-relaxed text-foreground/85 sm:text-base">
-                  <p>
-                    Estos son los {result.total} grupos de WhatsApp en español que
-                    coinciden con tu búsqueda de <strong className="font-semibold text-foreground">«{q}»</strong>.
-                    Hemos revisado cada enlace antes de publicarlo, así que te llevas
-                    comunidades activas y no listas abandonadas llenas de spam. Cada
-                    ficha incluye el nombre, una descripción, la categoría, el país y el
-                    número aproximado de miembros para que decidas si te interesa antes
-                    de pulsar el enlace de invitación.
-                  </p>
-                  <p>
-                    Si no encuentras justo lo que buscas, prueba con palabras más cortas
-                    o sinónimos: nuestro buscador exige que todas las palabras de tu
-                    consulta aparezcan en el grupo, así que usar términos más concretos
-                    suele dar mejores resultados. También puedes explorar por{" "}
-                    <Link href="/categorias" className="font-medium text-primary hover:underline">
-                      categoría
-                    </Link>{" "}
-                    o por{" "}
-                    <Link href="/paises" className="font-medium text-primary hover:underline">
-                      país
-                    </Link>{" "}
-                    para afinar tu búsqueda. Y si administras una comunidad que encaje
-                    con «{q}» y no aparece aquí, puedes publicarla gratis con el botón{" "}
-                    <span className="font-medium text-foreground">«Enviar un grupo»</span>.
-                  </p>
-                </div>
-              </article>
-            </div>
-          </section>
-        )}
       </main>
 
       <SiteFooter />
@@ -355,24 +211,6 @@ async function BuscarLanding() {
   const [categories, countries] = await Promise.all([getCategories(), getCountries()]);
   return (
     <div className="flex min-h-screen flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Inicio", item: SITE.url },
-              {
-                "@type": "ListItem",
-                position: 2,
-                name: "Buscar",
-                item: `${SITE.url}/buscar`,
-              },
-            ],
-          }),
-        }}
-      />
       <SiteHeader />
 
       <main className="flex-1">

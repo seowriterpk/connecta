@@ -49,3 +49,22 @@ export function computeDisplayedMembers(clicks: number, joinCount: number, seed:
 
   return Math.max(1, Math.round(estimate + offset));
 }
+
+/**
+ * Formato es-ES para una cifra de miembros estimados:
+ * - >= 1.000 → compacto con coma decimal ("1647" → "1,6k", "2000" → "2k")
+ * - < 1.000 → número completo con separador de miles es-ES ("847" → "847")
+ * Sin sufijo "+" — una estimación no puede prometer "más de".
+ */
+export function formatMembersEs(n: number): string {
+  if (n >= 1000) {
+    const k = n / 1000;
+    // 1 decimal, sin ",0" final (es-ES usa coma decimal)
+    const s = k.toLocaleString("es-ES", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    });
+    return `${s}k`;
+  }
+  return n.toLocaleString("es-ES");
+}

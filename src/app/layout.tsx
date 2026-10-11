@@ -9,6 +9,7 @@ import { CookieConsent } from "@/components/site/cookie-consent";
 import { CompareBar } from "@/components/site/compare-bar";
 import { TranslationFix } from "@/components/site/translation-fix";
 import { getCategories, getCountries, getGroups } from "@/lib/data";
+import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 import { SITE } from "@/lib/constants";
 import { jsonLdScript } from "@/lib/jsonld";
 
@@ -109,45 +110,9 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "¿Qué es ConectaGrupos y para qué sirve?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "ConectaGrupos es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. Permite encontrar comunidades activas según tus intereses y publicar tu propio grupo.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "¿Unirse a un grupo de WhatsApp es gratis?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Sí. WhatsApp no cobra por unirse a grupos y ConectaGrupos tampoco. Si algún administrador exige dinero a cambio de acceso, debe reportarse.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "¿Cómo publico mi propio grupo de WhatsApp?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Pulsa «Enviar un grupo», rellena el formulario con nombre, descripción, enlace de invitación, categoría y país. El envío queda pendiente de revisión y se publica si cumple las normas.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "¿En qué países están disponibles los grupos?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Cubrimos 20 países de habla hispana: España, México, Argentina, Colombia, Perú, Chile, Venezuela, Ecuador, Guatemala, Cuba, Bolivia, República Dominicana, Honduras, Paraguay, El Salvador, Nicaragua, Costa Rica, Panamá, Uruguay y Puerto Rico.",
-      },
-    },
-  ],
-};
-
+// Nota: sin SearchAction a propósito — las URLs de búsqueda (/buscar?q=…) son
+// noindex desde 3-c y la home no implementa ?q=; anunciar un objetivo de
+// búsqueda invitaría a los crawlers a un espacio de query-strings que no existe.
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -155,11 +120,6 @@ const websiteJsonLd = {
   url: SITE.url,
   description: SITE.description,
   inLanguage: "es",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE.url}/?q={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
 };
 
 const orgJsonLd = {
@@ -169,6 +129,13 @@ const orgJsonLd = {
   url: SITE.url,
   description: SITE.description,
   email: SITE.contactEmail,
+  founder: {
+    "@type": "Person",
+    name: "Antonio C.",
+    jobTitle: "Freelancer",
+    address: { "@type": "PostalAddress", addressCountry: "ES" },
+    url: "https://www.linkedin.com/in/antonio-campello-372962b8",
+  },
   sameAs: [],
 };
 
@@ -201,10 +168,6 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd) }}
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
@@ -215,9 +178,9 @@ export default async function RootLayout({
           {children}
           <Toaster />
           <CommandPalette
-            categories={categories}
-            countries={countries}
-            groups={paletteGroups}
+            categories={categories.map(toCategoryLite)}
+            countries={countries.map(toCountryLite)}
+            groups={paletteGroups.map(toGroupCardDTO)}
           />
           <CookieConsent />
           <CompareBar />

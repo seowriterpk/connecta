@@ -4,11 +4,11 @@ import * as React from "react";
 import { Globe2 } from "lucide-react";
 import Link from "next/link";
 import { useGroupsFilter } from "@/lib/store";
-import type { CountryDTO } from "@/lib/types";
+import type { CountryLiteDTO } from "@/lib/lite-dto";
 import { REGIONS } from "@/lib/constants";
 import { CountryFlag } from "@/components/site/country-flag";
 
-export function CountriesSection({ countries }: { countries: CountryDTO[] }) {
+export function CountriesSection({ countries }: { countries: CountryLiteDTO[] }) {
   const setCountry = useGroupsFilter((s) => s.setCountry);
   const region = useGroupsFilter((s) => s.region);
   const setRegion = useGroupsFilter((s) => s.setRegion);

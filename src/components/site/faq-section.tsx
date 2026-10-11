@@ -9,7 +9,7 @@ import { HelpCircle } from "lucide-react";
 const FAQS = [
   {
     q: "¿Qué es ConectaGrupos y para qué sirve?",
-    a: "ConectaGrupos es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades activas según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre miles de hispanohablantes.",
+    a: "ConectaGrupos es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades activas según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre quienes buscan comunidades como la tuya.",
   },
   {
     q: "¿Unirse a un grupo de WhatsApp es gratis?",

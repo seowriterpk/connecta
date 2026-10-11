@@ -21,7 +21,6 @@ import {
   getUploaderBySlug,
   getGroupsByUploader,
   getUploaderCategories,
-  getRatingsBatch,
   type UploaderDTO,
 } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
@@ -108,9 +107,9 @@ export async function generateMetadata({
       `${uploader.name} ${SITE.name}`,
       `${uploader.name} grupos de WhatsApp`,
       uploader.jobTitle,
-      "curador de comunidades",
+      "equipo editorial",
+      "quién publica los grupos",
       "autor ConectaGrupos",
-      "perfil de editor",
     ],
   };
 }
@@ -124,7 +123,6 @@ export default async function AutorPage({ params }: PageProps) {
     getGroupsByUploader(uploader.id, 60),
     getUploaderCategories(uploader.id),
   ]);
-  const ratings = await getRatingsBatch(groups.map((g) => g.id));
   const socials = buildSocialLinks(uploader);
   const totalMembers = groups.reduce((acc, g) => acc + (g.members || 0), 0);
 
@@ -164,7 +162,7 @@ export default async function AutorPage({ params }: PageProps) {
         "@type": "ListItem",
         position: i + 1,
         name: g.title,
-        url: `${SITE.url}/${g.slug}`,
+        url: `${SITE.url}/grupo/${g.slug}`,
       })),
     },
   };
@@ -239,7 +237,6 @@ export default async function AutorPage({ params }: PageProps) {
                   title={uploader.name}
                   size={120}
                   className="rounded-full sm:shrink-0"
-                  fallbackEmoji="👤"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -296,7 +293,7 @@ export default async function AutorPage({ params }: PageProps) {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <MessageCircle className="h-3.5 w-3.5 text-primary" />
-                  {totalMembers.toLocaleString("es-ES")} miembros en sus comunidades
+                  {totalMembers.toLocaleString("es-ES")} miembros estimados en sus grupos
                 </span>
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
@@ -321,8 +318,8 @@ export default async function AutorPage({ params }: PageProps) {
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {groups.length === 0
-                    ? "Todavía no ha publicado grupos visibles."
-                    : `Mostrando ${groups.length} ${groups.length === 1 ? "grupo" : "grupos"} curado${groups.length === 1 ? "" : "s"} por este autor.`}
+                    ? "Todavía no hay grupos publicados por el equipo editorial."
+                    : `Mostrando ${groups.length} ${groups.length === 1 ? "grupo" : "grupos"} publicado${groups.length === 1 ? "" : "s"} por el equipo editorial.`}
                 </p>
               </div>
               <Link
@@ -339,11 +336,11 @@ export default async function AutorPage({ params }: PageProps) {
                   <MessageCircle className="h-7 w-7" />
                 </div>
                 <h3 className="text-lg font-semibold">
-                  {uploader.name.split(" ")[0]} todavía no tiene grupos publicados
+                  {uploader.name} todavía no tiene grupos publicados
                 </h3>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  Cuando este autor publique grupos, aparecerán aquí. Mientras tanto,
-                  puedes explorar otros grupos del directorio.
+                  Cuando el equipo editorial publique grupos, aparecerán aquí. Mientras
+                  tanto, puedes explorar otros grupos del directorio.
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   <Link
@@ -364,7 +361,7 @@ export default async function AutorPage({ params }: PageProps) {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                    <GroupCard key={g.id} group={g} />
                   ))}
                 </div>
               </Reveal>
@@ -375,7 +372,7 @@ export default async function AutorPage({ params }: PageProps) {
               <div className="mt-10 rounded-2xl border bg-card p-5 sm:p-6">
                 <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <Layers className="h-3.5 w-3.5 text-primary" />
-                  <span>Categorías que cubre {uploader.name.split(" ")[0]}</span>
+                  <span>Categorías que cubre el equipo editorial</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {categoriesCovered.map((c) => (
@@ -416,23 +413,24 @@ export default async function AutorPage({ params }: PageProps) {
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
                 <p>
                   {uploader.description ??
-                    `${uploader.name} forma parte del equipo de curaduría de ${SITE.name}, donde revisa y publica grupos de WhatsApp en español para garantizar que cada enlace está activo, la descripción es honesta y la categoría es la correcta.`}
+                    `${uploader.name} revisa y publica los grupos de WhatsApp en español del directorio: cada enlace pasa por las manos del equipo antes de aparecer.`}
                 </p>
                 <p>
-                  Hasta ahora, {uploader.name.split(" ")[0]} ha publicado{" "}
+                  Hasta ahora, el equipo ha publicado{" "}
                   <strong className="font-semibold text-foreground">{groups.length}</strong>{" "}
                   {groups.length === 1 ? "grupo" : "grupos"} en {SITE.name}, repartidos entre{" "}
                   <strong className="font-semibold text-foreground">{categoriesCovered.length}</strong>{" "}
                   {categoriesCovered.length === 1 ? "categoría" : "categorías"} distintas. Cada
                   uno de ellos pasa por una verificación humana: si un enlace deja de funcionar,
-                  lo retiramos; si la comunidad deja de estar activa, lo marcamos como tal.
+                  lo marcamos como caducado; si la comunidad deja de estar activa, lo marcamos
+                  como tal.
                 </p>
                 <p>
-                  Si quieres seguir el trabajo de {uploader.name.split(" ")[0]} o contactarle,
-                  encontrarás enlaces a sus perfiles sociales más arriba. Y si administras un
-                  grupo de WhatsApp que encaje con su línea editorial, puedes publicarlo con el
-                  botón <span className="font-medium text-foreground">«Enviar un grupo»</span>:
-                  lo revisará el equipo de curaduría y, si encaja, se publicará en este directorio.
+                  Si quieres saber más sobre cómo revisamos los grupos, en la página de sobre
+                  nosotros contamos qué significa el sello «Verificado». Y si administras un
+                  grupo de WhatsApp, puedes publicarlo con el botón{" "}
+                  <span className="font-medium text-foreground">«Enviar un grupo»</span>:
+                  lo revisará el equipo editorial y, si encaja, se publicará en este directorio.
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-6">

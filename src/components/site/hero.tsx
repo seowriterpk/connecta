@@ -8,6 +8,7 @@ import type { StatsDTO } from "@/lib/types";
 import { RandomGroupButton } from "@/components/site/random-group-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { SearchPredictive } from "@/components/site/search-predictive";
+import { formatMembersEs } from "@/lib/members";
 
 function Stat({ value, label, icon: Icon }: { value: string; label: string; icon: React.ElementType }) {
   return (
@@ -120,10 +121,10 @@ export function Hero({ stats, totalCountries }: { stats: StatsDTO; totalCountrie
 
           <div className="mt-8 border-t border-border/40 pt-6 [mask-image:linear-gradient(to_bottom,transparent,black_18px)] sm:mt-9">
             <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <Stat value={`${stats.groups}+`} label="Grupos activos" icon={Users} />
+              <Stat value={`${stats.groups}`} label="Grupos activos" icon={Users} />
               <Stat value={`${stats.categories}`} label="Categorías" icon={Sparkles} />
               <Stat value={`${totalCountries}`} label="Países hispanos" icon={Globe2} />
-              <Stat value={stats.members > 1000 ? `${Math.round(stats.members / 1000)}k+` : `${stats.members}`} label="Miembros" icon={ShieldCheck} />
+              <Stat value={formatMembersEs(stats.members)} label="Miembros estimados" icon={ShieldCheck} />
             </div>
           </div>
 

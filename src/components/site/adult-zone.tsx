@@ -107,18 +107,6 @@ export function AdultCategoryFeed({ categoryId, categoryName }: { categoryId: st
     };
   }, [categoryId, enabled]);
 
-  const [ratings, setRatings] = React.useState<Record<string, { avg: number; count: number }>>({});
-  React.useEffect(() => {
-    if (!groups || groups.length === 0) return;
-    const ids = groups.map((g) => g.id).join(",");
-    fetch(`/api/groups/ratings-batch?ids=${encodeURIComponent(ids)}&XTransformPort=3000`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.ok) setRatings(j.data ?? {});
-      })
-      .catch(() => {});
-  }, [groups]);
-
   return (
     <AdultZoneShell
       title={`Grupos 18+ de ${categoryName}`}
@@ -182,7 +170,7 @@ export function AdultCategoryFeed({ categoryId, categoryName }: { categoryId: st
           <motion.div key="grid" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {groups.map((g) => (
-                <GroupCard key={g.id} group={g} rating={ratings[g.id] ?? null} />
+                <GroupCard key={g.id} group={g} />
               ))}
             </div>
             <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
