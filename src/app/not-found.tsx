@@ -24,7 +24,7 @@ export default function NotFound() {
       href: "/categorias",
       icon: LayoutGrid,
       label: "Categorías",
-      hint: "22 temáticas para explorar",
+      hint: "20 temáticas para explorar",
     },
     {
       href: "/paises",

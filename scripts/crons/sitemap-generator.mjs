@@ -21,7 +21,7 @@ import path from "path";
 
 loadEnvFile();
 const pool = createPool();
-const BASE_URL = process.env.BASE_URL || "https://conectagrupos.com";
+const BASE_URL = process.env.BASE_URL || "https://gruposhoy.com";
 const SITEMAPS_DIR = path.join(ROOT, "public", "sitemaps");
 const log = makeLogger("sitemap-gen");
 const lock = makeLock("sitemap-gen", 30);
@@ -106,7 +106,7 @@ async function main() {
 
     // Author profiles — the uploaders table (+ the /autores index page).
     // After the AUTORES migration there is a single author: the Equipo
-    // ConectaGrupos (equipo editorial) — /autor/equipo-conectagrupos.
+    // Grupos Hoy (equipo editorial) — /autor/equipo-gruposhoy.
     // UGC contributors never get author pages (they only appear as
     // "publicado por" credits on group pages), so they must NOT be here.
     const autores = await q(

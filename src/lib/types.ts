@@ -1,4 +1,4 @@
-// ConectaGrupos — tipos compartidos entre cliente y servidor
+// Grupos Hoy — tipos compartidos entre cliente y servidor
 
 export type GroupStatus = "ACTIVE" | "PENDING" | "REJECTED";
 

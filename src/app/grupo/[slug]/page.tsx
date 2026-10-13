@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const group = await getGroupBySlug(slug);
   if (!group) return { title: "Grupo no encontrado" };
 
-  const title = `${group.title} — Grupo de WhatsApp | ${SITE.name}`;
+  const title = `${group.title} — Grupo de WhatsApp | Grupos Hoy`;
   const description = group.description.slice(0, 160);
   const robots = group.isAdult
     ? "noindex, nofollow"

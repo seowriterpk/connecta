@@ -1,4 +1,4 @@
-// ConectaGrupos — acceso a datos (server-side).
+// Grupos Hoy — acceso a datos (server-side).
 // Raw SQL over the mysql2/promise pool. Same public API as before, so no
 // page/component needs to change — only the engine underneath did.
 

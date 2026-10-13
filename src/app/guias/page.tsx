@@ -11,15 +11,15 @@ import { GUIDES } from "@/lib/guides";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Guías y Tutoriales — ${SITE.name}` },
+  title: "Guías de Grupos de WhatsApp",
   description:
-    "Guías prácticas en español para crear, administrar y promocionar grupos de WhatsApp: enlaces de invitación, seguridad, normas para grupos grandes, cómo ganar miembros y más.",
+    "Guías prácticas en español para crear, administrar y promocionar grupos de WhatsApp: enlaces de invitación, seguridad, normas y cómo ganar miembros.",
   alternates: { canonical: `${SITE.url}/guias` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Guías y Tutoriales — ${SITE.name}`,
+    title: "Guías de Grupos de WhatsApp | Grupos Hoy",
     description:
-      "Tutoriales cortos y directos sobre grupos de WhatsApp en español. Creado por y para la comunidad hispanohablante.",
+      "Guías prácticas en español para crear, administrar y promocionar grupos de WhatsApp.",
     url: `${SITE.url}/guias`,
     type: "website",
     locale: "es_ES",
@@ -147,7 +147,7 @@ export default function GuiasPage() {
               <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border bg-muted/30 p-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   ¿Eres admin de un grupo y quieres darle visibilidad? Publícalo gratis en
-                  ConectaGrupos y llega a miles de hispanohablantes.
+                  Grupos Hoy y llega a quienes buscan comunidades como la tuya.
                 </p>
                 <Link
                   href="/agregar-grupo"

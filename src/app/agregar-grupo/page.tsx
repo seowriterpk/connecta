@@ -11,19 +11,16 @@ import { AddGroupForm } from "@/components/site/add-group-form";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: {
-    absolute:
-      "Agregar Grupo de WhatsApp — ConectaGrupos | Publica tu comunidad",
-  },
+  title: "Publica tu Grupo de WhatsApp",
   description:
-    "Agrega gratis tu grupo de WhatsApp al directorio ConectaGrupos. Verificamos el enlace al instante, calculamos una puntuación de calidad y lo publicamos si cumple las normas. Sin registro.",
+    "Agrega gratis tu grupo de WhatsApp al directorio Grupos Hoy. Verificamos el enlace al instante y lo publicamos si cumple las normas. Sin registro.",
   alternates: {
     canonical: `${SITE.url}/agregar-grupo`,
   },
   openGraph: {
-    title: "Agregar Grupo de WhatsApp — ConectaGrupos | Publica tu comunidad",
+    title: "Publica tu Grupo de WhatsApp | Grupos Hoy",
     description:
-      "Comparte tu comunidad de WhatsApp con miles de hispanohablantes. Verificación instantánea del enlace, puntuación de calidad en vivo y publicación gratuita.",
+      "Comparte tu comunidad de WhatsApp con quienes buscan grupos en español. Verificación instantánea del enlace y publicación gratuita.",
     url: `${SITE.url}/agregar-grupo`,
     type: "website",
     locale: "es_ES",
@@ -31,9 +28,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agregar Grupo de WhatsApp — ConectaGrupos",
+    title: "Publica tu Grupo de WhatsApp | Grupos Hoy",
     description:
-      "Agrega tu grupo de WhatsApp gratis. Verificación instantánea, puntuación de calidad y revisión humana.",
+      "Agrega tu grupo de WhatsApp gratis. Verificación instantánea del enlace y revisión humana.",
   },
   keywords: [
     "agregar grupo de WhatsApp",
@@ -63,9 +60,9 @@ export default async function AgregarGrupoPage() {
   const webPageJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "Agregar Grupo de WhatsApp — ConectaGrupos",
+    name: "Publica tu Grupo de WhatsApp — Grupos Hoy",
     description:
-      "Formulario público para agregar un grupo de WhatsApp al directorio ConectaGrupos. Verificación instantánea del enlace, puntuación de calidad y publicación gratuita.",
+      "Formulario público para agregar un grupo de WhatsApp al directorio Grupos Hoy. Verificación instantánea del enlace y publicación gratuita.",
     url: `${SITE.url}/agregar-grupo`,
     inLanguage: "es",
     isPartOf: {
@@ -186,7 +183,7 @@ export default async function AgregarGrupoPage() {
 
               <div className="mt-6 space-y-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
                 <p>
-                  El asistente de <strong className="font-semibold text-foreground">ConectaGrupos</strong>{" "}
+                  El asistente de <strong className="font-semibold text-foreground">Grupos Hoy</strong>{" "}
                   está diseñado para que publicar un grupo de WhatsApp sea rápido y
                   seguro. En el primer paso pegas el enlace de invitación y nuestro
                   sistema lo verifica al instante descargando los metadatos de WhatsApp

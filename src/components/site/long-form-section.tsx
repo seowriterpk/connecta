@@ -98,7 +98,7 @@ export function LongFormSection() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Empieza pequeño. Invita a 5-10 personas que de verdad se interesen por el tema.
                 Antes de ampliar, fija las normas en un mensaje fijado. Y cuando sientas que el grupo
-                aporta valor, publícalo aquí, en ConectaGrupos, para que otras personas lo encuentren.
+                aporta valor, publícalo aquí, en Grupos Hoy, para que otras personas lo encuentren.
                 El mejor directorio del mundo no sirve de nada sin grupos buenos —y los grupos buenos
                 los crean personas como tú.
               </p>

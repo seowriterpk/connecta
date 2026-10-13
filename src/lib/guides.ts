@@ -1,4 +1,4 @@
-// ConectaGrupos — guías prácticas compartidas entre la home y /guias.
+// Grupos Hoy — guías prácticas compartidas entre la home y /guias.
 // Mantenido en un módulo separado (sin "use client") para poder importarse
 // tanto desde componentes de servidor como de cliente.
 

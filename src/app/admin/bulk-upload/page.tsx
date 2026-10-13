@@ -11,7 +11,7 @@ import { BulkUploadForm } from "@/components/admin/bulk-upload-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "Carga masiva — Admin ConectaGrupos" },
+  title: { absolute: "Carga masiva — Admin Grupos Hoy" },
   description: "Importa grupos desde CSV o JSON al directorio.",
   robots: { index: false, follow: false },
 };

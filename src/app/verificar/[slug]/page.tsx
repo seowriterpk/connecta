@@ -24,7 +24,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const group = await getGroupBySlug(slug);
   if (!group) return { title: "Grupo no encontrado" };
   return {
-    title: { absolute: `Verificar — ${group.title} | ${SITE.name}` },
+    // Non-absolute: the layout template appends "| Grupos Hoy".
+    title: "Verificar Enlace de Invitación",
     description: "Verificación del enlace de invitación antes de unirte al grupo de WhatsApp.",
     robots: "noindex, follow",
     alternates: { canonical: `${SITE.url}/verificar/${group.slug}` },

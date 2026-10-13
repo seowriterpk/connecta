@@ -42,7 +42,7 @@ export function ShareMenu({ group, children }: { group: GroupDTO; children?: Rea
   }
 
   function shareX() {
-    const text = encodeURIComponent(`Encuentra grupos de WhatsApp en español en ConectaGrupos`);
+    const text = encodeURIComponent(`Encuentra grupos de WhatsApp en español en Grupos Hoy`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(group.inviteLink)}`, "_blank", "noopener");
     trackShare();
   }

@@ -13,7 +13,7 @@ import { AdminPagination } from "@/components/admin/admin-pagination";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "Cola UGC — Admin ConectaGrupos" },
+  title: { absolute: "Cola UGC — Admin Grupos Hoy" },
   description: "Envíos de usuarios pendientes de revisión.",
   robots: { index: false, follow: false },
 };

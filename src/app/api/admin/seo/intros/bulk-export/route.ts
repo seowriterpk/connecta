@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     const payload = {
       _info: {
         description:
-          "ConectaGrupos — intros de entidades (texto largo inferior de las páginas de categoría, país y ciudad). Rellena customIntro (párrafos separados por línea en blanco), customTitle y customHeroDesc. Sube este mismo archivo en Importar.",
+          "Grupos Hoy — intros de entidades (texto largo inferior de las páginas de categoría, país y ciudad). Rellena customIntro (párrafos separados por línea en blanco), customTitle y customHeroDesc. Sube este mismo archivo en Importar.",
         scope,
         mode,
         exportedAt: new Date().toISOString(),

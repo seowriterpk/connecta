@@ -33,7 +33,7 @@ import { AdminPagination } from "@/components/admin/admin-pagination";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "Gestión de grupos — Admin ConectaGrupos" },
+  title: { absolute: "Gestión de grupos — Admin Grupos Hoy" },
   description: "Administra todos los grupos del directorio.",
   robots: { index: false, follow: false },
 };

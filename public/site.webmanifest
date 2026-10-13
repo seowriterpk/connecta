@@ -1,6 +1,6 @@
 {
-  "name": "ConectaGrupos",
-  "short_name": "ConectaGrupos",
+  "name": "Grupos Hoy",
+  "short_name": "Grupos Hoy",
   "description": "Tu directorio de grupos de WhatsApp en español",
   "lang": "es",
   "start_url": "/",

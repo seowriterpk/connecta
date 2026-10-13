@@ -12,7 +12,7 @@ import { BlogEditorForm } from "./blog-editor-form";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "Editar entrada — Admin ConectaGrupos" },
+  title: { absolute: "Editar entrada — Admin Grupos Hoy" },
   description: "Editor de entradas del blog.",
   robots: { index: false, follow: false },
 };

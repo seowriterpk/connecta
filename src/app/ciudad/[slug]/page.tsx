@@ -65,7 +65,9 @@ export async function generateMetadata({
   const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
   const canonical = `${SITE.url}${canonicalPath}`;
 
-  const title = `Grupos de WhatsApp en ${city.city} | ConectaGrupos`;
+  // Count-first CTR title — N is the same live groupCount the page header
+  // renders (getAllCities-derived; reuse, no extra queries).
+  const title = `${city.groupCount > 0 ? `${city.groupCount} ` : ""}Grupos de WhatsApp en ${city.city} | Grupos Hoy`;
   // D-4 thin-content rule: city pages with fewer than 3 groups are
   // template-swapped thin pages → keep them live for users but noindex.
   const robots =
@@ -380,7 +382,7 @@ export default async function CityPage({
                   {city.city}</strong> reúnen a personas que viven, trabajan o pasan por la
                   ciudad y prefieren conversar en español sobre lo que ocurre a diario en sus
                   barrios: planes locales, compra-venta, estudios, trabajo, deportes o
-                  simplemente charlar al final del día. En ConectaGrupos hemos recopilado{" "}
+                  simplemente charlar al final del día. En Grupos Hoy hemos recopilado{" "}
                   <strong>{city.groupCount}</strong>{" "}
                   {city.groupCount === 1 ? "comunidad activa" : "comunidades activas"} con
                   enlaces revisados, descripciones claras y el número aproximado de miembros,
@@ -409,7 +411,7 @@ export default async function CityPage({
                   que ves arriba. El envío es gratuito y queda en estado pendiente mientras
                   verificamos que el enlace funciona, que la descripción es clara y que respeta
                   las normas básicas de convivencia. Una vez aprobado, tu grupo aparecerá en
-                  esta página, en la home de ConectaGrupos y será descubrible por
+                  esta página, en la home de Grupos Hoy y será descubrible por
                   hispanohablantes de toda Latinoamérica y España. Así de simple: tú pones la
                   comunidad, nosotros la ponemos a la vista de quien la está buscando.
                 </p>
@@ -467,8 +469,8 @@ export default async function CityPage({
                 Da visibilidad a tu comunidad de WhatsApp
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
-                Publica tu grupo de {city.city} gratis y llega a miles de hispanohablantes que
-                están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
+                Publica tu grupo de {city.city} gratis y llega a quienes están buscando justo
+                lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
                 publicamos en este directorio.
               </p>
               <Link

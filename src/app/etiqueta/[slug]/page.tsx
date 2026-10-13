@@ -62,10 +62,12 @@ export async function generateMetadata({
   const canonical = `${SITE.url}${canonicalPath}`;
 
   const indexable = tag.count >= 10;
-  const title = `Grupos de WhatsApp con la etiqueta «${tag.name}» | ${SITE.name}`;
+  // Count-first CTR title (drop the count segment when the tag is empty).
+  const countSegment = tag.count > 0 ? `${tag.count} ` : "";
+  const title = `${countSegment}Grupos de ${tag.name} en WhatsApp | Grupos Hoy`;
   const description =
     `Descubre ${tag.count} ${tag.count === 1 ? "grupo de WhatsApp" : "grupos de WhatsApp"} etiquetados con «${tag.name}» en español. ` +
-    `Comunidades activas listas para unirte hoy, filtradas por esta etiqueta en ConectaGrupos.`;
+    `Comunidades activas listas para unirte hoy, filtradas por esta etiqueta en Grupos Hoy.`;
 
   return {
     title: { absolute: title },
@@ -417,8 +419,8 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                 Da visibilidad a tu comunidad de WhatsApp
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
-                Publica tu grupo sobre «{tag.name}» gratis y llega a miles de hispanohablantes
-                que están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y
+                Publica tu grupo sobre «{tag.name}» gratis y llega a quienes están buscando
+                justo lo que tú ofreces. Lo revisamos en menos de 24 horas y
                 lo etiquetamos para que aparezca en esta página.
               </p>
               <Link

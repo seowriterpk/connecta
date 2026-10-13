@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ConectaGrupos — fresh seed for the restored MariaDB instance.
+Grupos Hoy — fresh seed for the restored MariaDB instance.
 
 Recreates the original dataset (20 Spanish-speaking countries incl. España,
 20 clean categories, 30 clean demo groups, 6 uploaders) plus directive

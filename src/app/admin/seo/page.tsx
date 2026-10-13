@@ -12,7 +12,7 @@ import { AdminSeoOverrideForm, AdminEntityIntroForm, AdminBulkIntros } from "./a
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "SEO — Admin ConectaGrupos" },
+  title: { absolute: "SEO — Admin Grupos Hoy" },
   description: "Override de metadatos y textos intro.",
   robots: { index: false, follow: false },
 };

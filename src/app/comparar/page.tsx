@@ -12,17 +12,17 @@ import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
-const title = `Comparar grupos de WhatsApp — ${SITE.name}`;
 const description =
   "Compara hasta 3 grupos de WhatsApp lado a lado: miembros, vistas, clics y estado del enlace, con el mejor de cada métrica destacado.";
 
 export const metadata: Metadata = {
-  title: { absolute: title },
+  // Non-absolute: the layout template appends "| Grupos Hoy".
+  title: "Comparar Grupos de WhatsApp",
   description,
   alternates: { canonical: `${SITE.url}/comparar` },
   robots: { index: true, follow: true },
   openGraph: {
-    title,
+    title: "Comparar Grupos de WhatsApp | Grupos Hoy",
     description,
     url: `${SITE.url}/comparar`,
     type: "website",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
       images: [OG_IMAGE],
   },
   twitter: { card: "summary_large_image",
-      images: ["/og.svg"], title, description },
+      images: ["/og.svg"], title: "Comparar Grupos de WhatsApp | Grupos Hoy", description },
   keywords: [
     "comparar grupos de WhatsApp",
     "cual grupo de WhatsApp es mejor",

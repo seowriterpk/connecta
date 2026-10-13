@@ -67,7 +67,9 @@ export async function generateMetadata({
   const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
   const canonical = `${SITE.url}${canonicalPath}`;
 
-  const title = `${country.flag} ${country.name} — Grupos de WhatsApp | ConectaGrupos`;
+  // Count-first CTR title — N is the same clean live groupCount the page
+  // header renders (getCountryByCode → getGroupsCount, clean by default).
+  const title = `${country.groupCount > 0 ? `${country.groupCount} ` : ""}Grupos de WhatsApp de ${country.name} | Grupos Hoy`;
   // D-4 thin-content rule: country pages with fewer than 3 groups are
   // template-swapped thin pages → keep them live for users but noindex.
   const robots =
@@ -394,7 +396,7 @@ export default async function CountryPage({
                   {country.name}</strong> son una de las formas más rápidas de mantenerse
                   conectado con lo que pasa en el país: desde communities locales de{" "}
                   {country.region} hasta grupos temáticos donde se habla de deportes, estudios,
-                  trabajo, tecnología o simplemente se charla al final del día. En ConectaGrupos
+                  trabajo, tecnología o simplemente se charla al final del día. En Grupos Hoy
                   hemos recopilado <strong>{country.groupCount}</strong>{" "}
                   {country.groupCount === 1 ? "comunidad activa" : "comunidades activas"} con
                   enlaces revisados, descripciones claras y el número aproximado de miembros, para
@@ -417,7 +419,7 @@ export default async function CountryPage({
                 </p>
 
                 <p>
-                  ConectaGrupos cubre toda {country.region}, así que además de los grupos de{" "}
+                  Grupos Hoy cubre toda {country.region}, así que además de los grupos de{" "}
                   {country.name} puedes explorar comunidades de países vecinos cuando busques
                   otras perspectivas. Si administras o formas parte de un grupo de WhatsApp en{" "}
                   {country.name} que no aparece en este directorio, puedes publicarlo con el botón{" "}
@@ -425,7 +427,7 @@ export default async function CountryPage({
                   que ves arriba. El envío es gratuito y queda en estado pendiente mientras
                   verificamos que el enlace funciona, que la descripción es clara y que respeta
                   las normas básicas de convivencia. Una vez aprobado, tu grupo aparecerá en esta
-                  página, en la home de ConectaGrupos y será descubrible por hispanohablantes de
+                  página, en la home de Grupos Hoy y será descubrible por hispanohablantes de
                   toda Latinoamérica y España. Así de simple: tú pones la comunidad, nosotros la
                   ponemos a la vista de quien la está buscando.
                 </p>
@@ -483,8 +485,8 @@ export default async function CountryPage({
                 Da visibilidad a tu comunidad de WhatsApp
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
-                Publica tu grupo de {country.name} gratis y llega a miles de hispanohablantes que
-                están buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
+                Publica tu grupo de {country.name} gratis y llega a quienes están buscando justo
+                lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
                 publicamos en este directorio.
               </p>
               <Link

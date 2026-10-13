@@ -7,7 +7,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { JsonBuilderClient } from "./json-builder-client";
 
 export const metadata: Metadata = {
-  title: { absolute: "Generar JSON — Admin · ConectaGrupos" },
+  title: { absolute: "Generar JSON — Admin · Grupos Hoy" },
   robots: "noindex, nofollow",
 };
 

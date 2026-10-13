@@ -40,8 +40,8 @@ import {
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: { absolute: "Panel de administración — ConectaGrupos" },
-  description: "Panel de gestión interna de ConectaGrupos.",
+  title: { absolute: "Panel de administración — Grupos Hoy" },
+  description: "Panel de gestión interna de Grupos Hoy.",
   robots: { index: false, follow: false },
 };
 
@@ -316,7 +316,7 @@ export default async function AdminDashboardPage() {
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Hola, <span className="font-medium text-emerald-700 dark:text-emerald-400">{adminUser}</span>.
-                  Bienvenido al panel interno de ConectaGrupos.
+                  Bienvenido al panel interno de Grupos Hoy.
                 </p>
               </div>
             </div>

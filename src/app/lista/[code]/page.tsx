@@ -22,16 +22,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const list = await getFavListByCode(code);
   if (!list) {
     return {
-      title: { absolute: `Lista no encontrada — ${SITE.name}` },
+      title: "Lista no encontrada",
       robots: { index: false, follow: false },
     };
   }
   const ids = parseListIds(list.groupIdsJson);
-  const title =
+  const listTitle =
     list.title?.trim() ||
     `Lista compartida de ${ids.length} ${ids.length === 1 ? "grupo" : "grupos"}`;
   return {
-    title: { absolute: `${title} — ${SITE.name}` },
+    // Non-absolute: the layout template appends "| Grupos Hoy".
+    title: `${listTitle} · Lista de Grupos`,
     description: `Una colección compartida de grupos de WhatsApp en español: ${ids.length} ${ids.length === 1 ? "comunidad" : "comunidades"} seleccionadas a mano.`,
     alternates: { canonical: `${SITE.url}/lista/${list.shareCode}` },
     // Personal share links → keep out of search engines (they are not
@@ -77,7 +78,7 @@ export default async function SharedListPage({ params }: Props) {
               </h1>
               <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
                 Una colección de grupos de WhatsApp compartida contigo a través de
-                ConectaGrupos. Explora los grupos y únete a los que te interesen.
+                Grupos Hoy. Explora los grupos y únete a los que te interesen.
               </p>
 
               {/* Stats */}

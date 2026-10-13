@@ -437,7 +437,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla-grupos-conectagrupos.csv";
+    a.download = "plantilla-grupos-gruposhoy.csv";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -1,4 +1,6 @@
 import { SiteHeader } from "@/components/site/header";
+import type { Metadata } from "next";
+import { SITE, OG_IMAGE } from "@/lib/constants";
 import { Hero } from "@/components/site/hero";
 import { ReadingProgress } from "@/components/site/reading-progress";
 import { GroupsDirectoryTable } from "@/components/site/groups-directory-table";
@@ -28,6 +30,27 @@ import {
 import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 
 export const dynamic = "force-dynamic";
+
+// Metadata only (page body untouched). Count-first CTR title with the same
+// honest getStats() numbers the hero renders — never inflated, never "+".
+export async function generateMetadata(): Promise<Metadata> {
+  const stats = await getStats();
+  const title = `${stats.groups} Enlaces de Grupos de WhatsApp | Grupos Hoy`;
+  const description = `Directorio en español con ${stats.groups} enlaces de grupos de WhatsApp: ${stats.categories} categorías y ${stats.countries} países. Filtra, compara y únete gratis. Sin registro.`;
+  return {
+    title: { absolute: title },
+    description,
+    openGraph: {
+      title,
+      description,
+      url: SITE.url,
+      siteName: SITE.name,
+      locale: "es_ES",
+      type: "website",
+      images: [OG_IMAGE],
+    },
+  };
+}
 
 export default async function HomePage() {
   const [categories, countries, stats, initialGroups, popularTags, metrics, cities] = await Promise.all([

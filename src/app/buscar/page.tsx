@@ -38,9 +38,9 @@ export async function generateMetadata(): Promise<Metadata> {
   // any ?q= view (the user's directive: search URLs completely hidden from
   // Google). Canonical is ALWAYS the clean /buscar URL and the title is
   // static, non-query-specific; no DB lookup needed here.
-  const title = `Buscar grupos de WhatsApp — ${SITE.name}`;
+  const title = "Buscar Grupos de WhatsApp | Grupos Hoy";
   const description =
-    "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave. Encuentra tu comunidad ideal en ConectaGrupos.";
+    "Busca grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave. Encuentra tu comunidad ideal sin registro.";
   return {
     title: { absolute: title },
     description,
@@ -48,8 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: { index: false, follow: true },
     openGraph: {
       title,
-      description:
-        "Busca entre miles de grupos de WhatsApp en español por nombre, descripción, etiqueta o palabra clave.",
+      description,
       url: `${SITE.url}/buscar`,
       type: "website",
       locale: "es_ES",

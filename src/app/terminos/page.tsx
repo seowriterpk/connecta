@@ -16,15 +16,15 @@ import { Reveal } from "@/components/site/reveal";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Términos de Uso — ${SITE.name}` },
+  title: "Términos y Condiciones",
   description:
-    "Términos de uso de ConectaGrupos: reglas para enviar grupos, normas de contenido, moderación, cómo reportar abusos y limitación de responsabilidad.",
+    "Términos y condiciones de Grupos Hoy: reglas para enviar grupos, normas de contenido, moderación, cómo reportar abusos y responsabilidad.",
   alternates: { canonical: `${SITE.url}/terminos` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Términos de Uso — ${SITE.name}`,
+    title: "Términos y Condiciones | Grupos Hoy",
     description:
-      "Reglas de uso del directorio ConectaGrupos: qué se puede publicar, qué no, y cómo moderamos el contenido.",
+      "Reglas de uso del directorio Grupos Hoy: qué se puede publicar, qué no, y cómo moderamos el contenido.",
     url: `${SITE.url}/terminos`,
     type: "website",
     locale: "es_ES",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     "términos de uso",
-    "condiciones ConectaGrupos",
+    "condiciones Grupos Hoy",
     "normas de uso",
     "contenido prohibido",
     "moderación",
@@ -46,7 +46,7 @@ const webPageJsonLd = {
   "@type": "WebPage",
   name: `Términos de Uso — ${SITE.name}`,
   description:
-    "Términos de uso de ConectaGrupos: aceptable uso, normas de contenido, moderación y responsabilidad.",
+    "Términos y condiciones de Grupos Hoy: aceptable uso, normas de contenido, moderación y responsabilidad.",
   url: `${SITE.url}/terminos`,
   inLanguage: "es",
   isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
@@ -100,7 +100,7 @@ export default function TermsPage() {
                 Términos de Uso
               </h1>
               <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Al usar ConectaGrupos, aceptas estas condiciones. Están pensadas para que el
+                Al usar Grupos Hoy, aceptas estas condiciones. Están pensadas para que el
                 directorio siga siendo útil y seguro para toda la comunidad hispanohablante.
               </p>
               <p className="mt-3 text-xs text-muted-foreground">
@@ -121,7 +121,7 @@ export default function TermsPage() {
                   </div>
                   <div className="space-y-3 text-sm leading-relaxed text-foreground/85 sm:text-base">
                     <p>
-                      ConectaGrupos es un directorio abierto de enlaces de invitación a grupos
+                      Grupos Hoy es un directorio abierto de enlaces de invitación a grupos
                       de WhatsApp en español. Te comprometes a usarlo de forma respetuosa y
                       legal: no intentar saturar el servicio, no extraer masivamente datos, no
                       publicar contenido que incumpla la ley de tu país o del país donde se aloja
@@ -219,7 +219,7 @@ export default function TermsPage() {
                   </div>
                   <div className="space-y-3 text-sm leading-relaxed text-foreground/85 sm:text-base">
                     <p>
-                      ConectaGrupos es un directorio: no aloja los grupos ni es responsable de
+                      Grupos Hoy es un directorio: no aloja los grupos ni es responsable de
                       lo que en ellos se converse. La responsabilidad sobre el contenido
                       publicado dentro de cada grupo de WhatsApp recae en el administrador del
                       grupo y en sus participantes, conforme a los términos de servicio de
@@ -232,7 +232,7 @@ export default function TermsPage() {
                       podemos asegurar disponibilidad continua.
                     </p>
                     <p>
-                      En ningún caso ConectaGrupos será responsable de daños indirectos, lucro
+                      En ningún caso Grupos Hoy será responsable de daños indirectos, lucro
                       cesante o pérdida de datos derivados del uso del sitio o de la información
                       aquí publicada.
                     </p>

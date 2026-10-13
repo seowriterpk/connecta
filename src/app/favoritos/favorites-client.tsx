@@ -52,7 +52,7 @@ interface ExportFile {
   groups: { id: string; slug: string; title: string }[];
 }
 
-const EXPORT_APP = "conectagrupos";
+const EXPORT_APP = "grupos-hoy";
 const EXPORT_VERSION = 1;
 
 export function FavoritesClient() {
@@ -148,7 +148,7 @@ export function FavoritesClient() {
       .slice(0, 10)
       .map((g, i) => `${i + 1}. ${g.title} — ${typeof window !== "undefined" ? `${window.location.origin}/grupo/${g.slug}` : g.slug}`)
       .join("\n");
-    const text = `Mis grupos favoritos en ConectaGrupos:\n\n${list}${groups.length > 10 ? `\n…y ${groups.length - 10} más.` : ""}`;
+    const text = `Mis grupos favoritos en Grupos Hoy:\n\n${list}${groups.length > 10 ? `\n…y ${groups.length - 10} más.` : ""}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "Mis grupos favoritos", text });
@@ -224,7 +224,7 @@ export function FavoritesClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `conectagrupos-favoritos-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `grupos-hoy-favoritos-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();

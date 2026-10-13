@@ -1,5 +1,5 @@
 /**
- * ConectaGrupos — database layer.
+ * Grupos Hoy — database layer.
  *
  * mysql2/promise + connection pool. The fast, standard way.
  *
@@ -383,7 +383,7 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       \`content\` MEDIUMTEXT NOT NULL,
       \`coverEmoji\` VARCHAR(16) DEFAULT '📝',
       \`tags\` VARCHAR(500) DEFAULT NULL,
-      \`authorName\` VARCHAR(120) DEFAULT 'Equipo ConectaGrupos',
+      \`authorName\` VARCHAR(120) DEFAULT 'Equipo Grupos Hoy',
       \`status\` VARCHAR(32) NOT NULL DEFAULT 'draft',
       \`metaTitle\` VARCHAR(255) DEFAULT NULL,
       \`metaDescription\` VARCHAR(500) DEFAULT NULL,

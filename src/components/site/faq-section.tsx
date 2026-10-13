@@ -8,12 +8,12 @@ import { HelpCircle } from "lucide-react";
 
 const FAQS = [
   {
-    q: "¿Qué es ConectaGrupos y para qué sirve?",
-    a: "ConectaGrupos es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades activas según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre quienes buscan comunidades como la tuya.",
+    q: "¿Qué es Grupos Hoy y para qué sirve?",
+    a: "Grupos Hoy es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades activas según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre quienes buscan comunidades como la tuya.",
   },
   {
     q: "¿Unirse a un grupo de WhatsApp es gratis?",
-    a: "Sí, totalmente. WhatsApp no cobra por unirse a grupos y ConectaGrupos tampoco te pide pagar nada. Si algún administrador te exige dinero a cambio de acceso, escríbenos: ese tipo de prácticas no tienen cabida en nuestra comunidad y retiramos el enlace en cuanto lo detectamos.",
+    a: "Sí, totalmente. WhatsApp no cobra por unirse a grupos y Grupos Hoy tampoco te pide pagar nada. Si algún administrador te exige dinero a cambio de acceso, escríbenos: ese tipo de prácticas no tienen cabida en nuestra comunidad y retiramos el enlace en cuanto lo detectamos.",
   },
   {
     q: "¿Cómo publico mi propio grupo de WhatsApp?",

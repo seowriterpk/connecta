@@ -39,19 +39,25 @@ function groupCountriesByRegion<T extends { region: string }>(countries: T[]) {
   }));
 }
 
-export const metadata: Metadata = {
-  title: { absolute: `Países — Grupos de WhatsApp en Español | ${SITE.name}` },
-  description: "Explora grupos de WhatsApp por país. México, España, Argentina, Colombia, Perú, Chile, Venezuela y todos los países hispanohablantes.",
-  alternates: { canonical: `${SITE.url}/paises` },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: `Países — Grupos de WhatsApp en Español | ${SITE.name}`,
-    description: "Explora grupos de WhatsApp por país hispanohablante.",
-    url: `${SITE.url}/paises`,
-    locale: "es_ES",
-    siteName: SITE.name,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // Count-first title — the same curated country bank the page renders.
+  const countries = await getCountries();
+  const title = `${countries.length} Países con Grupos de WhatsApp | Grupos Hoy`;
+  const description = `Explora grupos de WhatsApp por país: España, México, Argentina, Colombia, Perú y los ${countries.length} países hispanohablantes del directorio. Encuentra tu comunidad.`;
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `${SITE.url}/paises` },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE.url}/paises`,
+      locale: "es_ES",
+      siteName: SITE.name,
+    },
+  };
+}
 
 export default async function PaisesPage() {
   const [countries] = await Promise.all([getCountries()]);

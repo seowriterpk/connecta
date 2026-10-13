@@ -31,7 +31,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
     default: `${SITE.name} — ${SITE.tagline}`,
-    template: `%s · ${SITE.name}`,
+    // Rebrand: pipe-separated brand suffix "Grupos Hoy" (5-b, CTR pattern).
+    template: "%s | Grupos Hoy",
   },
   description: SITE.description,
   applicationName: SITE.name,

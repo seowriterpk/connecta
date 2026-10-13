@@ -78,7 +78,7 @@ export function AboutSection({ stats }: { stats: StatsDTO }) {
         <div className="mx-auto max-w-2xl text-center">
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> ¿Por qué ConectaGrupos?
+              <Sparkles className="h-3.5 w-3.5" /> ¿Por qué Grupos Hoy?
             </span>
             <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
               Un directorio pensado para personas, no para algoritmos

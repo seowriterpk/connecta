@@ -54,7 +54,7 @@ const LEGAL_LINKS = [
 
 const SOCIALS = [
   {
-    href: "https://wa.me/?text=Descubre%20grupos%20de%20WhatsApp%20en%20espa%C3%B1ol%3A%20https%3A%2F%2Fconectagrupos.com",
+    href: "https://wa.me/?text=Descubre%20grupos%20de%20WhatsApp%20en%20espa%C3%B1ol%3A%20https%3A%2F%2Fgruposhoy.com",
     label: "Compartir en WhatsApp",
     icon: MessageCircle,
     external: true,
@@ -101,7 +101,7 @@ export function SiteFooter() {
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
                 <MessageCircle className="h-5 w-5" />
               </span>
-              <span className="text-lg text-primary" suppressHydrationWarning>{"ConectaGrupos"}</span>
+              <span className="text-lg text-primary" suppressHydrationWarning>{"Grupos Hoy"}</span>
             </Link>
             <p className="mt-3 max-w-xs text-pretty text-sm text-muted-foreground">
               {SITE.tagline}. Sin registros, sin coste: llegas, buscas y te unes.

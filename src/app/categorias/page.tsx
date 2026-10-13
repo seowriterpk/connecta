@@ -11,20 +11,27 @@ import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { absolute: `Categorías de Grupos de WhatsApp — ${SITE.name}` },
-  description: "Explora todas las categorías de grupos de WhatsApp en español: amistad, tecnología, deportes, música, cine, cocina, viajes y más. Encuentra la comunidad perfecta para ti.",
-  alternates: { canonical: `${SITE.url}/categorias` },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: `Categorías de Grupos de WhatsApp — ${SITE.name}`,
-    description: "Explora todas las categorías de grupos de WhatsApp en español.",
-    url: `${SITE.url}/categorias`,
-    locale: "es_ES",
-    siteName: SITE.name,
+export async function generateMetadata(): Promise<Metadata> {
+  // Clean categories only (getCategories default) — the same list the page
+  // renders, so the count-first title is always honest.
+  const categories = await getCategories();
+  const title = `${categories.length} Categorías de Grupos de WhatsApp | Grupos Hoy`;
+  const description = `Explora las ${categories.length} categorías de grupos de WhatsApp en español: amistad, tecnología, deportes, música, cine y más. Encuentra la comunidad perfecta.`;
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `${SITE.url}/categorias` },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE.url}/categorias`,
+      locale: "es_ES",
+      siteName: SITE.name,
       images: [OG_IMAGE],
-  },
-};
+    },
+  };
+}
 
 const COLOR_STYLES: Record<string, string> = {
   emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",

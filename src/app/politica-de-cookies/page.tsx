@@ -9,15 +9,15 @@ import { Reveal } from "@/components/site/reveal";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Política de Cookies — ${SITE.name}` },
+  title: "Política de Cookies",
   description:
-    "Política de cookies de ConectaGrupos: solo cookies esenciales (tema, favoritos, recientes y consentimiento). Sin cookies publicitarias ni de seguimiento.",
+    "Política de cookies de Grupos Hoy: solo cookies esenciales (tema, favoritos, recientes y consentimiento). Sin cookies publicitarias ni de seguimiento.",
   alternates: { canonical: `${SITE.url}/politica-de-cookies` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Política de Cookies — ${SITE.name}`,
+    title: "Política de Cookies | Grupos Hoy",
     description:
-      "Cookies que usa ConectaGrupos: cg-theme, cg-favorites, cg-recent, cg-sid, cg-cookie-consent. Todas esenciales, ninguna de publicidad.",
+      "Cookies que usa Grupos Hoy: cg-theme, cg-favorites, cg-recent, cg-sid, cg-cookie-consent. Todas esenciales, ninguna de publicidad.",
     url: `${SITE.url}/politica-de-cookies`,
     type: "website",
     locale: "es_ES",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     "política de cookies",
-    "cookies ConectaGrupos",
+    "cookies Grupos Hoy",
     "cg-theme",
     "cg-favorites",
     "consentimiento cookies",
@@ -75,7 +75,7 @@ const webPageJsonLd = {
   "@type": "WebPage",
   name: `Política de Cookies — ${SITE.name}`,
   description:
-    "Política de cookies de ConectaGrupos: cookies esenciales usadas, duración, propósito y cómo eliminarlas.",
+    "Política de cookies de Grupos Hoy: cookies esenciales usadas, duración, propósito y cómo eliminarlas.",
   url: `${SITE.url}/politica-de-cookies`,
   inLanguage: "es",
   isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
@@ -150,7 +150,7 @@ export default function CookiePolicyPage() {
                   </div>
                   <div className="space-y-3 text-sm leading-relaxed text-foreground/85 sm:text-base">
                     <p>
-                      En ConectaGrupos <strong>no usamos cookies de publicidad, ni de
+                      En Grupos Hoy <strong>no usamos cookies de publicidad, ni de
                       seguimiento, ni de terceros</strong>. Tampoco cargamos píxeles de redes
                       sociales ni Google Analytics. Solo utilizamos cookies y almacenamiento
                       local estrictamente necesarios para que el sitio funcione y recuerde tus
@@ -224,7 +224,7 @@ export default function CookiePolicyPage() {
                     <h2 className="text-xl font-bold sm:text-2xl">3. Gestión del consentimiento</h2>
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/85 sm:text-base">
-                    La primera vez que entras en ConectaGrupos, te mostramos un banner pidiendo
+                    La primera vez que entras en Grupos Hoy, te mostramos un banner pidiendo
                     consentimiento para usar cookies esenciales. Una vez aceptado, guardamos la
                     preferencia en <code className="rounded bg-muted px-1.5 py-0.5 text-xs">cg-cookie-consent</code> y
                     no volvemos a preguntar. Como solo usamos cookies esenciales, no ofrecemos
@@ -243,7 +243,7 @@ export default function CookiePolicyPage() {
                   <div className="space-y-3 text-sm leading-relaxed text-foreground/85 sm:text-base">
                     <p>
                       Puedes eliminar todas las cookies y el almacenamiento local de
-                      ConectaGrupos en cualquier momento desde tu navegador:
+                      Grupos Hoy en cualquier momento desde tu navegador:
                     </p>
                     <ul className="ml-5 list-disc space-y-1.5">
                       <li>
@@ -256,7 +256,7 @@ export default function CookiePolicyPage() {
                       </li>
                       <li>
                         <strong>Safari:</strong> Preferencias → Privacidad → Administrar datos
-                        del sitio web → selecciona conectagrupos.com y elimina.
+                        del sitio web → selecciona gruposhoy.com y elimina.
                       </li>
                       <li>
                         <strong>Móvil (iOS/Android):</strong> desde los ajustes del navegador,

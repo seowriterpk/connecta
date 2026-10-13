@@ -74,19 +74,21 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${uploader.name} — ${uploader.jobTitle} | ${SITE.name}`;
+  // Non-absolute: the layout template appends "| Grupos Hoy".
+  const title = `${uploader.name} · Equipo Editorial`;
+  const ogTitle = `${uploader.name} · Equipo Editorial | Grupos Hoy`;
   const description =
     (uploader.description ?? `Perfil de ${uploader.name} en ${SITE.name}.`).slice(0, 160);
   const canonical = `${SITE.url}/autor/${uploader.slug}`;
   const socials = buildSocialLinks(uploader);
 
   return {
-    title: { absolute: title },
+    title,
     description,
     alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: {
-      title,
+      title: ogTitle,
       description,
       url: canonical,
       type: "profile",
@@ -98,7 +100,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary",
-      title,
+      title: ogTitle,
       description,
       ...(uploader.imageUrl ? { images: [uploader.imageUrl] } : {}),
     },
@@ -109,7 +111,7 @@ export async function generateMetadata({
       uploader.jobTitle,
       "equipo editorial",
       "quién publica los grupos",
-      "autor ConectaGrupos",
+      "autor Grupos Hoy",
     ],
   };
 }
@@ -289,7 +291,7 @@ export default async function AutorPage({ params }: PageProps) {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                  En ConectaGrupos desde {fmtDate(uploader.createdAt)}
+                  En Grupos Hoy desde {fmtDate(uploader.createdAt)}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <MessageCircle className="h-3.5 w-3.5 text-primary" />
@@ -445,7 +447,7 @@ export default async function AutorPage({ params }: PageProps) {
                   href="/sobre-nosotros"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary"
                 >
-                  Sobre ConectaGrupos
+                  Sobre Grupos Hoy
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>

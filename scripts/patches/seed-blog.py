@@ -11,12 +11,12 @@ POST = {
     "excerpt": "Aprende a identificar comunidades fiables de WhatsApp, evitar estafas y enlaces caducados, y unirte a grupos activos de tu país en pocos pasos. Guía práctica en español.",
     "cover_emoji": "🔍",
     "tags": '["whatsapp", "seguridad", "guías", "consejos"]',
-    "author_name": "Equipo ConectaGrupos",
+    "author_name": "Equipo Grupos Hoy",
     "content": """## Por qué importa elegir bien el grupo
 
 Unirse a un grupo de WhatsApp es de las cosas más fáciles del mundo: un clic en el enlace de invitación y ya estás dentro. Lo difícil es salir bien parado. En 2026 siguen circulando comunidades abandonadas, enlaces caducados y, en el peor de los casos, grupos usados para estafas o spam masivo.
 
-Esta guía resume el método que usamos a diario en [ConectaGrupos](/) para revisar los grupos que publicamos: los mismos criterios que puedes aplicar tú antes de dar el salto.
+Esta guía resume el método que usamos a diario en [Grupos Hoy](/) para revisar los grupos que publicamos: los mismos criterios que puedes aplicar tú antes de dar el salto.
 
 ## 1. Comprueba que el enlace está vivo
 
@@ -42,7 +42,7 @@ No hay nada más frustrante que entrar a un grupo donde el último mensaje es de
 2. Comprueba si el administrador participa.
 3. Observa la proporción de enlaces: si el 90% de los mensajes son promociones, es spam con disfraz.
 
-En [ConectaGrupos](/populares) marcamos los grupos con más movimiento reciente para que no pierdas el tiempo.
+En [Grupos Hoy](/populares) marcamos los grupos con más movimiento reciente para que no pierdas el tiempo.
 
 ## 5. Cuida tu privacidad desde el primer día
 

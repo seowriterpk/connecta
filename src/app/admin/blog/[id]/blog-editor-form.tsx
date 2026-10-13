@@ -53,7 +53,7 @@ export function BlogEditorForm({ csrfToken, post, postId }: Props) {
   );
   const [coverEmoji, setCoverEmoji] = React.useState(post?.coverEmoji ?? "📝");
   const [tagsRaw, setTagsRaw] = React.useState(post?.tags.join(", ") ?? "");
-  const [authorName, setAuthorName] = React.useState(post?.authorName ?? "Equipo ConectaGrupos");
+  const [authorName, setAuthorName] = React.useState(post?.authorName ?? "Equipo Grupos Hoy");
   const [metaTitle, setMetaTitle] = React.useState(post?.metaTitle ?? "");
   const [metaDescription, setMetaDescription] = React.useState(post?.metaDescription ?? "");
   const [status, setStatus] = React.useState<"draft" | "published">(post?.status ?? "draft");
@@ -93,7 +93,7 @@ export function BlogEditorForm({ csrfToken, post, postId }: Props) {
         .map((t) => t.trim().replace(/^#/, ""))
         .filter(Boolean)
         .slice(0, 10),
-      authorName: authorName.trim() || "Equipo ConectaGrupos",
+      authorName: authorName.trim() || "Equipo Grupos Hoy",
       status: nextStatus,
       metaTitle: metaTitle.trim() || null,
       metaDescription: metaDescription.trim() || null,

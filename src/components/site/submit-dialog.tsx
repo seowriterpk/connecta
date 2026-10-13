@@ -148,7 +148,7 @@ export function SubmitDialog({
             </span>
             <h3 className="text-lg font-bold">¡Grupo enviado con éxito!</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Gracias por compartir tu comunidad con ConectaGrupos. Nuestro equipo la
+              Gracias por compartir tu comunidad con Grupos Hoy. Nuestro equipo la
               revisará y, si cumple las normas, se publicará en breve. Puedes enviar
               otro grupo si quieres.
             </p>
@@ -166,7 +166,7 @@ export function SubmitDialog({
             <DialogHeader className="gap-2 border-b p-5 pb-4">
               <DialogTitle className="text-lg font-bold">Envía tu grupo de WhatsApp</DialogTitle>
               <DialogDescription className="text-sm">
-                Comparte tu comunidad con miles de hispanohablantes. Tras el envío, el grupo
+                Comparte tu comunidad con quienes buscan grupos como el tuyo. Tras el envío, el grupo
                 queda pendiente de revisión antes de publicarse.
               </DialogDescription>
             </DialogHeader>

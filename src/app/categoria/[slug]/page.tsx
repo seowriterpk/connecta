@@ -53,9 +53,10 @@ export async function generateMetadata({
   }
 
   // Adult categories: never indexed (strict separation directive).
+  // Simple title, no group count (adult silo counts are not advertised).
   if (category.isAdult) {
     return {
-      title: { absolute: `${category.name} — ${SITE.name}` },
+      title: { absolute: `${category.name} — Grupos Hoy` },
       description: category.description,
       robots: { index: false, follow: false },
     };
@@ -65,7 +66,12 @@ export async function generateMetadata({
   const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
   const canonical = `${SITE.url}${canonicalPath}`;
 
-  const title = `${category.name} — Grupos de WhatsApp | ConectaGrupos`;
+  // Count-first CTR title: real groupCount (0/undefined → no count segment),
+  // "· Página N" only on paginated views (page > 1), pipe-separated brand.
+  const countSegment =
+    category.groupCount && category.groupCount > 0 ? `${category.groupCount} ` : "";
+  const pageSegment = page > 1 ? ` · Página ${page}` : "";
+  const title = `${countSegment}Grupos de ${category.name} en WhatsApp${pageSegment} | Grupos Hoy`;
   // Dynamic meta description: custom hero override wins, else keyword-derived
   // from the oldest groups of this category (one keyword per group).
   const taxContent = await getTaxonomyContent("category", category.name);
@@ -361,7 +367,7 @@ export default async function CategoryPage({
                   Los grupos de WhatsApp de{" "}
                   <strong className="font-semibold text-foreground">{category.name}</strong> reúnen
                   a personas que comparten un mismo interés en español, sin importar si viven en el
-                  mismo barrio o a miles de kilómetros. En ConectaGrupos hemos organizado{" "}
+                  mismo barrio o a miles de kilómetros. En Grupos Hoy hemos organizado{" "}
                   {category.groupCount}{" "}
                   {category.groupCount === 1 ? "comunidad" : "comunidades"} bajo esta categoría para
                   que encuentres en segundos un espacio donde participar: debates serios, planes
@@ -388,7 +394,7 @@ export default async function CategoryPage({
                   que ves arriba. El envío es gratuito y queda en estado pendiente mientras
                   verificamos que el enlace funciona, que la descripción es clara y que respeta las
                   normas básicas de convivencia. Una vez aprobado, tu grupo aparecerá en esta
-                  categoría, en la home de ConectaGrupos y será descubrible por hispanohablantes de
+                  categoría, en la home de Grupos Hoy y será descubrible por hispanohablantes de
                   toda Latinoamérica y España. Así de simple: tú pones la comunidad, nosotros la
                   ponemos a la vista de quien la está buscando.
                 </p>
@@ -428,9 +434,8 @@ export default async function CategoryPage({
                 Da visibilidad a tu comunidad de WhatsApp
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
-                Publica tu grupo de {category.name.toLowerCase()} gratis y llega a miles de
-                hispanohablantes que están buscando justo lo que tú ofreces. Lo revisamos en menos de
-                24 horas.
+                Publica tu grupo de {category.name.toLowerCase()} gratis y llega a quienes están
+                buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas.
               </p>
               <Link
                 href="/agregar-grupo"

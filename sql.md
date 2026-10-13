@@ -1,4 +1,4 @@
-# ConectaGrupos — SQL de importación (datos demo production-ready)
+# Grupos Hoy — SQL de importación (datos demo production-ready)
 
 **Base de datos destino:** `u824913874_connector` (MySQL/MariaDB, `utf8mb4`)
 
@@ -850,3 +850,193 @@ UPDATE `countries` SET `region` = 'América del Norte' WHERE `region` = 'Norteam
 UPDATE `countries` SET `region` = TRIM(`region`);
 UPDATE `countries` SET `isActive` = 1;
 ```
+
+## MIGRACIÓN REBRAND GRUPOS HOY (2026-10-13) — ejecutar tras MIGRACIÓN AUTORES
+
+Objetivo: cambiar la marca del sitio de **ConectaGrupos** (conectagrupos.com) a
+**Grupos Hoy** (gruposhoy.com) en los datos. Este SQL solo toca *contenido*:
+nombres visibles, slugs de autor, textos de blog e intros/overrides SEO. No
+toca reglas de robots (`robotsOverride` queda intacto), claves internas ni
+estructura. El dump base de arriba mantiene su contenido original (se escribió
+antes del rebrand); esta migración lo limpia después de importarlo.
+
+Idempotente: cada UPDATE lleva su guarda `WHERE ... LIKE '%conecta%'` (o
+comprobación de valor), así que tras la primera pasada no vuelve a coincidir
+nadie y se puede re-ejecutar sin riesgo. `REPLACE()` es case-sensitive en
+MySQL/MariaDB, por eso hay dos pasadas por columna: `'ConectaGrupos'` →
+`'Grupos Hoy'` (CamelCase) y `'conectagrupos'` → `'gruposhoy'` (minúsculas,
+dominios y slugs); la pasada de dominio explícita es informativa (el resultado
+coincide) pero se deja por claridad.
+
+```sql
+-- ============================================================
+-- 0) Comprobación previa (opcional, informativa): qué filas
+--    contienen la marca antigua antes de tocar nada.
+-- ============================================================
+-- SELECT COUNT(*) FROM `blog_posts`
+--   WHERE CONCAT_WS(' ',`authorName`,`title`,`excerpt`,`content`,`metaTitle`,`metaDescription`,`tags`) LIKE '%conecta%';
+-- SELECT COUNT(*) FROM `groups`
+--   WHERE CONCAT_WS(' ',`groupName`,`description`,`tags`,`keywords`) LIKE '%conecta%';
+-- SELECT COUNT(*) FROM `entity_intros`
+--   WHERE CONCAT_WS(' ',`customTitle`,`customHeroDesc`,`customIntro`) LIKE '%conecta%';
+-- SELECT COUNT(*) FROM `seo_overrides`
+--   WHERE CONCAT_WS(' ',`metaTitleOverride`,`metaDescriptionOverride`) LIKE '%conecta%';
+
+-- ============================================================
+-- 1) Autor único: Equipo ConectaGrupos → Equipo Grupos Hoy
+--    (tras MIGRACIÓN AUTORES existe una sola fila: up-equipo).
+--    Slug nuevo: equipo-gruposhoy → /autor/equipo-gruposhoy.
+-- ============================================================
+UPDATE `uploaders` SET `name` = 'Equipo Grupos Hoy', `slug` = 'equipo-gruposhoy'
+WHERE `id` = 'up-equipo'
+  AND (`name` <> 'Equipo Grupos Hoy' OR `slug` <> 'equipo-gruposhoy');
+
+-- Su descripción, por si mencionara la marca antigua:
+UPDATE `uploaders`
+SET `description` = REPLACE(REPLACE(REPLACE(`description`,'ConectaGrupos','Grupos Hoy'),'conectagrupos.com','gruposhoy.com'),'conectagrupos','gruposhoy')
+WHERE `id` = 'up-equipo' AND `description` LIKE '%conecta%';
+
+-- ============================================================
+-- 2) blog_posts: authorName + todos los textos libres.
+--    Dos pasadas REPLACE por columna (CamelCase + minúsculas).
+-- ============================================================
+UPDATE `blog_posts`
+SET
+  `authorName`      = REPLACE(`authorName`, 'ConectaGrupos', 'Grupos Hoy'),
+  `title`           = REPLACE(`title`, 'ConectaGrupos', 'Grupos Hoy'),
+  `excerpt`         = REPLACE(`excerpt`, 'ConectaGrupos', 'Grupos Hoy'),
+  `content`         = REPLACE(`content`, 'ConectaGrupos', 'Grupos Hoy'),
+  `metaTitle`       = REPLACE(`metaTitle`, 'ConectaGrupos', 'Grupos Hoy'),
+  `metaDescription` = REPLACE(`metaDescription`, 'ConectaGrupos', 'Grupos Hoy'),
+  `tags`            = REPLACE(`tags`, 'ConectaGrupos', 'Grupos Hoy')
+WHERE CONCAT_WS(' ',`authorName`,`title`,`excerpt`,`content`,`metaTitle`,`metaDescription`,`tags`) LIKE '%conecta%';
+
+UPDATE `blog_posts`
+SET
+  `authorName`      = REPLACE(`authorName`, 'conectagrupos.com', 'gruposhoy.com'),
+  `title`           = REPLACE(`title`, 'conectagrupos.com', 'gruposhoy.com'),
+  `excerpt`         = REPLACE(`excerpt`, 'conectagrupos.com', 'gruposhoy.com'),
+  `content`         = REPLACE(`content`, 'conectagrupos.com', 'gruposhoy.com'),
+  `metaTitle`       = REPLACE(`metaTitle`, 'conectagrupos.com', 'gruposhoy.com'),
+  `metaDescription` = REPLACE(`metaDescription`, 'conectagrupos.com', 'gruposhoy.com'),
+  `tags`            = REPLACE(`tags`, 'conectagrupos.com', 'gruposhoy.com')
+WHERE CONCAT_WS(' ',`authorName`,`title`,`excerpt`,`content`,`metaTitle`,`metaDescription`,`tags`) LIKE '%conectagrupos.com%';
+
+UPDATE `blog_posts`
+SET
+  `authorName`      = REPLACE(`authorName`, 'conectagrupos', 'gruposhoy'),
+  `title`           = REPLACE(`title`, 'conectagrupos', 'gruposhoy'),
+  `excerpt`         = REPLACE(`excerpt`, 'conectagrupos', 'gruposhoy'),
+  `content`         = REPLACE(`content`, 'conectagrupos', 'gruposhoy'),
+  `metaTitle`       = REPLACE(`metaTitle`, 'conectagrupos', 'gruposhoy'),
+  `metaDescription` = REPLACE(`metaDescription`, 'conectagrupos', 'gruposhoy'),
+  `tags`            = REPLACE(`tags`, 'conectagrupos', 'gruposhoy')
+WHERE CONCAT_WS(' ',`authorName`,`title`,`excerpt`,`content`,`metaTitle`,`metaDescription`,`tags`) LIKE '%conectagrupos%';
+
+-- ============================================================
+-- 3) entity_intros (si la tabla tiene filas con la marca):
+--    solo las columnas de texto libre. entityName/robots intactos.
+-- ============================================================
+UPDATE `entity_intros`
+SET
+  `customTitle`    = REPLACE(`customTitle`, 'ConectaGrupos', 'Grupos Hoy'),
+  `customHeroDesc` = REPLACE(`customHeroDesc`, 'ConectaGrupos', 'Grupos Hoy'),
+  `customIntro`    = REPLACE(`customIntro`, 'ConectaGrupos', 'Grupos Hoy')
+WHERE CONCAT_WS(' ',`customTitle`,`customHeroDesc`,`customIntro`) LIKE '%conecta%';
+
+UPDATE `entity_intros`
+SET
+  `customTitle`    = REPLACE(`customTitle`, 'conectagrupos.com', 'gruposhoy.com'),
+  `customHeroDesc` = REPLACE(`customHeroDesc`, 'conectagrupos.com', 'gruposhoy.com'),
+  `customIntro`    = REPLACE(`customIntro`, 'conectagrupos.com', 'gruposhoy.com')
+WHERE CONCAT_WS(' ',`customTitle`,`customHeroDesc`,`customIntro`) LIKE '%conectagrupos.com%';
+
+UPDATE `entity_intros`
+SET
+  `customTitle`    = REPLACE(`customTitle`, 'conectagrupos', 'gruposhoy'),
+  `customHeroDesc` = REPLACE(`customHeroDesc`, 'conectagrupos', 'gruposhoy'),
+  `customIntro`    = REPLACE(`customIntro`, 'conectagrupos', 'gruposhoy')
+WHERE CONCAT_WS(' ',`customTitle`,`customHeroDesc`,`customIntro`) LIKE '%conectagrupos%';
+
+-- ============================================================
+-- 4) seo_overrides: solo los overrides de texto libre.
+--    robotsOverride NO se toca (reglas funcionales de indexación).
+-- ============================================================
+UPDATE `seo_overrides`
+SET
+  `metaTitleOverride`       = REPLACE(`metaTitleOverride`, 'ConectaGrupos', 'Grupos Hoy'),
+  `metaDescriptionOverride` = REPLACE(`metaDescriptionOverride`, 'ConectaGrupos', 'Grupos Hoy')
+WHERE CONCAT_WS(' ',`metaTitleOverride`,`metaDescriptionOverride`) LIKE '%conecta%';
+
+UPDATE `seo_overrides`
+SET
+  `metaTitleOverride`       = REPLACE(`metaTitleOverride`, 'conectagrupos.com', 'gruposhoy.com'),
+  `metaDescriptionOverride` = REPLACE(`metaDescriptionOverride`, 'conectagrupos.com', 'gruposhoy.com')
+WHERE CONCAT_WS(' ',`metaTitleOverride`,`metaDescriptionOverride`) LIKE '%conectagrupos.com%';
+
+UPDATE `seo_overrides`
+SET
+  `metaTitleOverride`       = REPLACE(`metaTitleOverride`, 'conectagrupos', 'gruposhoy'),
+  `metaDescriptionOverride` = REPLACE(`metaDescriptionOverride`, 'conectagrupos', 'gruposhoy')
+WHERE CONCAT_WS(' ',`metaTitleOverride`,`metaDescriptionOverride`) LIKE '%conectagrupos%';
+
+-- ============================================================
+-- 5) groups: nombre/descripción/tags/keywords (en el dump demo
+--    no hay filas con la marca, pero production puede tenerlas).
+--    Comprueba primero con el SELECT COUNT del paso 0.
+-- ============================================================
+UPDATE `groups`
+SET
+  `groupName`   = REPLACE(`groupName`, 'ConectaGrupos', 'Grupos Hoy'),
+  `description` = REPLACE(`description`, 'ConectaGrupos', 'Grupos Hoy'),
+  `tags`        = REPLACE(`tags`, 'ConectaGrupos', 'Grupos Hoy'),
+  `keywords`    = REPLACE(`keywords`, 'ConectaGrupos', 'Grupos Hoy')
+WHERE CONCAT_WS(' ',`groupName`,`description`,`tags`,`keywords`) LIKE '%conecta%';
+
+UPDATE `groups`
+SET
+  `groupName`   = REPLACE(`groupName`, 'conectagrupos.com', 'gruposhoy.com'),
+  `description` = REPLACE(`description`, 'conectagrupos.com', 'gruposhoy.com'),
+  `tags`        = REPLACE(`tags`, 'conectagrupos.com', 'gruposhoy.com'),
+  `keywords`    = REPLACE(`keywords`, 'conectagrupos.com', 'gruposhoy.com')
+WHERE CONCAT_WS(' ',`groupName`,`description`,`tags`,`keywords`) LIKE '%conectagrupos.com%';
+
+UPDATE `groups`
+SET
+  `groupName`   = REPLACE(`groupName`, 'conectagrupos', 'gruposhoy'),
+  `description` = REPLACE(`description`, 'conectagrupos', 'gruposhoy'),
+  `tags`        = REPLACE(`tags`, 'conectagrupos', 'gruposhoy'),
+  `keywords`    = REPLACE(`keywords`, 'conectagrupos', 'gruposhoy')
+WHERE CONCAT_WS(' ',`groupName`,`description`,`tags`,`keywords`) LIKE '%conectagrupos%';
+
+-- ============================================================
+-- Verificación final: todo debe dar 0 filas con la marca
+-- antigua, y el uploader único debe ser Equipo Grupos Hoy.
+-- ============================================================
+SELECT `id`, `name`, `slug` FROM `uploaders`;   -- up-equipo · Equipo Grupos Hoy · equipo-gruposhoy
+
+SELECT COUNT(*) AS `blog_conecta`
+FROM `blog_posts`
+WHERE CONCAT_WS(' ',`authorName`,`title`,`excerpt`,`content`,`metaTitle`,`metaDescription`,`tags`) LIKE '%conecta%';   -- esperado: 0
+
+SELECT COUNT(*) AS `grupos_conecta`
+FROM `groups`
+WHERE CONCAT_WS(' ',`groupName`,`description`,`tags`,`keywords`) LIKE '%conecta%';   -- esperado: 0
+
+SELECT COUNT(*) AS `intros_conecta`
+FROM `entity_intros`
+WHERE CONCAT_WS(' ',`customTitle`,`customHeroDesc`,`customIntro`) LIKE '%conecta%';   -- esperado: 0
+
+SELECT COUNT(*) AS `seo_conecta`
+FROM `seo_overrides`
+WHERE CONCAT_WS(' ',`metaTitleOverride`,`metaDescriptionOverride`) LIKE '%conecta%';   -- esperado: 0
+```
+
+Notas:
+- La columna real del nombre de grupo es `groupName` (no `name`): la tabla
+  `groups` del Schema Guard usa `groupName`/`slug`/`description`/`tags`/`keywords`.
+- Tras aplicar esto en producción, regenera sitemaps para que el bloque de
+  autores apunte a `/autor/equipo-gruposhoy`:
+  `BASE_URL=https://gruposhoy.com node scripts/crons/sitemap-generator.mjs`.
+- Las cookies/claves internas (`cg-theme`, `cg-favorites`, …) no cambian: son
+  invisibles para el usuario y renombrarlas rompería las preferencias guardadas.

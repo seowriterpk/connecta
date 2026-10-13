@@ -1,4 +1,4 @@
-# ConectaGrupos — Hostinger Deployment Guide (v3.0 · mysql2 edition)
+# Grupos Hoy — Hostinger Deployment Guide (v3.0 · mysql2 edition)
 
 **Stack:** Next.js 16 (App Router) · mysql2/promise connection pool · local MySQL · no Prisma.
 

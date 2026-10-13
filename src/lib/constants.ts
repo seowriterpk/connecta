@@ -1,16 +1,16 @@
-// ConectaGrupos — configuración del sitio (SEO + marca)
+// Grupos Hoy — configuración del sitio (SEO + marca)
 export const SITE = {
-  name: "ConectaGrupos",
+  name: "Grupos Hoy",
   tagline: "Tu directorio de grupos de WhatsApp en español",
   description:
-    "ConectaGrupos reúne los mejores grupos de WhatsApp en español: por categoría, país e idioma. Descubre, comparte y únete a comunidades activas de toda Hispanoamérica y España.",
-  url: "https://conectagrupos.com",
+    "Grupos Hoy reúne los mejores grupos de WhatsApp en español: por categoría, país e idioma. Descubre y únete a comunidades activas de Hispanoamérica y España.",
+  url: "https://gruposhoy.com",
   locale: "es_ES",
   themeColor: "#16a34a", // emerald-600 (WhatsApp-inspired)
   primaryColor: "#0c8b5b",
-  author: "Equipo ConectaGrupos",
-  contactEmail: "hola@conectagrupos.com",
-  twitter: "@conectagrupos",
+  author: "Equipo Grupos Hoy",
+  contactEmail: "hola@gruposhoy.com",
+  twitter: "@gruposhoy",
 } as const;
 
 /**

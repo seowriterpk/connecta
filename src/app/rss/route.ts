@@ -47,7 +47,7 @@ export async function GET() {
       const title = xmlEscape(g.title);
       const description = xmlEscape(
         normalize(g.description, 320) ||
-          `${g.title} — grupo de WhatsApp en español en ConectaGrupos.`
+          `${g.title} — grupo de WhatsApp en español en Grupos Hoy.`
       );
       const category = g.category?.name ? xmlEscape(g.category.name) : "";
       const pubDate = toRfc822(g.createdAt);
@@ -91,7 +91,7 @@ export async function GET() {
     <lastBuildDate>${buildDate}</lastBuildDate>
     <pubDate>${buildDate}</pubDate>
     <ttl>60</ttl>
-    <generator>ConectaGrupos RSS 1.0</generator>
+    <generator>Grupos Hoy RSS 1.0</generator>
     <managingEditor>${xmlEscape(SITE.contactEmail)} (${xmlEscape(SITE.author)})</managingEditor>
     <webMaster>${xmlEscape(SITE.contactEmail)} (${xmlEscape(SITE.author)})</webMaster>
     <image>

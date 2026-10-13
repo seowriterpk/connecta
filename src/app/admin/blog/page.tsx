@@ -13,7 +13,7 @@ import { AdminBlogList } from "./admin-blog-list";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "Blog — Admin ConectaGrupos" },
+  title: { absolute: "Blog — Admin Grupos Hoy" },
   description: "Gestiona las entradas del blog: crear, editar, publicar.",
   robots: { index: false, follow: false },
 };

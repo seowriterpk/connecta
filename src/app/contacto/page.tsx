@@ -18,15 +18,15 @@ import { ContactForm } from "@/components/site/contact-form";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Contacto — ${SITE.name}` },
+  title: "Contacto",
   description:
-    "Contacta con el equipo de ConectaGrupos: dudas, sugerencias o colaboraciones. Respondemos en menos de 48 horas laborables. También puedes reportar un grupo o enviar el tuyo.",
+    "Contacta con el equipo de Grupos Hoy: dudas, sugerencias o colaboraciones. También puedes reportar un grupo o enviar el tuyo.",
   alternates: { canonical: `${SITE.url}/contacto` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Contacto — ${SITE.name}`,
+    title: "Contacto | Grupos Hoy",
     description:
-      "¿Hablamos? Escríbenos a través del formulario o por correo. Respondemos en menos de 48 horas laborables.",
+      "¿Hablamos? Escríbenos a través del formulario o por correo y te respondemos en persona.",
     url: `${SITE.url}/contacto`,
     type: "website",
     locale: "es_ES",
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
       images: [OG_IMAGE],
   },
   keywords: [
-    "contacto ConectaGrupos",
-    "hablar con ConectaGrupos",
+    "contacto Grupos Hoy",
+    "hablar con Grupos Hoy",
     "soporte grupos WhatsApp",
     "reportar grupo",
     "enviar grupo WhatsApp",
@@ -47,7 +47,7 @@ const webPageJsonLd = {
   "@type": "WebPage",
   name: `Contacto — ${SITE.name}`,
   description:
-    "Formulario de contacto y vías de comunicación con el equipo de ConectaGrupos.",
+    "Formulario de contacto y vías de comunicación con el equipo de Grupos Hoy.",
   url: `${SITE.url}/contacto`,
   inLanguage: "es",
   isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
@@ -98,7 +98,7 @@ export default function ContactoPage() {
                 Estamos para ayudarte
               </span>
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Contacta con ConectaGrupos
+                Contacta con Grupos Hoy
               </h1>
               <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
                 ¿Tienes una duda, una sugerencia o quieres colaborar con nosotros? Escríbenos.

@@ -9,8 +9,8 @@ import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: { absolute: "Acceso administrativo — ConectaGrupos" },
-  description: "Inicio de sesión del panel de administración de ConectaGrupos.",
+  title: { absolute: "Acceso administrativo — Grupos Hoy" },
+  description: "Inicio de sesión del panel de administración de Grupos Hoy.",
   robots: { index: false, follow: false },
 };
 
@@ -34,7 +34,7 @@ export default async function AdminLoginPage() {
                 <div>
                   <CardTitle className="text-xl">Acceso administrativo</CardTitle>
                   <CardDescription className="mt-1">
-                    Panel de gestión de ConectaGrupos
+                    Panel de gestión de Grupos Hoy
                   </CardDescription>
                 </div>
               </div>

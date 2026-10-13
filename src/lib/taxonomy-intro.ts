@@ -141,7 +141,7 @@ export function buildTaxonomyMetaDescription(
     const kw = content.keywords.slice(0, 5).join(", ");
     return `${base}. Temas: ${kw}. Enlaces revisados, gratis y en español.`.slice(0, 158);
   }
-  return `${base} en la ${label} de ConectaGrupos. Enlaces revisados, gratis y en español.`.slice(
+  return `${base} en la ${label} de Grupos Hoy. Enlaces revisados, gratis y en español.`.slice(
     0,
     158
   );

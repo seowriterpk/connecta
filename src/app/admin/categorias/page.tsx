@@ -12,7 +12,7 @@ import { AdminCategoryForm } from "./admin-category-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "Categorías — Admin ConectaGrupos" },
+  title: { absolute: "Categorías — Admin Grupos Hoy" },
   description: "CRUD de categorías del directorio.",
   robots: { index: false, follow: false },
 };

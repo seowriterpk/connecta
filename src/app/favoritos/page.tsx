@@ -8,9 +8,9 @@ import { FavoritesClient } from "./favorites-client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: `Mis favoritos — ${SITE.name}` },
+  title: "Mis Grupos Favoritos",
   description:
-    "Tu lista personal de grupos de WhatsApp guardados en ConectaGrupos. Consulta, comparte y únete a tus comunidades favoritas cuando quieras.",
+    "Tu lista personal de grupos de WhatsApp guardados en Grupos Hoy. Consulta, comparte y únete a tus comunidades favoritas cuando quieras.",
   alternates: { canonical: `${SITE.url}/favoritos` },
   // Personal, localStorage-based page → keep out of search engines.
   robots: { index: false, follow: true },

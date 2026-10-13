@@ -1,5 +1,5 @@
 /**
- * Shared runtime for ConectaGrupos cron scripts (.mjs — plain Node, no build step).
+ * Shared runtime for Grupos Hoy cron scripts (.mjs — plain Node, no build step).
  * Hostinger hPanel cron jobs run these directly:
  *   node /path/to/scripts/crons/drip-feed.mjs
  *

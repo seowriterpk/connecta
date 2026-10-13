@@ -27,11 +27,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Artículo no encontrado", robots: { index: false, follow: false } };
   }
   const canonical = `${SITE.url}/blog/${post.slug}`;
-  const title = post.metaTitle?.trim() || `${post.title} | ${SITE.name}`;
+  // Non-absolute title: the layout template appends "| Grupos Hoy".
+  // (DB metaTitle overrides dropped — post.title + template is the new pattern.)
+  const title = post.title;
   const description =
     post.metaDescription?.trim() || post.excerpt.slice(0, 180) || `Artículo de ${SITE.name}`;
   return {
-    title: { absolute: title },
+    title,
     description,
     alternates: { canonical },
     openGraph: {

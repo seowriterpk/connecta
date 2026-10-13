@@ -12,20 +12,27 @@ import { CountryFlag } from "@/components/site/country-flag";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { absolute: `Ciudades — Grupos de WhatsApp por Ciudad | ${SITE.name}` },
-  description: "Encuentra grupos de WhatsApp organizizados por ciudad. Madrid, Ciudad de México, Buenos Aires, Bogotá, Lima, Santiago y más ciudades hispanohablantes.",
-  alternates: { canonical: `${SITE.url}/ciudades` },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: `Ciudades — Grupos de WhatsApp por Ciudad | ${SITE.name}`,
-    description: "Encuentra grupos de WhatsApp por ciudad hispanohablante.",
-    url: `${SITE.url}/ciudades`,
-    locale: "es_ES",
-    siteName: SITE.name,
+export async function generateMetadata(): Promise<Metadata> {
+  // Count-first title — the same getAllCities() list the page renders (live
+  // groups with city set), so the count is honest, never inflated.
+  const cities = await getAllCities();
+  const title = `${cities.length} Ciudades con Grupos de WhatsApp | Grupos Hoy`;
+  const description = `Encuentra grupos de WhatsApp por ciudad: Madrid, Ciudad de México, Buenos Aires, Bogotá y las ${cities.length} ciudades hispanohablantes del directorio.`;
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `${SITE.url}/ciudades` },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE.url}/ciudades`,
+      locale: "es_ES",
+      siteName: SITE.name,
       images: [OG_IMAGE],
-  },
-};
+    },
+  };
+}
 
 export default async function CiudadesPage() {
   const cities = await getAllCities();

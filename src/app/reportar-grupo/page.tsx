@@ -9,13 +9,13 @@ import { ReportGroupClient } from "@/components/site/report-group-client";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Reportar un Grupo — ${SITE.name}` },
+  title: "Reportar un Grupo",
   description:
     "Reporta un grupo de WhatsApp que incumpla las normas: enlace roto, contenido inapropiado, spam o estafa. Tu reporte es anónimo y lo revisamos con prioridad.",
   alternates: { canonical: `${SITE.url}/reportar-grupo` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Reportar un Grupo — ${SITE.name}`,
+    title: "Reportar un Grupo | Grupos Hoy",
     description:
       "Ayúdanos a mantener el directorio limpio: reporta grupos con enlaces rotos, spam, estafas o contenido inapropiado.",
     url: `${SITE.url}/reportar-grupo`,
@@ -38,7 +38,7 @@ const webPageJsonLd = {
   "@type": "WebPage",
   name: `Reportar un Grupo — ${SITE.name}`,
   description:
-    "Formulario para reportar grupos de WhatsApp que incumplan las normas de ConectaGrupos.",
+    "Formulario para reportar grupos de WhatsApp que incumplan las normas de Grupos Hoy.",
   url: `${SITE.url}/reportar-grupo`,
   inLanguage: "es",
   isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },

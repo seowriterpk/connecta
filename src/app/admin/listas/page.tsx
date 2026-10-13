@@ -16,7 +16,7 @@ import { AdminPagination } from "@/components/admin/admin-pagination";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: { absolute: "Listas compartidas — Admin ConectaGrupos" },
+  title: { absolute: "Listas compartidas — Admin Grupos Hoy" },
   description: "Gestión de listas de favoritos compartidas.",
   robots: { index: false, follow: false },
 };

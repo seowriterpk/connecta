@@ -17,15 +17,15 @@ import { Reveal } from "@/components/site/reveal";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: { absolute: `Política de Privacidad — ${SITE.name}` },
+  title: "Política de Privacidad",
   description:
-    "Política de privacidad de ConectaGrupos: qué datos recopilamos, cómo usamos cookies esenciales, qué servicios de terceros intervienen y cuáles son tus derechos como usuario.",
+    "Política de privacidad de Grupos Hoy: qué datos recopilamos, cómo usamos cookies esenciales, qué servicios de terceros intervienen y tus derechos.",
   alternates: { canonical: `${SITE.url}/politica-de-privacidad` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Política de Privacidad — ${SITE.name}`,
+    title: "Política de Privacidad | Grupos Hoy",
     description:
-      "Cómo tratamos tus datos en ConectaGrupos: sin registros, sin venta de datos, solo cookies esenciales.",
+      "Cómo tratamos tus datos en Grupos Hoy: sin registros, sin venta de datos, solo cookies esenciales.",
     url: `${SITE.url}/politica-de-privacidad`,
     type: "website",
     locale: "es_ES",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     "política de privacidad",
-    "privacidad ConectaGrupos",
+    "privacidad Grupos Hoy",
     "datos personales",
     "cookies",
     "RGPD",
@@ -47,7 +47,7 @@ const webPageJsonLd = {
   "@type": "WebPage",
   name: `Política de Privacidad — ${SITE.name}`,
   description:
-    "Política de privacidad de ConectaGrupos: datos recopilados, cookies, servicios de terceros y derechos del usuario.",
+    "Política de privacidad de Grupos Hoy: datos recopilados, cookies, servicios de terceros y derechos del usuario.",
   url: `${SITE.url}/politica-de-privacidad`,
   inLanguage: "es",
   isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
@@ -126,7 +126,7 @@ export default function PrivacyPolicyPage() {
                   </div>
                   <div className="space-y-3 text-sm leading-relaxed text-foreground/85 sm:text-base">
                     <p>
-                      ConectaGrupos funciona sin registro: no necesitas crear una cuenta para
+                      Grupos Hoy funciona sin registro: no necesitas crear una cuenta para
                       buscar grupos, abrir fichas o unirte a una comunidad. Aun así, cierta
                       información técnica se trata de forma automática para que el sitio
                       funcione:
@@ -222,7 +222,7 @@ export default function PrivacyPolicyPage() {
                     <p>
                       Cuando pulsas «Unirme al grupo», te redirigimos a WhatsApp mediante el
                       enlace de invitación que el administrador del grupo facilitó. Esa acción
-                      ocurre fuera de ConectaGrupos: a partir de ahí, se aplican las políticas de
+                      ocurre fuera de Grupos Hoy: a partir de ahí, se aplican las políticas de
                       privacidad de WhatsApp y de Meta, no la nuestra.
                     </p>
                     <p>

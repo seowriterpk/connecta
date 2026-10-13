@@ -37,7 +37,7 @@ export function SiteHeader() {
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <MessageCircle className="h-5 w-5" />
           </span>
-          <span className="text-lg tracking-tight text-primary" suppressHydrationWarning>{"ConectaGrupos"}</span>
+          <span className="text-lg tracking-tight text-primary" suppressHydrationWarning>{"Grupos Hoy"}</span>
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex" suppressHydrationWarning>
@@ -151,7 +151,7 @@ export function SiteHeader() {
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
                     <MessageCircle className="h-4 w-4" />
                   </span>
-                  <span className="text-primary" suppressHydrationWarning>{"ConectaGrupos"}</span>
+                  <span className="text-primary" suppressHydrationWarning>{"Grupos Hoy"}</span>
                 </div>
                 <nav className="flex flex-col gap-1 p-3" suppressHydrationWarning>
                   {NAV_LINKS.map((l) => (

@@ -93,7 +93,7 @@ export function MetricsSection({ metrics }: { metrics: Metrics }) {
               <BarChart3 className="h-5 w-5" />
             </span>
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              ConectaGrupos en cifras
+              Grupos Hoy en cifras
             </h2>
           </div>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">

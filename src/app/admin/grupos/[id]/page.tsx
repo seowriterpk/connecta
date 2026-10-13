@@ -12,7 +12,7 @@ import { AdminGroupEditForm } from "./admin-group-edit-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: { absolute: "Editar grupo — Admin ConectaGrupos" },
+  title: { absolute: "Editar grupo — Admin Grupos Hoy" },
   description: "Editar un grupo individual.",
   robots: { index: false, follow: false },
 };

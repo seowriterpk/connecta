@@ -79,11 +79,11 @@ export async function generateMetadata({
   }
 
   const title = contextLabel
-    ? `Grupos de WhatsApp más populares ${contextLabel.includes(" · ") ? "— " : "en "}${contextLabel} — ${SITE.name}`
-    : `Grupos de WhatsApp más populares — ${SITE.name}`;
+    ? `Grupos de WhatsApp más populares ${contextLabel.includes(" · ") ? "— " : "en "}${contextLabel} | Grupos Hoy`
+    : "Grupos de WhatsApp Más Populares | Grupos Hoy";
   const description = contextLabel
-    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking en vivo por vistas y clics de la comunidad.`
-    : "Descubre los grupos de WhatsApp en español más populares del momento: los más vistos, los con más clics de unión y lo último publicado en el directorio.";
+    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking actualizado con cada visita según vistas y clics reales.`
+    : "Descubre los grupos de WhatsApp en español más populares: los más vistos, los con más clics de unión y lo último publicado en el directorio.";
   return {
     title: { absolute: title },
     description,

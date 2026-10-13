@@ -13,15 +13,15 @@ import { jsonLdScript } from "@/lib/jsonld";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: `Blog — Consejos y novedades de grupos de WhatsApp | ${SITE.name}` },
+  title: { absolute: "Blog de Grupos de WhatsApp | Grupos Hoy" },
   description:
-    "Artículos en español sobre grupos de WhatsApp: cómo encontrarlos, unirte con seguridad, administrar comunidades y promocionarlas. Guías prácticas del equipo de ConectaGrupos.",
+    "Artículos en español sobre grupos de WhatsApp: encontrarlos, unirte con seguridad, administrarlos y promocionarlos. Guías del equipo de Grupos Hoy.",
   alternates: { canonical: `${SITE.url}/blog` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Blog — Consejos y novedades de grupos de WhatsApp | ${SITE.name}`,
+    title: "Blog de Grupos de WhatsApp | Grupos Hoy",
     description:
-      "Guías prácticas en español sobre encontrar, unirte y administrar grupos de WhatsApp.",
+      "Artículos en español sobre grupos de WhatsApp: encontrarlos, unirte con seguridad, administrarlos y promocionarlos. Guías del equipo de Grupos Hoy.",
     url: `${SITE.url}/blog`,
     type: "website",
     locale: "es_ES",
@@ -193,7 +193,7 @@ export default async function BlogIndexPage() {
               <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border bg-muted/30 p-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   ¿Administras un grupo y quieres darle visibilidad? Publícalo gratis y llega a
-                  miles de hispanohablantes.
+                  quienes buscan grupos como el tuyo.
                 </p>
                 <Link
                   href="/agregar-grupo"

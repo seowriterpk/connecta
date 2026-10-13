@@ -24,13 +24,13 @@ import { CountryFlag } from "@/components/site/country-flag";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: `Autores — Quién publica los grupos | ${SITE.name}` },
+  title: "Equipo Editorial",
   description:
-    "Quién publica los grupos de ConectaGrupos: el Equipo ConectaGrupos, el equipo editorial que revisa, verifica y publica todos los grupos del directorio en español.",
+    "Quién publica los grupos de Grupos Hoy: el Equipo Grupos Hoy, el equipo editorial que revisa, verifica y publica todos los grupos del directorio en español.",
   alternates: { canonical: `${SITE.url}/autores` },
   robots: { index: true, follow: true },
   openGraph: {
-    title: `Autores — Quién publica los grupos | ${SITE.name}`,
+    title: "Equipo Editorial | Grupos Hoy",
     description:
       "El equipo editorial que revisa, verifica y publica los grupos del directorio.",
     url: `${SITE.url}/autores`,
@@ -126,7 +126,7 @@ export default async function AutoresPage() {
     inLanguage: "es",
     isPartOf: { "@type": "WebSite", name: SITE.name, url: SITE.url },
     description:
-      "Quién publica los grupos del directorio: el Equipo ConectaGrupos, equipo editorial de ConectaGrupos.",
+      "Quién publica los grupos del directorio: el Equipo Grupos Hoy, equipo editorial de Grupos Hoy.",
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: authors.length,
@@ -190,7 +190,7 @@ export default async function AutoresPage() {
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
                 Todos los grupos de {SITE.name} los revisa y publica el Equipo
-                ConectaGrupos: un equipo editorial que abre cada enlace, comprueba que
+                Grupos Hoy: un equipo editorial que abre cada enlace, comprueba que
                 funciona y lo publica donde toca. Conoce aquí al equipo y al propietario
                 del proyecto.
               </p>
@@ -279,7 +279,7 @@ export default async function AutoresPage() {
                 <div className="flex flex-col items-start gap-5 sm:flex-row">
                   <img
                     src="/fundador-antonio.jpg"
-                    alt="Retrato de Antonio C., fundador y propietario de ConectaGrupos"
+                    alt="Retrato de Antonio C., fundador y propietario de Grupos Hoy"
                     width={112}
                     height={112}
                     loading="lazy"
@@ -300,9 +300,9 @@ export default async function AutoresPage() {
                       <CountryFlag code="es" name="España" />
                     </p>
                     <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground/90">
-                      Freelancer español que construyó ConectaGrupos al no encontrar grupos
+                      Freelancer español que construyó Grupos Hoy al no encontrar grupos
                       de WhatsApp útiles para su trabajo en español. Él no publica los
-                      grupos: el día a día del directorio lo lleva el Equipo ConectaGrupos.
+                      grupos: el día a día del directorio lo lleva el Equipo Grupos Hoy.
                     </p>
                     <Link
                       href="/sobre-nosotros"
@@ -328,7 +328,7 @@ export default async function AutoresPage() {
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     ¿Tienes o conoces un buen grupo de WhatsApp? Mándanos el enlace: el
-                    Equipo ConectaGrupos lo revisará y, si pasa la comprobación, se
+                    Equipo Grupos Hoy lo revisará y, si pasa la comprobación, se
                     publicará en el directorio con tu crédito en la propia página del
                     grupo.
                   </p>
@@ -359,7 +359,7 @@ export default async function AutoresPage() {
                 <p>
                   Todos los grupos que ves en {SITE.name} los publica el{" "}
                   <strong className="font-semibold text-foreground">
-                    Equipo ConectaGrupos
+                    Equipo Grupos Hoy
                   </strong>
                   , el equipo editorial del directorio. Su trabajo siempre es el mismo:
                   abrir el enlace de invitación antes de publicarlo, comprobar que la
@@ -376,7 +376,7 @@ export default async function AutoresPage() {
                 <p>
                   Detrás del proyecto está su fundador y propietario,{" "}
                   <strong className="font-semibold text-foreground">Antonio C.</strong>, un
-                  freelancer de España que creó ConectaGrupos al no encontrar grupos útiles
+                  freelancer de España que creó Grupos Hoy al no encontrar grupos útiles
                   en español para su trabajo. Puedes leer su historia completa en la página
                   de sobre nosotros.
                 </p>
@@ -393,7 +393,7 @@ export default async function AutoresPage() {
                   href="/sobre-nosotros"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary"
                 >
-                  Sobre ConectaGrupos
+                  Sobre Grupos Hoy
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
