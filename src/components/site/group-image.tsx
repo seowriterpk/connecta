@@ -4,7 +4,11 @@ import * as React from "react";
 
 interface GroupImageProps {
   src?: string | null;
-  alt: string;
+  /**
+   * Accessible label. Omitted entirely (no alt/aria-label attributes) for
+   * decorative adult-grid images — pass undefined for those callers.
+   */
+  alt?: string;
   title?: string;
   size?: number;
   className?: string;
@@ -94,10 +98,11 @@ export function GroupImage({
 
   if (!imgSrc) {
     if (fallbackEmoji) {
-      // Emoji tile — same square geometry as the image path.
+      // Emoji tile — same square geometry as the image path. Fully
+      // decorative (no role/aria-label) when no alt label was provided.
       return (
         <span
-          role="img"
+          role={alt ? "img" : undefined}
           aria-label={alt}
           className={`grid select-none place-items-center overflow-hidden bg-primary/10 ${className}`}
           style={{ ...wrapperStyle, fontSize: Math.max(14, Math.round(size * 0.5)) }}
@@ -109,10 +114,10 @@ export function GroupImage({
 
     // Deterministic gradient + initials — replaces default-group.svg so every
     // avatar keeps a crisp 1:1 ratio with zero asset dependencies.
-    const [from, to] = pickGradient(alt);
+    const [from, to] = pickGradient(alt ?? "");
     return (
       <span
-        role="img"
+        role={alt ? "img" : undefined}
         aria-label={alt}
         className={`grid select-none place-items-center overflow-hidden font-bold text-white ${className}`}
         style={{
@@ -123,7 +128,7 @@ export function GroupImage({
           textShadow: "0 1px 2px rgba(0,0,0,0.18)",
         }}
       >
-        {initialsOf(alt)}
+        {initialsOf(alt ?? "")}
       </span>
     );
   }

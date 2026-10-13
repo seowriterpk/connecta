@@ -20,6 +20,7 @@ import {
   Flame,
   Scale,
   Rss,
+  Newspaper,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { NewsletterSection } from "@/components/site/newsletter-section";
@@ -37,10 +38,10 @@ const EXPLORE_LINKS = [
 
 const COMPANY_LINKS = [
   { href: "/sobre-nosotros", label: "Sobre nosotros", icon: Info },
-  { href: "/blog", label: "Blog", icon: BookOpen },
   { href: "/autores", label: "Autores", icon: UserRound },
   { href: "/contacto", label: "Contacto", icon: Mail },
   { href: "/guias", label: "Guías", icon: BookOpen },
+  { href: "/blog", label: "Blog", icon: Newspaper },
   { href: "/reportar-grupo", label: "Reportar un grupo", icon: Flag },
   { href: "/agregar-grupo", label: "Enviar grupo", icon: Send },
   { href: "/rss", label: "Feed RSS", icon: Rss },

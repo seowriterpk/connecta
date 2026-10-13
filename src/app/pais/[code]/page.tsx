@@ -11,11 +11,14 @@ import {
   Sparkles,
   ShieldCheck,
   MapPin,
+  Tag,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import type { CategoryDTO } from "@/lib/types";
 import { CountryFlag } from "@/components/site/country-flag";
 import {
   getCountryByCode,
+  getAllCities,
   getGroupsByCountryCodePaginated,
   PAGE_SIZE,
 } from "@/lib/data";
@@ -139,6 +142,27 @@ export default async function CountryPage({
   // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
   // shares the lookup with generateMetadata.
   const content = await getTaxonomyContent("country", country.name);
+
+  // --- Internal linking (SEO) ---------------------------------------------
+  // Ciudades con grupos en este país (slugs reales de la base de datos,
+  // ordenadas por número de comunidades).
+  const countryCities = (await getAllCities())
+    .filter((c) => c.countryCode === country.code && c.groupCount > 0)
+    .sort((a, b) => b.groupCount - a.groupCount);
+
+  // Categorías más presentes entre los grupos listados arriba.
+  const countryCategories = Array.from(
+    groups
+      .map((g) => (g.category && g.category.slug ? g.category : null))
+      .filter((c): c is CategoryDTO => c !== null)
+      .reduce<Map<string, { slug: string; name: string; count: number }>>((m, c) => {
+        const e = m.get(c.slug);
+        if (e) e.count += 1;
+        else m.set(c.slug, { slug: c.slug, name: c.name, count: 1 });
+        return m;
+      }, new Map())
+      .values()
+  ).sort((a, b) => b.count - a.count);
 
   // JSON-LD: CollectionPage about a Place (the country)
   const collectionPageJsonLd = {
@@ -368,6 +392,96 @@ export default async function CountryPage({
             <AdultCountryZone countryId={country.id} countryName={country.name} />
           </div>
         </section>
+
+        {/* Internal linking — ciudades con grupos en este país */}
+        {countryCities.length > 0 && (
+          <Reveal>
+            <section
+              className="border-t py-10 sm:py-12"
+              aria-labelledby="country-cities-heading"
+            >
+              <div className="container mx-auto px-4">
+                <h2
+                  id="country-cities-heading"
+                  className="text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  Ciudades con grupos en {country.name}
+                </h2>
+                <p className="mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground">
+                  Los grupos que ves arriba vienen de varias zonas del país. Si te interesa
+                  una ciudad concreta de {country.name}, abre su página: allí tienes solo sus
+                  comunidades, con su descripción y su enlace para unirse.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {countryCities.map((c) => (
+                    <Link
+                      key={c.slug}
+                      href={`/ciudad/${c.slug}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden />
+                      Grupos de WhatsApp en {c.city}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </Reveal>
+        )}
+
+        {/* Internal linking — categorías populares en este país */}
+        {countryCategories.length > 0 && (
+          <Reveal>
+            <section
+              className="border-t py-10 sm:py-12"
+              aria-labelledby="country-cats-heading"
+            >
+              <div className="container mx-auto px-4">
+                <h2
+                  id="country-cats-heading"
+                  className="text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  Categorías populares en {country.name}
+                </h2>
+                <p className="mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground">
+                  Entre los grupos de WhatsApp de {country.name} hay temas que se repiten más
+                  que otros. Elige una categoría y afina tu búsqueda: te llevan a fichas con
+                  descripción, tamaño aproximado y enlace de invitación revisado.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {countryCategories.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      href={`/categoria/${cat.slug}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Tag className="h-3.5 w-3.5 text-primary" aria-hidden />
+                      Grupos de {cat.name}
+                    </Link>
+                  ))}
+                </div>
+
+                <p className="mt-6 text-sm text-muted-foreground">
+                  ¿Quieres mirar fuera de {country.name}?{" "}
+                  <Link
+                    href="/paises"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    explora grupos por otros países
+                  </Link>{" "}
+                  o{" "}
+                  <Link
+                    href="/buscar"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    busca un grupo concreto
+                  </Link>
+                  .
+                </p>
+              </div>
+            </section>
+          </Reveal>
+        )}
 
         {/* Long-form SEO content */}
         <section className="border-t bg-muted/20 py-10 sm:py-14" aria-labelledby="seo-heading">

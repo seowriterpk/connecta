@@ -46,8 +46,9 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
       body: JSON.stringify({ groupId: group.id }),
       keepalive: true,
     }).catch(() => {});
-    // Redirect to WhatsApp
-    window.location.href = group.inviteLink;
+    // Redirect to WhatsApp — in a new tab so the verification page
+    // (and the site) stays open behind it.
+    window.open(group.inviteLink, "_blank", "noopener");
   }
 
   return (

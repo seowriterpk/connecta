@@ -3,7 +3,10 @@
  * Based on Groupizo VIP Logic SYSTEM 17.
  *
  * - Generates XML sitemap files in /public/sitemaps/
- * - grupos-N.xml (200 per file, never adult), categorias, paises, ciudades, estaticas
+ * - grupos-N.xml (200 per file, adult groups INCLUDED — they are indexable
+ *   now and the sitemap is their discovery path), categorias (adult included),
+ *   paises, ciudades (clean-only, matching the city pages), blog (published
+ *   posts), estaticas
  * - sitemap.xml index pointing to all
  */
 
@@ -49,10 +52,11 @@ async function main() {
   }
 
   try {
-    // Groups (never adult, 200 per file)
+    // Groups — ALL live groups (adult included: adult pages are indexable
+    // and the sitemap is their discovery path — clean pages don't link there).
     const groups = await q(
       pool,
-      "SELECT `slug`, `updatedAt` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0 ORDER BY `updatedAt` DESC"
+      "SELECT `slug`, `updatedAt` FROM `groups` WHERE `status` = 'live' ORDER BY `updatedAt` DESC"
     );
 
     const batchSize = 200;
@@ -74,15 +78,17 @@ async function main() {
       sitemapFiles.push({ filename, lastmod: new Date().toISOString().slice(0, 10) });
     }
 
-    // Categories (never adult — adult categories are not submitted to search engines)
-    const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1 AND `isAdult` = 0");
+    // Categories — active ones, adult included (indexable since the
+    // MIGRACIÓN ADULTO INDEXABLE; robots carries the RTA label on-page).
+    const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1");
     writeSitemap("categorias.xml", categories.map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9")));
 
     // Countries
     const countries = await q(pool, "SELECT `code` FROM `countries` WHERE `isActive` = 1");
     writeSitemap("paises.xml", countries.map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9")));
 
-    // Cities (only those with groups)
+    // Cities (only those with clean groups — city listing pages render the
+    // clean silo only, so the sitemap stays consistent with page content)
     const cityGroups = await q(
       pool,
       "SELECT DISTINCT `city` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0 AND `city` IS NOT NULL AND `city` <> ''"
@@ -121,12 +127,31 @@ async function main() {
       ]
     );
 
+    // Blog — all published posts (Antonio C. editorial line). lastmod = updatedAt
+    // so edited posts re-enter the crawl queue.
+    const posts = await q(
+      pool,
+      "SELECT `slug`, `updatedAt` FROM `blog_posts` WHERE `status` = 'published' ORDER BY `publishedAt` DESC"
+    );
+    writeSitemap(
+      "blog.xml",
+      posts.map((p) =>
+        urlEntry(
+          `${BASE_URL}/blog/${p.slug}`,
+          new Date(p.updatedAt).toISOString().slice(0, 10),
+          "monthly",
+          "0.7"
+        )
+      )
+    );
+
     // Sitemap index
     const allFiles = [
       ...sitemapFiles,
       { filename: "categorias.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "paises.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "ciudades.xml", lastmod: new Date().toISOString().slice(0, 10) },
+      { filename: "blog.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "autores.xml", lastmod: new Date().toISOString().slice(0, 10) },
       { filename: "estaticas.xml", lastmod: new Date().toISOString().slice(0, 10) },
     ];

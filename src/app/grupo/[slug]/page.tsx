@@ -7,7 +7,7 @@ import {
   Flame, Clock, Scale, Link2Off,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
-import { queryOne } from "@/lib/db";
+import { queryOne, getGroupFeedbackCounts, type Row } from "@/lib/db";
 import {
   getGroupBySlug,
   getGroupActivity,
@@ -27,6 +27,7 @@ import { ComparePillButton } from "@/components/site/compare-button";
 import { FavoritePillButton } from "@/components/site/favorite-pill-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
+import { GroupFeedback } from "@/components/site/group-feedback";
 import { RecentTracker } from "@/components/site/recent-tracker";
 
 export const dynamic = "force-dynamic";
@@ -57,17 +58,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = `${group.title} — Grupo de WhatsApp | Grupos Hoy`;
   const description = group.description.slice(0, 160);
-  const robots = group.isAdult
-    ? "noindex, nofollow"
-    : group.linkStatus === "revoked"
-    ? "noindex, follow"
-    : "index, follow";
+  // ADULT INDEXABLE DIRECTIVE: adult groups are indexed like any other
+  // (revoked links still drop to noindex for everyone). Adult groups carry
+  // the RTA-5042 adult content meta label; they still emit NO JSON-LD.
+  const robots =
+    group.linkStatus === "revoked" ? "noindex, follow" : "index, follow";
 
   return {
     title: { absolute: title },
     description,
     alternates: { canonical: `${SITE.url}/grupo/${group.slug}` },
     robots,
+    ...(group.isAdult ? { other: { rating: "RTA-5042-1996-RTA" } } : {}),
     openGraph: {
       title, description,
       url: `${SITE.url}/grupo/${group.slug}`,
@@ -93,13 +95,15 @@ export default async function GroupPage({ params }: PageProps) {
   incrementViews(group.id).catch(() => {});
   touchGroupActivity(group.id).catch(() => {});
 
-  const [related, activity] = await Promise.all([
+  const [related, activity, feedback] = await Promise.all([
     // Siloed linking: adult groups only see adult related, clean only clean.
     // Deterministic "clicks + old" ordering, max 2 indexed queries.
     getRelatedGroups(group.id, group.category?.id ?? "", group.country?.id ?? "", 8, {
       isAdult: group.isAdult,
     }),
     getGroupActivity(group.id),
+    // Like/dislike initial counts — one honest recount query (zeros at start).
+    getGroupFeedbackCounts(group.id),
   ]);
   const uploader = group.uploaderId
     ? await queryOne<UploaderRow>(
@@ -266,6 +270,16 @@ export default async function GroupPage({ params }: PageProps) {
                   </div>
                 </section>
               )}
+
+              {/* Like / dislike — clean semantic HTML (Google-readable),
+                  honest server-rendered counts, NO structured data. */}
+              <GroupFeedback
+                groupId={group.id}
+                slug={group.slug}
+                initialLikes={feedback.likes}
+                initialDislikes={feedback.dislikes}
+                initialMyAction={null}
+              />
 
               {/* Report group */}
               <section className="mt-5 border-t pt-4">

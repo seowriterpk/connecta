@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { BookOpen, ChevronRight, Clock, Eye, CalendarDays, ArrowRight, UserRound } from "lucide-react";
 import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getPublishedPostBySlug, getPublishedPosts, incrementPostViews } from "@/lib/blog";
@@ -188,12 +189,33 @@ export default async function BlogArticlePage({ params }: PageProps) {
             <div className="mx-auto max-w-3xl">
               <div className="prose-cg text-pretty text-sm leading-relaxed text-foreground/90 sm:text-base">
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
-                    a: ({ href, children }) => (
-                      <Link href={href ?? "#"} className="font-medium text-primary hover:underline">
-                        {children}
-                      </Link>
-                    ),
+                    a: ({ href, children }) => {
+                      const url = href ?? "#";
+                      // Enlaces externos (http/https): pestaña nueva, sin prefetch.
+                      // Internos: next/link para navegación cliente.
+                      if (/^https?:\/\//i.test(url)) {
+                        return (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {children}
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link
+                          href={url}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {children}
+                        </Link>
+                      );
+                    },
                   }}
                 >
                   {post.content}
@@ -218,13 +240,16 @@ export default async function BlogArticlePage({ params }: PageProps) {
                 </aside>
               </Reveal>
 
-              {/* Other posts */}
+              {/* Sigue leyendo — otros artículos publicados */}
               {others.length > 0 && (
                 <Reveal delay={0.1}>
                   <aside className="mt-8" aria-labelledby="other-posts-heading">
                     <h2 id="other-posts-heading" className="text-base font-bold tracking-tight">
-                      Seguir leyendo
+                      Sigue leyendo
                     </h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Otras guías recientes del blog de {SITE.name}.
+                    </p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-3">
                       {others.map((p) => (
                         <Link
@@ -237,6 +262,9 @@ export default async function BlogArticlePage({ params }: PageProps) {
                           </span>
                           <span className="mt-2 line-clamp-2 text-xs font-semibold leading-snug">
                             {p.title}
+                          </span>
+                          <span className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                            {p.excerpt}
                           </span>
                           <span className="mt-auto inline-flex items-center gap-1 pt-3 text-[11px] font-medium text-primary">
                             Leer <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />

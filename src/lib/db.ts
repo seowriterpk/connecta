@@ -281,6 +281,19 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
   {
+    name: "group_feedback",
+    sql: `CREATE TABLE IF NOT EXISTS \`group_feedback\` (
+      \`id\` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`groupId\` VARCHAR(191) NOT NULL,
+      \`visitorHash\` CHAR(64) NOT NULL,
+      \`action\` ENUM('like','dislike') NOT NULL,
+      \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY \`uq_visitor_group\` (\`groupId\`, \`visitorHash\`),
+      KEY \`idx_groupId\` (\`groupId\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
+  {
     name: "ugc_rate_limits",
     sql: `CREATE TABLE IF NOT EXISTS \`ugc_rate_limits\` (
       \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -495,6 +508,49 @@ export async function tx<T>(fn: (conn: mysql.PoolConnection) => Promise<T>): Pro
   } finally {
     conn.release();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Group feedback (like / dislike) — honest, one vote per visitor per group
+// ---------------------------------------------------------------------------
+
+export type GroupFeedbackAction = "like" | "dislike";
+
+/**
+ * Register or change a visitor's vote for a group.
+ * UNIQUE KEY (groupId, visitorHash) → INSERT ... ON DUPLICATE KEY UPDATE
+ * switches the action in place (one row per visitor per group, ever).
+ */
+export async function upsertGroupFeedback(
+  groupId: string,
+  visitorHash: string,
+  action: GroupFeedbackAction
+): Promise<void> {
+  await exec(
+    "INSERT INTO `group_feedback` (`groupId`, `visitorHash`, `action`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `action` = VALUES(`action`)",
+    [groupId, visitorHash, action]
+  );
+}
+
+/**
+ * Recount likes/dislikes for a group straight from the table (never cached,
+ * never inflated — pages render these as the initial honest values).
+ * Returns zeros when nobody has voted yet.
+ */
+export async function getGroupFeedbackCounts(
+  groupId: string
+): Promise<{ likes: number; dislikes: number }> {
+  const rows = await query<Row & { action: string; c: number }>(
+    "SELECT `action`, COUNT(*) AS `c` FROM `group_feedback` WHERE `groupId` = ? GROUP BY `action`",
+    [groupId]
+  );
+  let likes = 0;
+  let dislikes = 0;
+  for (const r of rows) {
+    if (r.action === "like") likes = Number(r.c);
+    else if (r.action === "dislike") dislikes = Number(r.c);
+  }
+  return { likes, dislikes };
 }
 
 /** Quick connectivity + schema check. Used by /api/health. */

@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, Users, Plus, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
+import { ChevronRight, Users, Plus, MessageCircle, Sparkles, ShieldCheck, ShieldAlert } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import {
   getCategoryBySlug,
   getGroupsByCategorySlugPaginated,
+  getGroups,
   PAGE_SIZE,
 } from "@/lib/data";
 import {
@@ -18,7 +19,6 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
 import { Pagination } from "@/components/site/pagination";
-import { AdultCategoryFeed } from "@/components/site/adult-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -52,13 +52,38 @@ export async function generateMetadata({
     };
   }
 
-  // Adult categories: never indexed (strict separation directive).
-  // Simple title, no group count (adult silo counts are not advertised).
+  // ADULT INDEXABLE DIRECTIVE: adult categories are now indexed like any
+  // other category (the sitemap is their discovery path — clean pages don't
+  // link here). Count-first title, canonical, RTA-5042 adult content label.
+  // Still NO JSON-LD and no image alt text on these pages.
   if (category.isAdult) {
+    const basePath = `/categoria/${category.slug}`;
+    const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
+    const canonical = `${SITE.url}${canonicalPath}`;
+    const countSegment =
+      category.groupCount && category.groupCount > 0 ? `${category.groupCount} ` : "";
+    const pageSegment = page > 1 ? ` · Página ${page}` : "";
+    const title = `${countSegment}Grupos de ${category.name} en WhatsApp${pageSegment} | Grupos Hoy`;
+    const description = (category.description ?? "").trim().slice(0, 160);
     return {
-      title: { absolute: `${category.name} — Grupos Hoy` },
-      description: category.description,
-      robots: { index: false, follow: false },
+      title: { absolute: title },
+      description,
+      alternates: { canonical },
+      robots: { index: true, follow: true },
+      other: { rating: "RTA-5042-1996-RTA" },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        type: "website",
+        locale: "es_ES",
+        siteName: SITE.name,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+      },
     };
   }
 
@@ -123,8 +148,40 @@ export default async function CategoryPage({
 
   // Out-of-range page (0, negative, beyond last) → 404, matching the strict
   // validation in getGroupsByCategorySlugPaginated.
-  const result = await getGroupsByCategorySlugPaginated(slug, page);
-  if (!result) notFound();
+  //
+  // ADULT INDEXABLE DIRECTIVE: adult categories render the SAME server-side
+  // groups grid + pagination as clean categories — no client gate, no 18+
+  // toggle. The default listing helpers exclude adult rows, so the adult
+  // branch paginates the adult silo explicitly (same strict 404 rules, same
+  // clicks/views ordering, same PAGE_SIZE).
+  let result: {
+    groups: Awaited<ReturnType<typeof getGroups>>;
+    total: number;
+    page: number;
+    totalPages: number;
+  };
+  if (category.isAdult) {
+    const total = category.groupCount;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (!Number.isInteger(page) || page < 1 || page > totalPages) notFound();
+    const groups = await getGroups({
+      categoryId: category.id,
+      adult: "only",
+      sort: "destacados",
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    });
+    result = { groups, total, page, totalPages };
+  } else {
+    const paginated = await getGroupsByCategorySlugPaginated(slug, page);
+    if (!paginated) notFound();
+    result = {
+      groups: paginated.groups,
+      total: paginated.total,
+      page: paginated.page,
+      totalPages: paginated.totalPages,
+    };
+  }
   const groups = result.groups;
   const basePath = `/categoria/${slug}`;
   const rangeStart = (result.page - 1) * PAGE_SIZE + 1;
@@ -258,6 +315,14 @@ export default async function CategoryPage({
                   <MessageCircle className="h-3.5 w-3.5 text-primary" />
                   Comunidades en español
                 </span>
+                {category.isAdult && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-rose-300/50 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-300"
+                    title="Contenido restringido para mayores de 18 años"
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5" /> Contenido +18
+                  </span>
+                )}
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                     <ShieldCheck className="h-3.5 w-3.5" /> Grupos verificados
@@ -280,14 +345,8 @@ export default async function CategoryPage({
                   Grupos de {category.name}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {category.isAdult ? (
-                    <span>Contenido para adultos — visible solo con el modo 18+ activo.</span>
-                  ) : (
-                    <>
-                      Mostrando {rangeStart}–{rangeEnd} de {result.total}{" "}
-                      {result.total === 1 ? "grupo" : "grupos"}
-                    </>
-                  )}
+                  Mostrando {rangeStart}–{rangeEnd} de {result.total}{" "}
+                  {result.total === 1 ? "grupo" : "grupos"}
                 </p>
               </div>
               <Link
@@ -298,11 +357,10 @@ export default async function CategoryPage({
               </Link>
             </div>
 
-            {/* ADULT DIRECTIVE: adult category groups load client-side only,
-                after the 18+ toggle. Never server-rendered. */}
-            {category.isAdult ? (
-              <AdultCategoryFeed categoryId={category.id} categoryName={category.name} />
-            ) : groups.length === 0 ? (
+            {/* Unified server-rendered groups grid (adult categories included —
+                no client gate). On adult grids images render with NO alt/title
+                attributes (imageAlt={false}); clean grids keep full alt text. */}
+            {groups.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-muted/30 p-10 text-center sm:p-16">
                 <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted text-3xl">
                   {category.icon}
@@ -325,19 +383,17 @@ export default async function CategoryPage({
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} />
+                    <GroupCard key={g.id} group={g} imageAlt={!category.isAdult} />
                   ))}
                 </div>
               </Reveal>
             )}
 
-            {!category.isAdult && (
-              <Pagination
-                basePath={basePath}
-                page={result.page}
-                totalPages={result.totalPages}
-              />
-            )}
+            <Pagination
+              basePath={basePath}
+              page={result.page}
+              totalPages={result.totalPages}
+            />
           </div>
         </section>
 

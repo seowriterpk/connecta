@@ -4100,3 +4100,534 @@ PUSH VERIFICATION (Task 7, 2026-10-13):
 - git ls-remote: refs/heads/main = f06f95d5ea9e2df8b5199a6b8d845710fbcb4a3d = local HEAD ✓; branch tracking main...origin/main in sync ✓.
 - Credentials stored only in local .git/config (never committed; .env* and mysql-runtime/ are gitignored).
 - Remote history now: rebrand Grupos Hoy + trust/crawl-hygiene batch + full Next.js 16 source.
+# Worklog — Task 8-a
+
+**Task ID:** 8-a
+**Agent:** 8-a (Z.ai Code — CODING)
+**Fecha:** 2026-10-13
+**Archivos exclusivos trabajados:** categoria/[slug]/page.tsx, adult-zone.tsx, group-card.tsx, group-image.tsx (compat), grupo/[slug]/page.tsx, group-feedback.tsx (nuevo), api/groups/feedback/route.ts (nuevo), lib/db.ts, scripts/crons/sitemap-generator.mjs, sql.md. (data.ts SIN cambios — solo db.ts tocado para feedback, según mandato.)
+
+## Task
+1) Normalización de categorías adultas: rejilla server-side normal (sin gate AdultCategoryFeed, sin toggle), SEO (robots index,follow, título con conteo, RTA-5042-1996-RTA) pero SIN JSON-LD y SIN alt/title en imágenes de grupo; sitemap incluye adultos.
+2) Rating like/dislike simple: botones Me gusta / No me gusta (dislike rojo), HTML semántico legible por Google, sin schema, contadores honestos que empiezan en 0.
+
+## Work Log
+
+### TASK 1 — Adulto indexable
+- **`src/app/categoria/[slug]/page.tsx`**: eliminado por completo el gate `AdultCategoryFeed` (import + render + copy "Contenido para adultos — visible solo con el modo 18+ activo"). Adulto y limpio comparten la MISMA rejilla server-side `<GroupCard>` + `<Pagination>` + estado vacío + "Mostrando X–Y de Z grupos". La rama adulta pagina el silo adulto explícitamente (`getGroups({categoryId, adult:"only", sort:"destacados", limit:PAGE_SIZE, offset})` + total desde `category.groupCount`) porque las helpers de listado excluyen adulto por defecto — mismas reglas estrictas de 404 (page<1, no-entera, >totalPages) y mismo orden clicks/views. Se añade chip neutro "Contenido +18" (ShieldAlert, rosa) en la cabecera solo en adulto. Se pasa `imageAlt={!category.isAdult}` a GroupCard.
+- **generateMetadata adulto**: `robots {index:true, follow:true}` (antes noindex,nofollow); título `{N} Grupos de {Name} en WhatsApp | Grupos Hoy` (N=groupCount real, sin segmento si 0, "· Página N" en p2+); description = category.description trimmed ≤160; canonical normal; OG/Twitter espejo; `other: { rating: "RTA-5042-1996-RTA" }`. NOT-FOUND mantiene noindex,nofollow. SIN JSON-LD (el condicional `!category.isAdult` existente se mantiene).
+- **`src/components/site/adult-zone.tsx`**: borrado `AdultCategoryFeed` (~120 líneas) + imports muertos (EyeOff, Loader2, Users). SE CONSERVA `AdultCountryZone` + `AdultZoneShell` porque `/pais/[code]` (archivo de 8-b, en paralelo) los importa. El toggle 18+ de la home queda intacto (adult-toggle.tsx sin tocar).
+- **`src/components/site/group-card.tsx`**: nueva prop `imageAlt?: boolean = true`. Con `false` → `<img>`/fallback SIN atributo alt y SIN title (undefined → React omite el atributo). Default true conserva el comportamiento previo (alt completo en limpios, alt="" en adultos fuera de la rejilla adulta). El Link estirado y el aria-label del badge 18+ se mantienen.
+- **`src/components/site/group-image.tsx`** (compat mínima, no era de nadie): `alt` ahora opcional; emoji-tile e initials renderizan `role`/`aria-label` solo si hay alt (decorativos sin él); seed de gradiente/iniciales con `alt ?? ""` (→ "G"). img: `alt={alt}` + `title={title ?? alt}` — ambos omitidos si son undefined. Todos los call sites existentes siguen compilando igual (alt:string es asignable a alt?:string).
+- **`src/app/grupo/[slug]/page.tsx` (metadata)**: robots = revoked→"noindex, follow" para TODOS; si no "index, follow" (los adultos pasan a indexables). `other: { rating: "RTA-5042-1996-RTA" }` solo en adultos. Se mantiene: jsonLd=null en adulto, `alt=""`+sin title en la imagen del detalle adulto.
+- **`scripts/crons/sitemap-generator.mjs`**: grupos → todas las live (sin `isAdult=0`; ahora 104 URLs en grupos-1.xml); categorías → todas las activas (sin `isAdult=0`; 22, incluidas citas-18 y contenido-exclusivo-18); ciudades sigue solo-limpio (las páginas de ciudad solo listan el silo limpio — coherencia contenido/sitemap). EJECUTADO: `node scripts/crons/sitemap-generator.mjs` → 104 grupos, 22 categorías, verificado `citas-18`, `contenido-exclusivo-18` y los 12 slugs `*-18mas-*` presentes en los XML.
+- **`sql.md`**: sección "## MIGRACIÓN ADULTO INDEXABLE (2026-10-13)" documentando el cambio de política robots + tabla `group_feedback` (SQL idempotente para producción) + verificaciones.
+
+### TASK 2 — Like / Dislike
+- **`src/lib/db.ts`**: entrada `group_feedback` en CREATE_TABLES del Schema Guard (id INT UNSIGNED AI PK, groupId VARCHAR(191), visitorHash CHAR(64), action ENUM('like','dislike'), createdAt/updatedAt DATETIME, UNIQUE uq_visitor_group(groupId,visitorHash), KEY idx_groupId) — estilo idéntico al resto del guard. Funciones: `upsertGroupFeedback(groupId, visitorHash, action)` (INSERT … ON DUPLICATE KEY UPDATE action=VALUES(action)) y `getGroupFeedbackCounts(groupId)` (SELECT action, COUNT(*) GROUP BY action → {likes, dislikes}, ceros si vacío). Creada también EN VIVO vía CLI mariadb (SHOW CREATE TABLE verificado). data.ts sin cambios (el page importa directo de @/lib/db como ya hacía con queryOne).
+- **`src/app/api/groups/feedback/route.ts`** (nuevo): POST {slug, action}. Valida action∈{like,dislike} (400 español), grupo existe y live por slug (404). visitorHash = sha256(IP|x-forwarded-for primer valor, fallback "local"| + User-Agent + sal fija "gh-feedback-v1") vía hashValue. Rate-limit ligero 30/h por visitante (patrón checkRateLimit/hitRateLimit de los routes share/rate). Upsert + recount → `{ ok:true, data:{ likes, dislikes } }` (misma shape que rate). force-dynamic.
+- **`src/components/site/group-feedback.tsx`** (nuevo, 'use client'): `<section aria-label="Valoración del grupo">` + `<h3>¿Te resultó útil este grupo?</h3>` + sub "Tu voto ayuda a otros a decidir antes de entrar." + 2 botones: LIKE (outline esmeralda, ThumbsUp, "Me gusta (n)") y DISLIKE (rojo-600 borde/texto; estado activo relleno bg-red-600 texto blanco, ThumbsDown, "No me gusta (n)"). aria-pressed según myAction, disabled+spinner durante submit, min-h-[44px], flex-col→sm:flex-row (ancho completo en móvil). Optimista SOLO en el estado pulsado; contadores solo cambian con la respuesta del servidor (honestos); revert + toast destructivo en error. localStorage `gh-vote-{slug}` restaurado en useEffect (SSR pasa null). SIN JSON-LD. Click en el botón ya activo = no-op.
+- **`src/app/grupo/[slug]/page.tsx`**: `getGroupFeedbackCounts(group.id)` añadido al Promise.all existente (una query, en paralelo). `<GroupFeedback>` montado tras Etiquetas y antes de Reportar/Grupos similares (tras el bloque info del grupo, antes de relacionados).
+
+## VERIFICACIÓN (todo en vivo, :3000 + MariaDB 11.8.6)
+- **Tabla DB**: creada en vivo (SHOW CREATE TABLE coincide con el guard). Round-trip API: like v1 (UA-A) → likes=1,dislikes=0; like v2 (UA-B) → 2/0; v1 cambia a dislike → 1/1 (fila actualizada in situ, 2 filas en tabla); v2 repite like → 1/1 sin duplicar; action inválida → 400 "La acción debe ser «like» o «dislike»."; slug inexistente → 404. SSR refleja 1/1 y, tras borrar las filas de QA, vuelve a (0)/(0) — empieza en 0, sin inflar.
+- **Categoría adulta `/categoria/citas-18`**: 200; `<title>7 Grupos de Citas y Encuentros 18+ en WhatsApp | Grupos Hoy</title>`; `<meta name="robots" content="index, follow">`; `<meta name="rating" content="RTA-5042-1996-RTA">`; canonical gruposhoy.com/categoria/citas-18; "Mostrando 1–7 de 7 grupos"; chip "Contenido +18"; rejilla server con los 7 grupos (imageAlt:false en payload RSC); **0 scripts JSON-LD de página** (solo WebSite+Organization del layout, presentes en TODAS las páginas desde el rebrand — no son schema de página); **cero role="img"/aria-label/alt en avatares de grupo** (los únicos img con alt son banderas del header/footer, no imágenes de grupo); sin restos de AdultCategoryFeed. `/categoria/citas-18?page=2` → **404** (paginación estricta intacta). `/categoria/contenido-exclusivo-18` → "5 Grupos de Contenido Exclusivo 18+ en WhatsApp | Grupos Hoy", mismos meta.
+- **Grupo adulto `/grupo/solteras-y-solteros-18mas-cdmx`**: robots index,follow; rating RTA presente; canonical; ld+json solo layout (WebPage/Breadcrumb/Person ausentes); sección de feedback presente en HTML; avatar sin alt/aria-label.
+- **Páginas limpias intactas**: `/categoria/humor` → título y robots como antes, 4 ld+json (WebSite+Organization+ItemList+BreadcrumbList) y avatares CON role="img"+aria-label del título (5/5 grupos); home con aria-labels de títulos; smoke 200 en /, /populares, /buscar, /ciudad/madrid, /pais/es, /categorias. AdultCountryZone de /pais/es sigue funcionando (log: `GET /api/groups/count?pais=co-es&adult=only 200`).
+- **Browser (agent-browser)** en /grupo/laliga-espana-debates-y-fantasy: click LIKE → "Me gusta (1)"/"No me gusta (0)" + localStorage gh-vote-…=like; cambio a DISLIKE → 0/1, aria-pressed true/false correctos, botón dislike con fondo red-600 activo, localStorage=dislike; tras reload el voto se restaura (aria-pressed=true en No me gusta). Captura: `tool-results/qa-8a-feedback.png` (PNG 1280×577). Filas de QA borradas después → estado honesto 0.
+- **Calidad**: `bunx tsc --noEmit` → exit 0; `bun run lint` → exit 0. dev.log: solo 200s (incl. `POST /api/groups/feedback?XTransformPort=3000 200`), cero errores.
+
+## Stage Summary
+- Adulto indexable COMPLETO: categorías y grupos 18+ con robots index,follow + etiqueta RTA-5042, misma rejilla server/paginación/SEO que las limpias, SIN schema de página y SIN alt/title en imágenes (en rejillas adultas los atributos se omiten por completo, no alt=""). Sitemap regenerado con 104 grupos/22 categorías — la sección adulta ya tiene vía de descubrimiento.
+- Like/dislike COMPLETO: tabla + API + componente client; un voto por visitante (hash IP+UA+sal) conmutable, contadores siempre desde GROUP BY (empiezan en 0), HTML semántico sin JSON-LD, botón dislike rojo, restauración por localStorage, toast de error.
+- Notas para el orquestador: (1) revoked→noindex,follow no es live-testeable (no hay grupos revoked en este seed; lógica verificada en código). (2) Los 2 ld+json que aparecen en páginas adultas son WebSite+Organization del layout (sitio-wide, preexistentes en todas las páginas desde el rebrand, archivo de otro agente) — los schemas de PÁGINA (ItemList/Breadcrumb/WebPage/Person) están correctamente ausentes en adulto. (3) adult-zone.tsx conserva AdultCountryZone para /pais (8-b); si 8-b elimina ese uso, el archivo queda con export huérfano inocuo. (4) Sitemap de ciudades sigue solo-limpio a propósito (las páginas de ciudad no listan adultos). (5) La rama adulta de categoria añade 1 query por página (getGroups con silo adulto) — coste trivial, evitado tocar data.ts (mandato: solo helpers aditivos de feedback, y ni siquiera hicieron falta).
+# Task 8-b — Work Report (Share · Verify new-tab · Internal linking · Blog infra)
+
+Agent: 8-b · Files owned: share-menu.tsx, verify-client.tsx, ciudad/[slug]/page.tsx, pais/[code]/page.tsx, footer.tsx, blog/[slug]/page.tsx, blog/page.tsx, lib/blog.ts (read-only — no changes needed).
+
+---
+
+## TASK 1 — Share feature (traffic to gruposhoy.com, not chat.whatsapp)
+
+`src/components/site/share-menu.tsx` fully rewritten:
+- `shareUrl = \`${SITE.url}/grupo/${group.slug}\`` (SITE from @/lib/constants) used EVERYWHERE: copy, WhatsApp intent, X intent, Telegram share, email body, native share. `group.inviteLink` no longer appears anywhere in the file (rg verified: 0 hits) — the raw WhatsApp invite is NEVER exposed in share flows.
+- Channels: "Copiar enlace" (clipboard + toast "Enlace copiado" / "Comparte la página del grupo — quien lo abra podrá unirse desde ahí.", 2s "¡Copiado!" state); WhatsApp → `wa.me/?text=Mira este grupo de WhatsApp: {title} — {shareUrl}`; X → intent with text+url=shareUrl; Telegram → `t.me/share/url?url={shareUrl}&text={title}`; Email → mailto subject "Te comparto un grupo de WhatsApp" + body with title & shareUrl.
+- trackShare() kept: POST `/api/groups/share?XTransformPort=3000` with `{groupId, channel}` (route only reads groupId — extra field ignored).
+- Visual polish: menu items = icon box + bold label + small helper text ("Copiar enlace · la página del grupo, lista para pegar" etc.); "Copiar enlace" FIRST with filled primary icon box + separator; after copy shows Check + "¡Copiado!" + the URL for 2s. All items ≈52px tall (≥44px touch target); trigger children pattern preserved.
+- Native share: detected post-mount (no hydration mismatch). When `navigator.share` exists the default trigger becomes a split button — main "Compartir" calls `navigator.share({title, text, url: shareUrl})`, chevron keeps the dropdown with specific networks. Children/custom triggers and desktop (no navigator.share) keep the classic dropdown.
+
+**Browser verification (agent-browser, group page /grupo/futbol-argentino-la-mesa-de-debate):**
+- Clipboard write value (intercepted, readText blocked by headless permissions): `"https://gruposhoy.com/grupo/futbol-argentino-la-mesa-de-debate"` — the grupos/ page link, NOT chat.whatsapp ✓
+- Toast verified in DOM right after click: "Enlace copiado / Comparte la página del grupo — quien lo abra podrá unirse desde ahí." ✓
+- WhatsApp intent URL captured via window.open spy: `https://wa.me/?text=Mira%20este%20grupo%20de%20WhatsApp%3A%20Fútbol%20argentino…%20—%20https%3A%2F%2Fgruposhoy.com%2Fgrupo%2Ffutbol-argentino-la-mesa-de-debate` ✓ (contains our page URL)
+- Screenshot: `tool-results/qa-8b-share.png` (menu open, Copiar enlace first+highlighted).
+- Note: the native-share split-button branch is code-verified only — headless Chromium has `navigator.share === undefined` even under iPhone emulation, so the branch cannot be exercised in this sandbox.
+
+## TASK 2 — Verify page opens WhatsApp in a new tab
+
+`src/components/site/verify-client.tsx`: `window.location.href = group.inviteLink` → `window.open(group.inviteLink, "_blank", "noopener")`. Rest of the flow untouched (5s checks, click tracking with keepalive, disabled state).
+
+**Browser verification:** on /verificar/futbol-argentino-la-mesa-de-debate waited ~6s → button enabled ("Unirme al grupo en WhatsApp"), clicked → tab list showed **t1 stays on /verificar/…** and **new tab t2 = https://chat.whatsapp.com/cbHWddWdjCnCPzTYVTtPzk** ✓. POST /api/groups/click fired (dev.log 200). Screenshot: `tool-results/qa-8b-verify-newtab.png`.
+
+## TASK 3 — Internal linking SEO (ciudad + pais)
+
+**src/app/ciudad/[slug]/page.tsx** — two server-rendered crawlable sections placed AFTER the groups grid, BEFORE the long-form intro:
+- "Grupos de {city} por categoría": unique categories derived from the loaded groups (count-sorted), chips `/categoria/{slug}` anchored "Grupos de {name}". 2-sentence Spanish intro, no exact-count claims ("Los grupos que ves arriba…").
+- "Más de {countryName}": country page link with anchor "grupos de WhatsApp de {country}" + sibling cities (getAllCities() filtered to same country, current excluded) as chips `/ciudad/{slug}` anchored "Grupos de WhatsApp en {city}". Rendered only when a sibling exists; country name via getCountryByCode().
+
+**src/app/pais/[code]/page.tsx** — same pattern after the adult zone / before long-form:
+- "Ciudades con grupos en {country}": cities from getAllCities() (groupCount>0, count-sorted) → chips "Grupos de WhatsApp en {city}".
+- "Categorías populares en {country}": top categories among loaded groups → chips "Grupos de {name}".
+- One-line contextual links: "explora grupos por otros países" → /paises, "busca un grupo concreto" → /buscar.
+
+All anchors descriptive, all targets data-derived (no hardcoded slugs), sections hidden when lists empty, section styling matches site design (Reveal, h2, muted intro, existing chip classes).
+
+**curl evidence:**
+- /ciudad/madrid 200: h2 "Grupos de Madrid por categoría" (id=city-cats-heading) + "Más de España" (id=city-country-heading); hrefs `/categoria/{amistad,cine,cocina,deportes,empleo}`, `/ciudad/{barcelona,sevilla}`, `/pais/es` ✓
+- /pais/es 200: "Ciudades con grupos en España" (id=country-cities-heading) + "Categorías populares en España" (id=country-cats-heading); hrefs `/ciudad/{madrid,barcelona,sevilla}`, 15× `/categoria/...` (amistad…videojuegos), /paises, /buscar; anchors "Grupos de WhatsApp en Barcelona/Madrid/Sevilla" ✓
+- /ciudad/barcelona 200 (sanity: sections render + siblings madrid/sevilla).
+- Screenshots: `qa-8b-internal-links.png` (cats section), `qa-8b-internal-links-ciudad-pais.png` ("Más de España"), `qa-8b-internal-links-pais.png` + `qa-8b-internal-links-pais-cats.png`, mobile 390px `qa-8b-internal-links-mobile.png` (no horizontal overflow). Fresh page loads → zero console errors.
+
+## TASK 4 — Blog infrastructure
+
+- **4a** `bun add remark-gfm@4.0.1`; ReactMarkdown in blog/[slug] now `remarkPlugins={[remarkGfm]}`. Live DB test: appended a GFM table + strikethrough to post-001 (backup first), curl → `<table>` + `<th>Criterio/Grupo grande/Grupo pequeño</th>` + `<del>texto tachado de prueba</del>` all rendered (prose-cg already styles tables); content then REVERTED byte-exact (`content identical to backup: true`, 4153 chars, 0 "Prueba de" left). Harness kept at `tool-results/gfm-table-test.mjs`, backup at `tool-results/blog-001-content-backup.md`.
+- **4b** `a` override in the same ReactMarkdown: href starting `http(s)://` → plain `<a target="_blank" rel="noopener noreferrer">`; internal → next/link. Live-verified with temp content: external rendered `<a href="https://faq.whatsapp.com/" target="_blank" rel="noopener noreferrer">`, internal rendered `<a href="/guias">` (no target). Reverted byte-exact after.
+- **4c** "Sigue leyendo" section at the bottom (was "Seguir leyendo" without excerpt): 3 most recent OTHER published posts via existing `getPublishedPosts` — now title + 1-line excerpt + link. No lib/blog.ts change needed. Screenshot `qa-8b-blog-sigue-leyendo.png`.
+- **4d** blog/page.tsx verified: tags render as PLAIN `<span data-slot="badge">#tag</span>` (not links; grep `<a…>#tag</a>` = 0; `/etiqueta/` hrefs = 0) and there are NO category filters. No changes required.
+- **4e** Live DB executed: `UPDATE blog_posts SET authorName='Antonio C.' WHERE status='published';` — both posts now "Antonio C." (verified in DB + rendered on /blog and both post pages, 3+3 matches). **Orchestrator: add this UPDATE to sql.md (8-a's file) — not done here.**
+- **4f** footer.tsx: "Blog" link (/blog) in the Empresa column now sits immediately next to "Guías" (was 4 positions earlier), with its own Newspaper icon (was duplicate BookOpen). Verified in rendered footer: `Guías</a></li><li><a … href="/blog">`.
+
+## QA OVERALL
+
+- `bunx tsc --noEmit` → exit 0, zero errors (one transient error in categoria/[slug]/page.tsx appeared mid-session and disappeared — 8-a's in-flight edit, never in my files).
+- `bun run lint` → exit 0, clean.
+- dev.log tail: only 200s + compile timings (a mid-session burst of 500s was caused by 8-a's temporarily-missing `@/components/site/group-feedback` import — resolved itself once 8-a landed the file; none of my routes error now).
+- All user-visible strings Spanish; no robots/canonical changes anywhere; no files of 8-a touched (categoria page / group page / group-card / db.ts / api/feedback / sitemap / sql.md untouched — sql.md author UPDATE reported above for the orchestrator instead).
+- Browser note: the shared default agent-browser session was being driven concurrently (screenshots collided); all final evidence screenshots were re-taken in isolated `--session qa8b`/`qa8b2` sessions and verified distinct via md5.
+
+**Artifacts:** tool-results/qa-8b-share.png, qa-8b-verify-newtab.png, qa-8b-internal-links.png, qa-8b-internal-links-ciudad-pais.png, qa-8b-internal-links-pais.png, qa-8b-internal-links-pais-cats.png, qa-8b-internal-links-mobile.png, qa-8b-blog-sigue-leyendo.png, gfm-table-test.mjs, blog-001-content-backup.md.
+# Worklog — Task 9-a (Country intros for /pais/{code})
+
+- **Task ID**: 9-a
+- **Agent**: content-writer (country intros)
+- **Task**: Write 20 unique long-form country intros, seed them into `entity_intros`, kill duplicate-content risk between /pais/{code} pages (user: "add more local elements to make them unique than each other").
+
+## Work Log
+
+1. **Read `/home/z/my-project/agent-ctx/content-brief.md`** (voice rules: easy Spanish, short sentences, tú, no fake stats; MariaDB on 127.0.0.1:3306, db `gruposwhatsapp`, user `grupos`, empty password; curl-only verification).
+2. **Inspected the rendering path** (read-only, no src edits):
+   - `src/app/pais/[code]/page.tsx` calls `getTaxonomyContent("country", country.name)` and renders `content.customIntro.split(/\n\s*\n/)` as `<p>` in the bottom long-form section (H2 "Grupos de WhatsApp en {name}:…"). Page is `force-dynamic` → DB changes show instantly.
+   - `src/lib/taxonomy-intro.ts` reads `entity_intros` (customTitle/customHeroDesc/customIntro, NULL-safe).
+   - Verified exact country names in DB (`SELECT code,name FROM countries`) — accents included (España, México, Panamá, Perú, República Dominicana…).
+   - `entity_intros` was **empty** before this task (0 rows).
+3. **Wrote `scripts/intro-seeds/countries.mjs`** (mysql2/promise, run from project root). Per country: `DELETE FROM entity_intros WHERE entityType='country' AND entityName=?` then `INSERT (entityType='country', entityName, customTitle=NULL, customHeroDesc=NULL, customIntro=TEXT)`.
+   - Content spec per country: 4 paragraphs (blank-line separated), 250-350 words, 0 digits, no "mil/miles", no stats.
+     - P1 = cómo vive WhatsApp ese país (sensory, local: mate+Superclásico+asado en AR; sobremesa+fiestas del pueblo+vale en ES; tandeo del agua+posadas+tamales en MX; wifi del parque+Paquete Semanal+Serie Nacional en CU…).
+     - P2 = tipos de grupos abundantes + una mención de Grupos Hoy con **frase distinta por país** (20 different phrasings).
+     - P3 = un consejo práctico **distinto** por país (AR cadenas "reenviá"; BO mirar antes de escribir + bajar auto-descarga de imágenes; CL verificar rumores de temblor/maremoto en canales oficiales; CO falsos premios/inversiones; CR cómo presentarse en un grupo; CU ahorrar datos; EC protocolo de audios; SV remesas/cambio de dólares; ES silencio 8h en fiestas patronales; GT horario matutino; HN empleos que cobran por adelantado; MX entrega en lugar público + no compartir ubicación en vivo; NI no mezclar política y familia; PA rifas falsas que piden depósito; PY jopara/guaraní; PE estafa del "paquete retenido"; PR grupo de vecinos listo antes de la temporada de huracanes (jun-nov); DO medir el tono en la rivalidad Licey/Águilas; UY encuestas para el asado; VE pagos por adelantado Zelle/pago móvil).
+     - P4 = invitación a publicar en «Enviar un grupo», con cierre distinto en los 20.
+   - Built-in **validators that throw before touching the DB**: word count 250-350, no digits, no mil/miles, 3-4 paragraphs (each ≥35 words), exactly one "Grupos Hoy" mention, unique first-sentence 3-gram per intro, unique closing 4-gram per intro, sentences ≤26 words, and a **pairwise 6-gram overlap check** across all 20 intros (kills duplicate-content risk; caught and fixed ~12 collisions during drafting, e.g. shared "grupos de la iglesia y de la universidad", "la lista se queda con puro", "en el filtro de Grupos Hoy,").
+   - Each intro contains ≥3 country-only elements (lugares/comidas/dichos/equipos/celebraciones) — e.g. Bolivia: Mi Teleférico, salteñas, Carnaval de Oruro; Guatemala: atol de elote, tamales colorados, Quetzaltenango/Petén, chapín; RD: pelota invernal, Licey/Escogido/Águilas, la bandera (plato), Cibao, Malecón.
+4. **Ran `node scripts/intro-seeds/countries.mjs`** from project root → clean run: 20 rows seeded (250-282 words each, ~1380-1615 chars). Read-back confirmed exactly 20 `entityType='country'` rows.
+
+## Verification (curl only, no agent-browser)
+
+1. `node scripts/intro-seeds/countries.mjs` runs clean (validate + seed + read-back: 20 rows).
+2. All 20 `/pais/{code}` pages (ar bo cl co cr cu ec sv es gt hn mx ni pa py pe pr do uy ve) → **HTTP 200**.
+3. Each page contains a **distinctive phrase from ITS OWN customIntro** (grep, 1 match each):
+   - ar "la charla del Superclásico arranca el viernes" · bo "cuando llega el Carnaval de Oruro" · cl "la once no es solo té con pan" · co "villancicos, buñuelos y natilla por delante" · cr "el gallo pinto humeando en la mesa" · cu "los datos se cuidan como el arroz" · ec "el clásico del Astillero" · sv "Las pupusas del domingo saben mejor" · es "sigue viva en el grupo del pueblo" · gt "el atol de elote que trae doña" · hn "la baleada ya está en la foto del grupo" · mx "avisa del tandeo del agua" · ni "sube la foto del nacatamal" · pa "quién lleva la yuca, quién el ñame" · py "Tereré en una mano" · pe "la combi se sobrevive con el grupo abierto" · pr "apagón en la isla y el grupo de vecinos" · do "La pelota invernal manda en el chat dominicano" · uy "el chivito del viernes a la noche" · ve "las hallacas vuelven a unir a todos".
+4. **Uniqueness matrix**: grepped each of the 20 phrases across ALL 20 pages → every phrase matches ONLY its own page (20 OK / 0 mismatches).
+5. **Spot-check ar/es/mx**: each page contains its own phrase and NOT the other two; old generic fallback ("hemos recopilado…") no longer rendered on any of them.
+6. Paragraph rendering check on /pais/ar: customIntro renders as exactly **4 `<p>`** in the SEO section (85w / 70w / 71w / 44w).
+7. `bunx tsc --noEmit` NOT needed — **no src file touched** (git: only new untracked `scripts/intro-seeds/countries.mjs`; all `M src/…` entries pre-exist from parallel agents).
+8. dev.log tail: all 20 `/pais/{code}` GETs → 200, no errors; `/` and `/paises` still 200.
+
+## Stage Summary
+
+**DONE.** 20 unique, hand-written country intros live in `entity_intros` (entityType='country', exact entity names incl. accents; customTitle/customHeroDesc NULL; customIntro 4 paragraphs, 250-282 words, \n\n-separated → rendered as `<p>` by the existing page). Every /pais/{code} page now serves country-only content (local habits, group types, one unique tip, varied invitation), zero shared 6-grams between intros, zero stats/counts, per the brief's easy-Spanish voice. Files touched: `scripts/intro-seeds/countries.mjs` (new) + this worklog. No src/, no worklog.md, no other agents' files.
+# Worklog — Task 9-b
+
+## Task ID
+9-b
+
+## Agent
+Content agent — city intro seeder (long-form /ciudad/{slug} bottom sections)
+
+## Task
+Write 29 UNIQUE city intros (anti-duplicate-content goal: "local elements so city pages
+are unique from each other"), seeded into `entity_intros` as
+(entityType='city', entityName=EXACT name, customTitle=NULL, customHeroDesc=NULL,
+customIntro=TEXT). Script: `scripts/intro-seeds/cities.mjs` (mysql2/promise, run from
+project root). For each city: DELETE then INSERT (idempotent re-runs).
+
+## Work Log
+
+1. **Read `/home/z/my-project/agent-ctx/content-brief.md`** (voice rules: easy Spanish,
+   short sentences, tú, 1-2 regional touches max; no invented verifiable-false facts).
+2. **Inspected rendering pipeline** (read-only): `src/app/ciudad/[slug]/page.tsx` calls
+   `getTaxonomyContent("city", city.city)`; `content.customIntro.split(/\n\s*\n/)` renders
+   one `<p>` per blank-line-separated paragraph (plain text, NO markdown).
+   `src/lib/taxonomy-intro.ts` reads `entity_intros` by (entityType, entityName).
+3. **Confirmed exact entityNames** against the live DB
+   (`SELECT DISTINCT city FROM groups WHERE status='live'`) — all 29 task names match
+   exactly, incl. accents: Asunción, Barcelona, Bogotá, Buenos Aires, Cali, Caracas,
+   Ciudad de Guatemala, Ciudad de México, Ciudad de Panamá, Córdoba, Guadalajara,
+   La Habana, La Paz, Lima, Madrid, Managua, Medellín, Monterrey, Montevideo, Panamá,
+   Puebla, Quito, San José, San Juan, San Salvador, Santiago, Santo Domingo, Sevilla,
+   Tegucigalpa. Slugs derive via `citySlug()` (accents stripped) → match task slug list.
+   (CRITICAL slug note honored: San Salvador → **san-salvador**.)
+4. **Wrote `scripts/intro-seeds/cities.mjs`**: 29 intro objects (3 paragraphs each,
+   joined with `\n\n`), plus fail-fast self-checks BEFORE any DB write:
+   - 250-350 words per intro (word count printed per city),
+   - exactly 3 paragraphs,
+   - no "miles/millones/1024/integrantes" (zero group counts),
+   - first-3-words opening pattern must be UNIQUE across all 29 (enforced by code),
+   - entityName must exist in live `groups` table (guard against typos).
+   Then per city: `DELETE FROM entity_intros WHERE entityType='city' AND entityName=?`
+   followed by INSERT with customTitle/customHeroDesc = NULL.
+5. **Content spec per city**: P1 = local life written like a local (real barrios, real
+   transport, real ritmo: e.g. Madrid→Malasaña y Vallecas + Rastro + derbi; CDMX→Roma y
+   Coyoacán + tianguis; Buenos Aires→Palermo y La Boca + subte D + Mitre; Bogotá→
+   Chapinero + TransMilenio + ciclovía dominical). P2 = groups people look for (real
+   teams: Millonarios/Santa Fe, Chivas/Atlas, Rayados/Tigres, Tauro/Plaza Amador,
+   Licey/Escogido, Bóer…; real universities: UNAM, UBA, Complutense, UNC, Tec de
+   Monterrey, Udelar, UASD, San Marcos…; compraventa, trabajo, planes) + varied
+   "arriba están los grupos de esta ciudad" sentence (each city uses a different
+   phrasing, several with a light local interjection: vale, órale, che via pibe/bo,
+   parce, mae, maje, illo, po, causa, asere, boricua, qué lo qué, de una). P3 = one
+   distinct local practical tip, never repeated between cities (TransMilenio rush
+   hour; siesta 13:30-16:30 reply gap in Córdoba; ETECSA data auto-download off in
+   La Habana; salteñas de mañana technique; cebiche al mediodía in Lima; Feria de Abril
+   private casetas in Sevilla; Panama-hat-is-Ecuadorian in Panamá; hurricane-season
+   neighbor groups in San Juan; Managua reference-point live-location pin; talavera
+   workshop seal in Puebla; preemergencia smog days in Santiago; feria Pocitos Wed/Sat
+   cash in Montevideo; Bitcoin-transfer irreversibility in San Salvador…).
+   - Sibling separation enforced: España (Madrid vs Barcelona vs Sevilla), Colombia
+     (Bogotá vs Cali vs Medellín), México (CDMX vs Guadalajara vs Monterrey vs Puebla),
+     Argentina (Buenos Aires vs Córdoba), and the TWO Panamá rows kept clearly distinct:
+     `/ciudad/panama` centers the Casco Antiguo/canal/Miraflores/Amador/mariscos,
+     `/ciudad/ciudad-de-panama` centers the zona bancaria/Vía España/Paitilla/
+     Cinta Costera/Metro L1/malls + moda. Different opening sentences, different
+     structure, different advice — no shared first-sentence patterns anywhere.
+6. **Ran script**: `node scripts/intro-seeds/cities.mjs` →
+   `cities.mjs: seeded 29 city intros` (word counts 250-272 per city, all in range).
+   Word-count misses on first run (Bogotá 244, Cd. de Panamá 246, Guadalajara 249,
+   San Juan 244) were fixed by small additions and re-run clean.
+7. **DB verification**: `SELECT COUNT(*)` → 29 city rows; customTitle IS NULL ×29,
+   customHeroDesc IS NULL ×29, customIntro filled ×29 (LENGTH 1335-1502 bytes).
+8. **Curl verification (all 29 pages)** — for each `/ciudad/{slug}`: HTTP 200 + page
+   contains a distinctive phrase from ITS OWN intro + default fallback text
+   ("reúnen a personas que viven") GONE. Result: **29 passed / 0 failed**:
+   asuncion, barcelona, bogota, buenos-aires, cali, caracas, ciudad-de-guatemala,
+   ciudad-de-mexico, ciudad-de-panama, cordoba, guadalajara, la-habana, la-paz, lima,
+   madrid, managua, medellin, monterrey, montevideo, panama, puebla, quito, san-jose,
+   san-juan, san-salvador, santiago, santo-domingo, sevilla, tegucigalpa.
+   Distinctive phrases used (one per city): "cuando el río se pone naranja",
+   "los castellers bajan a las plazas", "la Séptima es de los ciclistas",
+   "el tren Mitre te lleva a Tigre", "el cholado con fruta es la moneda de la siesta",
+   "los Rojos del Ávila", "las camionetas multicolores siguen cargando la historia",
+   "con su mantel de fruta", "una ciudad de vidrio plantada al mar",
+   "el Matador de Barrio Jardín", "huele a torta ahogada por la mañana y a mariachi
+   por la noche", "la fila de Coppelia tiene sus propias reglas", "el aire es fino y
+   la salteña es comida de mañana", "no es exageración, es calendario",
+   "la Ribera de los Curtidores", "dos cuadras al lago y una arriba",
+   "se anda en camisa todo el año", "silueta de montura que los regios miran",
+   "termo bajo el brazo como si fuera parte del cuerpo", "Nació en Ecuador y se hizo
+   famoso", "se pinta a mano y se cuece dos veces", "dos mil ochocientos cincuenta
+   metros", "le dicen Chepe", "adoquines azulados que brillan con la lluvia",
+   "las pupusas se piden por docena", "el imperio de lo de segunda", "la caja vacía
+   también pesa", "mirando los farolillos desde afuera", "el Ciclón Azul contra los albos".
+9. **Sibling spot-checks**:
+   - /ciudad/madrid vs /ciudad/barcelona vs /ciudad/sevilla: rendered openings
+     "Malasaña despierta tarde y Vallecas no duerme…" vs "Vivir en Barcelona es
+     aprenderse la ciudad por barrios…" vs "Triana queda al otro lado del puente…"
+     — clearly different; cross-phrase leak test clean each way.
+   - /ciudad/bogota vs /ciudad/medellin: "El clima de Bogotá cambia de opinión…"
+     vs "La eterna primavera no es cuento…" — different; leak test clean
+     (bogota/calí/medellin mutual).
+   - Extended leak matrix also clean for: México quartet, Argentina pair, and the
+     two Panamá pages (casco/canal vs zona bancaria).
+   - Rendered intro blocks of all 29 pages hashed (md5 after tag-strip): 29 unique
+     hashes, zero duplicates.
+   - Paragraph splitting confirmed: `\n\n` renders as separate `<p>` (e.g.
+     `naranja.</p><p>¿Qué` on asuncion).
+10. **No src/ files touched**; dev server not restarted (curl-only verification;
+    dev.log clean, all /ciudad/ requests 200).
+
+## Stage Summary
+- Deliverables: `scripts/intro-seeds/cities.mjs` (29 city intros + fail-fast
+  self-checks) and this worklog. NOTHING else written (no src/, no worklog.md,
+  no other agents' files touched).
+- DB state: `entity_intros` now has 29 city rows, all with
+  customTitle=NULL/customHeroDesc=NULL and a unique 250-272-word customIntro.
+- Verified: all 29 /ciudad/{slug} pages return 200 and render their own unique
+  long-form intro; default fallback text removed; sibling pages confirmed different
+  (España trio, Colombia trio, México quartet, Argentina pair, Panamá pair).
+- Script is idempotent (DELETE+INSERT) and safe to re-run.
+# Worklog 10-1 — Cluster 1: "Joining & finding groups"
+
+## Task ID
+10-1
+
+## Agent
+Content Agent (Cluster 1 — blog seeds). Read `/home/z/my-project/agent-ctx/content-brief.md` first and followed it exactly (voice, SEO structure, internal-link rules, seed-script pattern, verification). Other agents' records live in `/agent-ctx/` (parallel clusters 2/3 were already seeded when I started — their slugs were reused as verified cross-links where natural).
+
+## Task
+Write and seed CLUSTER 1 of the Grupos Hoy blog ("Joining & finding groups", 5 posts, `scripts/blog-seeds/cluster-1.mjs`), then verify with curl only. Never touch `src/` or `worklog.md`.
+
+## Work Log
+
+1. **Read the brief + inspected environment.** Confirmed MariaDB (`blog_posts` schema, 2 existing posts), dev server up on :3000, `mysql2` installed, ReactMarkdown + remark-gfm renders content links/tables/quotes.
+2. **Pre-verified all candidate link targets with curl** (before writing): site pages (`/buscar`, `/categorias`, `/ciudades`, `/paises`, `/guias`, `/sobre-nosotros`, `/populares`), categories (`/categoria/humor`, `/categoria/amistad`), city (`/ciudad/ciudad-de-mexico`), countries, 6 sample group pages, both existing blog posts, and cluster-2 posts (found already live: 106–110, incl. `como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta` and `que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso`). All 200.
+3. **Wrote `scripts/blog-seeds/cluster-1.mjs`** with the 5 posts below, following the brief's insert conventions exactly (columns, `Antonio C.`, `published`, metaTitle NULL, views 0, `UTC_TIMESTAMP() - INTERVAL N DAY`, ON DUPLICATE KEY UPDATE idempotent). readingMinutes computed as `Math.max(1, Math.round(words/180))` with inline WARN validation for word count (1200–2000) and metaDescription length (140–155), matching the pattern used by the parallel cluster-2 script.
+4. **First seed run** flagged 3 posts under 1,200 words → expanded them with substantive (non-filler) sections: post-102 (+comparison table of the 3 vías, "Lo que nunca funciona", community example, 2 FAQ/links), post-103 (+worked example applying the checklist, "¿Cuántos grupos conviene tener a la vez?", extra checklist signals, FAQ), post-105 (+community re-entry path, "no lo tomes personal" paragraph, FAQ about self-rejoin via saved link), post-104 (+small troubleshooting detail additions). Fixed one typo ("ahornan"→"ahorran").
+5. **Re-ran seed** (idempotent): all 5 posts pass validation.
+6. **Structural verification from the DB** (temp script, removed after): 5/5 rows, status published, author Antonio C., readingMinutes matches words/180, one coverEmoji each, tags JSON arrays (4 plain words each), word counts 1488/1312/1261/1348/1244, metaDescriptions 146/148/146/151/147 chars, definition paragraphs 49/52/50/53/48 words (40–55 ✓), first internal link at word #118/#85/#111/#99/#79 (within ~150 ✓), internal links per post 7/6/8/5/5 (4–8 ✓), external 2/1/1/1/1 (1–2 ✓), **zero duplicate URLs within any post**, `## Preguntas frecuentes` + 4–5 `###` questions in every post, publishedAt = 2026-08-25→29 (daysAgo 49/48/47/46/45 ✓).
+7. **Paragraph uniqueness check:** no identical paragraph shared between any two of the 5 posts, nor with any of the 13 existing published posts (001/002/106–110 + cluster 3).
+8. **curl page verification (no agent-browser):** all 5 `/blog/{slug}` pages → **200**, each contains `<title>`, the exact post title as `<h1>`, `Antonio C.`, and 30+ unique internal `href="/…"` (header/footer + content). Spot-checked rendered content: markdown anchors render with descriptive text (e.g. `buscador de grupos de WhatsApp` → `/buscar`), GFM tables render as `<table>` (101, 103, 104, 102), blockquote message templates render (105).
+9. **Link-target sweep:** all 18 distinct internal targets → **200** (blog siblings, site pages, category, city, group ficha). External whitelist links: `https://faq.whatsapp.com/` → 200; `https://www.whatsapp.com/community` → 301 → 200 (`whatsapp.com/groups`, WhatsApp's current community page — both URLs are from the brief's official whitelist).
+10. **Blog index + dev.log:** `/blog` lists all 5 new posts; dev.log shows only 200 renders, no errors.
+
+## Posts seeded (all `published`, author `Antonio C.`)
+
+| id | slug | daysAgo | words | rm | internal / external links | angle delivered |
+|---|---|---|---|---|---|---|
+| post-101 | como-unirse-a-un-grupo-de-whatsapp-guia-completa | 49 | 1,488 | 8 | 7 / 2 | ALL 4 real methods (enlace, QR, comunidad, admin te añade) with numbered steps per method + Android/iPhone notes + "enlace caducado/restablecido" recovery; methods overview table; snippet-bait definition + FAQ. Links: /buscar (intro, word #118), /categorias, 102, 104, /grupo/la-liga-mx-resultados-y-memes, /guias, cluster-2 salir post; faq.whatsapp.com + whatsapp.com/community |
+| post-102 | como-unirse-a-un-grupo-de-whatsapp-sin-enlace | 48 | 1,312 | 7 | 6 / 1 | Honest "no magic trick" answer + the 3 legitimate vías (admin, QR, comunidad), scam-myth busting with detection list, comparison table, ask-permission etiquette + message templates. Links: 101 (intro, word #85), /sobre-nosotros (why we don't list fake links), 108, 104, /categorias, /buscar; whatsapp.com/community |
+| post-103 | como-encontrar-grupos-de-whatsapp-que-valgan-la-pena | 47 | 1,261 | 7 | 8 / 1 | Quality checklist (actividad, comportamiento, reglas, descripción) with summary table + worked example; where-to-search funnel to directory taxonomy. Links: /categorias (intro, word #111), /paises, /ciudades, /categoria/humor, /ciudad/ciudad-de-mexico, seguros-2026 (quality ≠ seguridad, no duplication), moderar post, 101; whatsapp.com/community |
+| post-104 | por-que-no-puedo-unirme-a-un-grupo-de-whatsapp | 46 | 1,348 | 7 | 5 / 1 | Troubleshooting: 7-cause diagnostic table (grupo lleno 1.024, enlace restablecido, te sacaron, app vieja, red/país, link mal copiado, invitación de comunidad) + cause→solution numbered steps per cause. Links: 101 (intro, word #99), /buscar, 102, 105, /guias; faq.whatsapp.com |
+| post-105 | como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp | 45 | 1,244 | 7 | 5 / 1 | Signals vs myths (no official notification, group vanishes from list, what admins/members see incl. "X salió del grupo" admins-only in recent versions), 4 signals + 5 false positives, re-entry only via re-invite, 2 polite re-entry message scripts (blockquote). Links: 104 (intro, word #79), 101, /categoria/amistad, /ciudades, /guias; faq.whatsapp.com |
+
+Voice: short sentences (≤ ~18 words), neutral Spanish + 1–2 light regional touches per post (pibe/canchita Rosario in 101, che+voseo template in 102, la gente de Sevilla in 103, vale in 104, che template in 105), concrete local characters (María de Monterrey, Ana del 3ºB), honest hedges ("según la versión…") on version-dependent behavior. Facts kept to brief-true list: 1.024 limit, Restablecer enlace (kills link + QR), admin-controlled communities, privacy setting Ajustes→Privacidad→Grupos, admins-only system notices in recent versions.
+
+## Stage Summary
+
+- **Delivered:** `scripts/blog-seeds/cluster-1.mjs` (idempotent seed script, runs clean) + 5 published posts in `blog_posts` (post-101…post-105, daysAgo 49→45, Antonio C.).
+- **SEO structure per brief:** H1 = title, 2–3 paragraph intro with promise, 40–55-word definition paragraph right after intro (49/52/50/53/48 words), H2/H3 body with numbered steps + tables + bold key terms, final "## Preguntas frecuentes" (4–5 questions), 1,200–2,000 words each, metaDescriptions 146–151 chars with natural primary keyword.
+- **Linking rules honored:** 4–8 internal links/post (one in first ~150 words of every post), 2–3 sibling blog links per post (cluster-1 siblings + existing/cluster-2 posts), 1–2 external whitelist links, descriptive varied anchors, zero repeated URLs within a post, 100% of linked targets curl-verified 200 (external: 200, and 301→200 redirect to WhatsApp's live community page).
+- **Uniqueness:** no paragraph shared between any two posts (checked programmatically vs all 5 + 13 existing posts).
+- **Untouched:** `src/`, `worklog.md` — only `scripts/blog-seeds/cluster-1.mjs` and this worklog were created.
+- **Notes for next agents:** cluster-1 slugs are live and safe to cross-link; posts render at `/blog/{slug}` with server-rendered crawlable markdown (ReactMarkdown + remark-gfm); blog index and sitemap cron pick them up automatically.
+# Worklog — Task 10-2 · Cluster 2 "Safety & privacy"
+
+**Task ID:** 10-2
+**Agent:** Content writer (blog seeds)
+**Task:** Write CLUSTER 2 — Safety & privacy (5 posts, post-106 → post-110), seed script `scripts/blog-seeds/cluster-2.mjs`, following `agent-ctx/content-brief.md` conventions exactly.
+
+## Work Log
+
+1. **Read the shared brief** (`agent-ctx/content-brief.md`) in full: voice rules (easy Spanish, short sentences, tú, 1-2 regional touches max), SEO structure (intro → 40-55-word snippet-answer paragraph → body with H2/H3, tables, numbered steps → FAQ), insert conventions (author `Antonio C.`, status `published`, metaTitle NULL, metaDescription 140-155 chars, readingMinutes = words/180 rounded, views 0, publishedAt UTC minus daysAgo), internal linking rules (4-8 internal, ≥1 in first ~150 words, 2-3 sibling blog links, 1-2 whitelist external, never same URL twice per post).
+
+2. **Environment check:** MariaDB up (mariadb binary client), `blog_posts` schema matches the brief's insert pattern. Dev server already running on :3000 (did NOT restart, curl-only verification, no agent-browser). Confirmed only post-001/post-002 existed before my run.
+
+3. **Link target pre-verification (curl, all → 200):** `/`, `/buscar`, `/guias`, `/reportar-grupo`, `/populares`, `/sobre-nosotros`, `/categorias`, `/categoria/{amistad,empleo,negocios,tecnologia,compraventa}`, `/grupo/cafe-y-charla-amistades-en-madrid`, `/pais/{mx,es,ar}`, `/ciudad/{buenos-aires,madrid,monterrey}`, existing posts `/blog/como-encontrar-grupos-de-whatsapp-seguros-2026` and `/blog/como-moderar-un-grupo-de-whatsapp-exitoso`.
+
+4. **Wrote `scripts/blog-seeds/cluster-2.mjs`** (5 posts, idempotent via ON DUPLICATE KEY UPDATE) + built-in validation that logs word count / metaDescription length per post and computes readingMinutes as round(words/180). Posts:
+   - **post-106** `estafas-en-grupos-de-whatsapp-9-senales` · 43 days ago · 🚨 · 9 señales (empleo falso, cripto "duplica tu dinero", falso soporte, sorteos, phishing acortado, urgencia, fuga al privado, admin falso pidiendo código, perfil recién estrenado/"soy tu primo") + anatomía en 4 actos + plan de emergencia si ya clicaste (banco, reportar, 2FA) + no-estafas para calibrar. EXTIENDE (no duplica) `/blog/como-encontrar-grupos-de-whatsapp-seguros-2026` enlazado 1 vez distinguiendo "guía del antes vs guía del durante". Links: `/`, `/categoria/empleo`, `/blog/es-seguro-…-publicos`, `/blog/como-denunciar-…`, `/reportar-grupo`, `/blog/como-encontrar-…-seguros-2026` + external `https://faq.whatsapp.com/`.
+   - **post-107** `es-seguro-unirse-a-grupos-de-whatsapp-publicos` · 42 · 🤝 · respuesta directa de 2 frases (41 palabras, snippet), tabla de qué ven los desconocidos (número siempre visible; foto/últ. vez/info/estados según ajustes), miedos exagerados (lo que NO pueden), checklist de 5 ajustes ANTES de entrar, truco del número aparte, cómo entrar con cabeza, públicos vs enlace a mano. Links: `/buscar`, `/`, `/blog/estafas-…-9-senales`, `/categoria/amistad`, `/grupo/cafe-y-charla-amistades-en-madrid`, `/blog/que-nadie-te-anada-…` + external `https://www.whatsapp.com/`.
+   - **post-108** `que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso` · 41 · 🛑 · ruta EXACTA «Quién puede añadirme a grupos» en Android e iPhone (Ajustes → Privacidad → Grupos → opciones), tabla de opciones, qué pasa cuando alguien ajeno intenta añaderte (invitación por privado que caduca — 72 h en versiones actuales, con hedge), tabla de ajustes hermanos (foto/últ. vez/info/estados). Links: `/`, `/blog/es-seguro-…-publicos`, `/blog/como-salir-de-…`, `/guias`, `/buscar` + external `https://faq.whatsapp.com/`.
+   - **post-109** `como-denunciar-un-grupo-de-whatsapp` · 40 · 🚩 · cuándo denunciar vs salir, flujo paso a paso Android (mantener pulsado → Reportar, casilla «bloquear y salir») e iPhone (deslizar → Más → Reportar; y desde info del grupo), tabla marcar/no marcar la casilla, qué revisa WhatsApp realmente (mensajes recientes, sin parte al denunciante), denunciar mensaje suelto vs grupo, sección "y también en el directorio" con link DIRECTO a `/reportar-grupo` explicando que así lo quitamos para todos. Links: `/`, `/blog/como-salir-de-…`, `/blog/estafas-…-9-senales`, `/reportar-grupo`, `/guias`, `/blog/que-nadie-te-anada-…` + external `https://faq.whatsapp.com/`.
+   - **post-110** `como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta` · 38 · 🚪 · la verdad del cambio (al salir solo los admins ven el aviso, "según la versión", + límites honestos: no invisibilidad), pasos Android/iPhone, etiqueta de salida elegante, tabla de alternativas (silenciar 8 h/1 semana/Siempre, archivar + «Mantener conversaciones archivadas»), extra descarga automática de multimedia, si te vuelven a meter → link a 108. Links: `/`, `/blog/que-nadie-te-anada-…`, `/guias`, `/blog/como-moderar-un-grupo-de-whatsapp-exitoso`, `/buscar` + external `https://blog.whatsapp.com/`.
+
+5. **Seeded & iterated:** ran `node scripts/blog-seeds/cluster-2.mjs` 5 times total (idempotent). Validation caught: 4 posts under 1.200 words (expanded with substantive sections: número aparte, ajustes hermanos, denuncia de mensaje suelto, cuándo el spam renace), metaDescription of 108 at 135 chars (fixed → 153), post-108 missing external link and post-110 missing `/guias` + only 2 internal links (added "Para seguir aprendiendo" section + faq.whatsapp.com in 108). Final metrics: words 1200/1228/1285/1303/1463; metaDesc 140/144/146/153/153; readingMinutes 7-8.
+
+6. **Verification (curl only):**
+   - Each post page → **200**, contains `<title>` with post title, the `<h1>` with post title, `Antonio C.` (3 occurrences), and 5-9 `href="/…"` lines.
+   - All **14 distinct internal URLs** linked across the 5 posts → **200** (incl. my own 5 cluster slugs, `/reportar-grupo`, `/guias`, categories, group detail, existing blog posts).
+   - Link metrics per post (extracted from DB content): 5-6 internal links, 1 external whitelist link each, **0 duplicated URLs within any post**.
+   - Uniqueness: paragraph-level comparison (normalized, >60 chars) across post-001/002/106-110 → **no shared paragraphs at all**.
+   - No src/ file touched, no worklog.md touched, dev server untouched.
+
+## Stage Summary
+
+Cluster 2 (Safety & privacy) is fully seeded: 5 published posts (post-106 → post-110) in `blog_posts` with correct slugs, tags, coverEmoji, Antonio C. byline, metaDescriptions 140-155 chars, readingMinutes computed from real word counts (1200-1463 words each), staggered dates (43/42/41/40/38 days ago). Every required inter-link from the task spec is in place (106→existing safe-groups post once + /reportar-grupo; 107→106 + /categoria/amistad + /buscar; 108→107; 109→/reportar-grupo direct + 106; 110→108 + /guias), plus natural sibling/site links (4-8 internal per post) and 1 external whitelist link per post. All internal targets verified 200. Deliverables: `scripts/blog-seeds/cluster-2.mjs` (seed + validation, idempotent) and this worklog.
+---
+Task ID: 10-3
+Agent: full-stack-developer (report lost to tool timeout — reconstructed by orchestrator from verified DB/render state)
+Task: Write Cluster 3 — "Creating groups" (6 posts, scripts/blog-seeds/cluster-3.mjs).
+
+Work Log:
+- (Agent ran to completion but its final report hit the Task-tool context deadline. Evidence below collected by the orchestrator.)
+- scripts/blog-seeds/cluster-3.mjs exists and is idempotent (ON DUPLICATE KEY UPDATE pattern).
+- All 6 posts published: post-111 como-crear-un-grupo-de-whatsapp-guia-completa (pillar, 36d) · post-112 crear-grupo-de-whatsapp-sin-agregar-contactos (35d) · post-113 crear-grupo-de-whatsapp-desde-excel (34d) · post-114 grupo-de-whatsapp-solo-lectura (33d) · post-115 crear-grupo-de-whatsapp-contigo-mismo (32d) · post-116 crear-grupo-de-whatsapp-en-iphone (31d).
+- Spot-verified: /blog/como-crear-un-grupo-de-whatsapp-guia-completa, /blog/crear-grupo-de-whatsapp-desde-excel, /blog/grupo-de-whatsapp-solo-lectura → all 200 with correct <title> and "Antonio C." byline ×3.
+
+Stage Summary:
+- Cluster 3 (highest-demand cluster) fully seeded and rendering; cross-links to the pillar post and to clusters 4/6 verified live by later agents (10-4 found cluster-3 links resolving; 10-6/10-7 verified cross-cluster URLs all 200).
+# Worklog — Task 10-4 · Cluster 4 "Admin & moderation"
+
+**Task ID:** 10-4
+**Agent:** Content writer (blog seeds)
+**Task:** Write CLUSTER 4 — Admin & moderation (6 posts, post-117 → post-122), seed script `scripts/blog-seeds/cluster-4.mjs`, following `agent-ctx/content-brief.md` conventions exactly.
+
+## Work Log
+
+1. **Read the shared brief** (`agent-ctx/content-brief.md`) in full and matched the established conventions from previous clusters: voice (easy neutral Spanish, short sentences, tú, max 1-2 regional touches, no invented features, hedged "según la versión" where behavior varies), SEO structure (intro with promise → 40-55-word definition paragraph after intro → body with H2/H3, tables, numbered steps, bold → "## Preguntas frecuentes" with 3-5 questions), insert conventions (author `Antonio C.`, status `published`, metaTitle NULL, metaDescription 140-155 chars, readingMinutes = round(words/180), views seeded 0, publishedAt = UTC minus daysAgo), internal linking (4-8 internal per post, ≥1 within first ~150 words, 2-3+ sibling blog links, 1-2 whitelist external, never same URL twice per post).
+
+2. **Environment check:** MariaDB up, 24 posts existed before my run (post-001/002, clusters 1-3). Dev server already running on :3000 — did NOT restart it, curl-only verification, no agent-browser. Clusters 6 and 7 got seeded by parallel agents while I worked (34 posts at final check).
+
+3. **Link target pre-verification (curl, all → 200):** `/blog/como-crear-un-grupo-de-whatsapp-guia-completa`, `/blog/como-moderar-un-grupo-de-whatsapp-exitoso`, `/blog/grupo-de-whatsapp-solo-lectura`, `/blog/estafas-en-grupos-de-whatsapp-9-senales`, `/blog/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp`, `/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta`, `/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso` (note: real slug is **anada**, not "anade"), `/blog/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp`, `/buscar`, `/categorias`, `/guias`, `/agregar-grupo`, `/categoria/humor`, `/categoria/negocios`.
+
+4. **Wrote `scripts/blog-seeds/cluster-4.mjs`** (6 posts, idempotent via ON DUPLICATE KEY UPDATE, brief's exact insert pattern) + built-in validation that logs per post: word count, computed readingMinutes (round(words/180)), metaDescription length, internal/external link counts, word position of first link, and duplicate-URL detection. Posts:
+   - **post-117** `como-administrar-un-grupo-de-whatsapp` · 29 days ago · ⚙️ · KW "cómo administrar un grupo de whatsapp". ANGLE = the SETTINGS side: "Enviar mensajes" (todos vs solo administradores) with announcement template; "Editar la información del grupo"; agregar/aprobar/quitar miembros; coadmin designation + full role table (creador protegido, no antigüedad jerárquica); invite link/QR with "Restablecer enlace"; final checklist. Explicit distinction vs existing `/blog/como-moderar-un-grupo-de-whatsapp-exitoso` linked ONCE ("administrar son los candados; moderar es la convivencia" — ajustes vs convivencia), so no cannibalization with the community-management post. Link a 111 ✓. 1.543 words, 6 internal + 1 external (faq.whatsapp.com).
+   - **post-118** `como-revivir-un-grupo-de-whatsapp-muerto` · 28 · 🛟 · Orphan topic (zero SERP competition). Day-by-day plan: lunes diagnóstico (5 causas de muerte table), martes limpieza + reglas + encuesta, miércoles relanzamiento (copy-paste announcement + hora + fijar mensaje), jueves-domingo ganchos semanales (table: tema del día, pregunta, encuesta, cierre), sostener sin desgastarse (admin de guardia), cuándo claudicar y reiniciar grupo nuevo, comunidad como alternativa. Share-bait closing for admins. Links: 117 ✓ + `/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar` ✓ + 106 (spam/estafas) + 111 + `/categoria/humor`; 1 external (whatsapp.com/community). 1.428 words.
+   - **post-119** `como-ser-administrador-de-un-grupo-de-whatsapp` · 27 · 👑 · KW "cómo ser administrador de un grupo de whatsapp". Transfer of rights (only path = designation, steps; how to ask politely), full role table, "¿qué pasa si el creador se va?" (grupo sigue; según versión el mando puede quedar al más antiguo o a cualquiera — hedged honest), WHAT ADMINS SEE vs MYTHS table (número sí; privados/ubicación/otros grupos/quién leyó TUS mensajes no; matiz: cada quien ve quién leyó sus PROPIOS mensajes si las confirmaciones están activas; "X salió del grupo" entre admins), myth-busting bullets, renunciar al cargo. Link a 117 ✓ + 122 + 105 + 002 + /guias; 1 external (faq.whatsapp.com). 1.495 words.
+   - **post-120** `como-eliminar-un-grupo-de-whatsapp-siendo-administrador` · 26 · 🗑️ · KW "cómo eliminar un grupo de whatsapp siendo administrador". The exact truth: no "delete for all" button exists. Backup first (exportar chat), Opción A (salir y eliminar solo para ti + qué pasa afuera), Opción B (6-step dissolution sequence: avisar → restablecer enlace → quitar uno a uno → quitar admins → salir al final → borrar chat; creador no sacable), what members see, table A vs B, LA ALTERNATIVA DIGNA (entregar el mando antes de quemarlo + reportar si el contenido es el problema). Links: 119 ✓ + 122 ✓ + 110 + 118 + /agregar-grupo; 1 external (faq.whatsapp.com). 1.359 words.
+   - **post-121** `bots-para-administrar-grupos-de-whatsapp` · 25 · 🤖 · KW "bot para administrar grupo de whatsapp". Trust-first honest roundup: what bots REALLY can do (app WhatsApp Business: respuestas rápidas, ausencia, saludo — honest nuance: they work on business chats, not group moderation; plataforma de empresas: flujos oficiales, verificación) vs what unofficial sellers promise (agregado masivo choca contra el ajuste "quién puede añadirme", spider de números, "bot anti-spam" = cliente modificado) and why BAN is a real risk (condiciones de uso, reportes, pérdida del número) + scam angle + 6-item "detectar humo en 30 segundos" checklist + qué hacer en su lugar. EXTERNAL a https://www.whatsapp.com/business ✓ (whitelist). Links: 117 ✓ + 118 ✓ + 108 + 106 + /categoria/negocios; 2 external (business + faq). 1.328 words.
+   - **post-122** `como-recuperar-un-grupo-de-whatsapp-eliminado` · 24 · ♻️ · KW "cómo recuperar un grupo de whatsapp eliminado" (variants woven into FAQ). Myth-busting structure: myth-vs-reality table (no magic app, no group trash bin, no restoring other people's history). Qué SÍ es recuperable (tu historial con copia; re-entrar por enlace vivo) vs qué NO (el grupo una vez disuelto), Caso 1 (solo borraste el chat), Caso 2 (saliste/te eliminaron), Caso 3 (disuelto: 5-step reconstruction procedure), restore steps Android/iPhone + comparison table (global-restore warning), GRUPO HUÉRFANO procedure (revisar si WhatsApp nombró admin nuevo; si no, cualquier miembro re-crea y re-invita; histórico depende de la copia de cada quien), prevención. Links: 120 ✓ + 104 ✓ + 105 + 111; 1 external (faq.whatsapp.com). 1.683 words.
+
+5. **Seeded & iterated:** ran `node scripts/blog-seeds/cluster-4.mjs` 3 times (idempotent). Validation caught 2 posts missing external links (post-117 and post-122 had 0) → added natural whitelist links (faq.whatsapp.com in the QR section of 117 and in the restore section of 122) and re-seeded. Also fixed in edits: "burnout"→"agotamiento", "demo"→"demostración" (no English), 3 typos ("negotia"→"negocia", "preparense"→"prepárense", "escribel(e)"→"escríbele"), and reworded an invented "dicho de Sevilla" into a personal-anecdote example. Final metrics (all within brief): **words 117: 1.543 · 118: 1.428 · 119: 1.495 · 120: 1.359 · 121: 1.328 · 122: 1.683**; metaDescription 140-152 chars; readingMinutes 7-9; internal links 4-6 per post; external 1-2 per post; first link at word 22-121 (all within first ~150 words); 0 duplicate URLs within any post.
+
+6. **Verification (curl only, dev server untouched):**
+   - Each of the 6 post pages → **200**, contains `<title>` with the post title, the `<h1>` with the post title, `Antonio C.` (3 occurrences: byline + author box), and content anchors rendered (`<a class="font-medium text-primary hover:underline" href="/blog/...">`) plus GFM tables rendered (`<table>`, `<th>` confirmed on 117/121).
+   - All **20 distinct internal URLs** linked across the 6 posts curl-checked → **19 × 200**. The single exception is `/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar` (post-118's required link to Cluster 5): **404 right now because Cluster 5 (posts 123-128) has NOT been seeded yet** by the parallel agent (task 10-5; `scripts/blog-seeds/cluster-5.mjs` does not exist yet, and clusters 6 and 7 landed while I worked). The link is correct per the master blog slug map and my task spec; dev.log shows the cluster-6 agent also links the same pending slug, so it resolves as soon as 10-5 seeds. Re-checked 4 times over ~5 minutes (still 404 at final check 2026-10-13). The anchor is exact (`reglas-para-grupos-de-whatsapp-copiar-y-pegar`, master-map spelling), so no fix is possible or needed on my side.
+   - Uniqueness: paragraph-level comparison (normalized, >60 chars) of my 6 posts against **all 34 posts** in the DB (incl. clusters 1-3 and the newly-arrived 6-7) → **0 shared paragraphs**, intra-cluster included.
+   - DB state: all 6 rows `published`, `authorName='Antonio C.'`, `metaTitle=NULL`, `views` seeded 0 (now 3-4 only from my own curl verification traffic — real page hits, not faked), publishedAt dates 2026-09-14 → 2026-09-19 (daysAgo 29/28/27/26/25/24 exactly as specified).
+   - No src/ file touched, no worklog.md touched, no other agent's posts modified.
+
+## Stage Summary
+
+Cluster 4 (Admin & moderation) is fully seeded: 6 published posts (post-117 → post-122) in `blog_posts` with correct slugs, tags, coverEmoji, Antonio C. byline, metaDescriptions 140-152 chars, readingMinutes computed from real word counts (1.328-1.683 words each), staggered dates (29→24 days ago). Every required link from the task spec is in place (117→002 "ajustes vs convivencia" once + 111; 118→117 + reglas cluster-5 + 106; 119→117; 120→119 + 122; 121→117 + 118 + external whatsapp.com/business; 122→120 + 104), plus natural sibling/site links (4-6 internal per post, first link always within the first ~150 words) and 1-2 whitelist external links per post. All 19 resolvable internal targets verified 200; the 1 pending target (`/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar`) is a cross-cluster dependency on the not-yet-run Cluster 5 agent, spelled exactly per the master map. Deliverables: `scripts/blog-seeds/cluster-4.mjs` (seed + validation, idempotent) and this worklog.
+# Worklog — Task 10-5 · Cluster 5 "Rules & names"
+
+**Task ID:** 10-5
+**Agent:** Content writer (blog seeds)
+**Task:** Write CLUSTER 5 — Rules & names (6 posts, post-123 → post-128), seed script `scripts/blog-seeds/cluster-5.mjs`, following `agent-ctx/content-brief.md` conventions exactly. Never touch `src/` or `worklog.md`.
+
+## Work Log
+
+1. **Read the shared brief** (`agent-ctx/content-brief.md`) in full and re-checked conventions against a live seed script (`scripts/blog-seeds/cluster-3.mjs`) and a prior worklog (`tool-results/worklog-10-2.md`): voice (easy Spanish, sentences ≤18 words, tú, 1-2 regional touches max), SEO structure (3-paragraph intro with promise → 40-55-word snippet-answer paragraph → body with H2/H3, numbered steps, tables → FAQ 3-5 questions), insert conventions (author `Antonio C.`, status `published`, metaTitle NULL, metaDescription 140-155 chars, readingMinutes = round(words/180), views 0, `UTC_TIMESTAMP() - INTERVAL N DAY`), linking rules (4-8 internal, ≥1 in first ~150 words, 2-3 sibling blog links, 1-2 whitelist external, never same URL twice).
+
+2. **Environment check:** MariaDB up via `mysql-runtime/mariadb-11.8.6-linux-systemd-x86_64/bin/mariadb`; `blog_posts` insert pattern confirmed; dev server on :3000 already running (did NOT restart, curl-only, no agent-browser). Confirmed existing posts (001/002, 101-116) before my run; clusters 4 and 6 were seeded in parallel by other agents mid-run — which is why I restricted cross-links to URLs I could verify myself at seed time.
+
+3. **Link target pre-verification (curl, all → 200 before writing):** `/blog/como-moderar-un-grupo-de-whatsapp-exitoso`, `/blog/como-crear-un-grupo-de-whatsapp-guia-completa`, `/blog/grupo-de-whatsapp-solo-lectura`, `/blog/estafas-en-grupos-de-whatsapp-9-senales`, `/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso`, `/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta`, `/categoria/{educacion,humor,compraventa,negocios}`, `/ciudad/{madrid,buenos-aires}`, `/grupo/{e-commerce-y-dropshipping-colombia,memes-argentinos-editorial-de-humor,la-liga-mx-resultados-y-memes,uba-ingreso-estudiando-juntos,compra-y-venta-cdmx-tecnologia,empleo-madrid-ofertas-serias,dev-barcelona-programacion-y-cafe,ia-en-espanol-herramientas-y-prompts,trabajo-remoto-para-hispanos}`, `/agregar-grupo`, `/guias`, `/buscar` (23 targets).
+
+4. **Wrote `scripts/blog-seeds/cluster-5.mjs`** (6 posts, idempotent via ON DUPLICATE KEY UPDATE) with **built-in validation** that runs BEFORE any insert and hard-fails on: word count (1.200-2.000; post-127 allowed up to 2.200), metaDescription length 140-155, duplicated link URLs within a post, internal link count 4-8, external link count 1-2, internal link present in first 150 words, FAQ heading + 3-5 questions, definition paragraph (4th plain block after the 3-paragraph intro) at 40-55 words, post-127 names count = exactly 200 with **every name ≤ 25 chars** (WhatsApp's real subject limit — honest and usable, none of the names is a translation or a copy of existing listicles), post-128 descriptions count = exactly 60. readingMinutes computed as round(words/180).
+
+   - **post-123** `reglas-para-grupos-de-whatsapp-copiar-y-pegar` · 22 days ago · 📋 · 1.797 words / 10 min. Pack de 7 plantillas (familia, amigos, trabajo, ventas, estudio, vecinos, padres), cada una como blockquote listo para pegar tal cual; dónde ponerlas (descripción 500 caracteres vs mensaje fijado: 24 h / 7 días / 30 días, hasta 3 fijados, hedge por versión) + tabla comparativa; cómo escribirlas para que se lean; escalera advertencia → silencio → expulsión con la HONESTIDAD de que no existe silencio por persona (enfriamiento vía "solo administradores") y que solo admins ven ciertos avisos en versiones recientes + tabla. Links: /blog/como-moderar… (párrafo 1), 124, 125, 126, /agregar-grupo + external https://faq.whatsapp.com/.
+   - **post-124** `reglas-grupo-de-whatsapp-padres-de-familia` · 21 · 🎒 · 1.222 words / 7 min. Caos universal escuela-padres; regla nº1 = dos grupos (avisos solo-lectura + charla libre, con link a /blog/grupo-de-whatsapp-solo-lectura y a la comunidad oficial de WhatsApp); rol de la profesora (admin si acepta, dudas a la delegada, respuestas agrupadas los miércoles); 7 reglas que sí funcionan; plantilla específica del grupo de avisos; cómo presentarlas en reunión sin pelearse. Links: 123, solo-lectura, estafas (cadenas→estafas), salir-sin-que-se-den-cuenta, /categoria/educacion + external https://www.whatsapp.com/community.
+   - **post-125** `reglas-grupo-de-whatsapp-vecinos` · 20 · 🏠 · 1.234 words / 7 min. Por qué explotan; urgente vs conversación con prefijo "AVISO:" y ejemplos bueno/malo; alertas de seguridad SIN pánico (hecho-lugar-hora-policía, sin fotos fuertes, sin reenviar alarmas ajenas); spam de ventas con dos modelos (prohibición/feria); acuerdo de horario nocturno 22-8; rotación de admins (2-3 simultáneos, anual, handover) + cortesía de pedir permiso antes de agregar (link a 108); plantilla; "lo local manda" con /ciudad/madrid y /ciudad/buenos-aires; límite 1.024 + comunidad como plan para barrios enormes. Links: 123, que-nadie-te-anade, madrid, buenos-aires, /guias + external https://www.whatsapp.com/community.
+   - **post-126** `reglas-grupos-de-whatsapp-trabajo-y-ventas` · 19 · 💼 · 1.266 words / 7 min. DOS sets: etiqueta laboral (horario 8-18, off-topic a otro grupo, audios 1 min, citar mensajes, urgencia = llamada) + grupo de ventas (formato obligatorio PRODUCTO/ESTADO/PRECIO/UBICACIÓN/FOTO con ejemplo bueno vs "vendo bici"; repetición máx  semanal; quién puede publicar) con plantillas para ambos; herramientas reales (permisos, comunidad, WhatsApp Business app aparte) y honestidad de moderación artesanal (admin NO puede borrar mensajes ajenos); seguridad en compraventa → estafas; directorio: /categoria/compraventa, /categoria/negocios, /grupo/e-commerce-y-dropshipping-colombia, /grupo/compra-y-venta-cdmx-tecnologia. Links: 123 + los 4 de directorio + estafas + external https://www.whatsapp.com/business.
+   - **post-127** `nombres-para-grupos-de-whatsapp-graciosos` · 18 · 😂 · 1.926 words / 11 min. **200 nombres originales** (escritos desde cero, juegos de palabras en español fácil, no traducciones ni listas copiadas) por tipo: amigos (35), familia (25), primos (15), trabajo (20), trabajo remoto (10, sub-nicho), estudio (20, sub-nicho), peñas de fútbol (25, sub-nicho), pareja (15), vecinos (15), gaming (10), música (10) — todos ≤25 caracteres, afirmado y verificado en el script; "cómo elegir buen nombre" (prueba del reloj, sentido de adentro, pantalla ajena, prueba de la voz); aviso honesto de que cambiar el nombre lo ve todo el mundo y queda anotado (hedge por versión); cierre emparejando con 128. Links: /categoria/humor (intro), 128, como-crear-grupo, memes-argentinos, la-liga-mx, trabajo-remoto-para-hispanos + external https://faq.whatsapp.com/.
+   - **post-128** `descripciones-para-grupos-de-whatsapp` · 17 · 📝 · 1.853 words / 10 min. Dónde vive y quién la edita (ajuste "editar datos del grupo"); límite real 500 caracteres + quién la ve (quien abre el enlace de invitación ANTES de unirse — dato que casi nadie explica junto); fórmula de 3 partes (propósito, regla mínima, horario); **60 descripciones listas** por tipo (humor 10, aesthetic 10, familia 5, estudio 5, trabajo 5, compraventa 10, vecinos 5, fútbol 5, música 5); cómo escribir la tuya con tabla evitar/preferir; conexión con el directorio: al publicar en /agregar-grupo pedimos descripción clara + ejemplo real (dev Barcelona). Links: 127 (intro), /agregar-grupo, 123, como-crear-grupo, dev-barcelona + external https://faq.whatsapp.com/.
+
+5. **Seeded & iterated:** ran `node scripts/blog-seeds/cluster-5.mjs` 3 times (idempotent). Validation caught and I fixed: metaDescriptions over 155 (123/124/125/126 → 149-154), post-124 under 1.200 words (added adaptation paragraph after the plantilla → 1.222), post-124 definition at 56-57 words (→ 55), post-127 "Los organizadores de nunca" at 26 chars (→ "Organizadores de nunca", 22), and the names-count validator boundary (names section ends at "## Cómo usar la lista", not at the FAQ). Final metrics: words 1797/1222/1234/1266/1926/1853; metaDesc 150/150/151/149/146/151; readingMinutes 10/7/7/7/11/10; names = 200 (all ≤25 chars); descriptions = 60.
+
+6. **Verification (curl only, QA script `tool-results/cluster5-qa.mjs`):**
+   - Each of the 6 post pages → **200**, contains the `<title>` with post title, `<h1>` with post title, `Antonio C.` (3 occurrences), and rendered content: 7 blockquote templates + 2 tables on 123, 228 `<li>` on 127 (200 names + bullets), 87 `<li>` on 128 (60 descriptions + bullets). dev.log clean, all requests 200.
+   - All **26 distinct internal URLs** linked across the 6 posts → **200** (includes my own 6 slugs, siblings 002/106/108/110/111/114, categories, cities, 8 group detail pages, /agregar-grupo, /guias).
+   - Link rules per post: 5-6 internal links, 1 external whitelist link each, **0 duplicated URLs within any post**, ≥1 internal link in the first 150 words, required link matrix from the task spec fully present (123→moderar+124/125/126; 124→123; 125→123+/ciudad/madrid+/ciudad/buenos-aires; 126→123+compraventa+negocios+e-commerce-colombia; 127→humor+128; 128→127+/agregar-grupo).
+   - Uniqueness: paragraph-level comparison (normalized, ≥10 words) across **all 40 posts** in the DB (001/002, clusters 1-4 and the parallel cluster 6 additions) → **0 shared paragraphs**.
+   - No `src/` file touched, no `worklog.md` touched, dev server untouched, no agent-browser used.
+
+## Stage Summary
+
+Cluster 5 (Rules & names) is fully seeded: 6 published posts (post-123 → post-128) in `blog_posts` with the exact slugs, titles, staggered dates (22/21/20/19/18/17 days ago), coverEmoji, 3-5 plain tags, Antonio C. byline, metaDescriptions 146-151 chars, and readingMinutes computed from real word counts (1.222-1.926 words; post-127 with the full list of 200 original names, all fitting WhatsApp's 25-character limit; post-128 with 60 copy-paste descriptions). Every post follows the brief's SEO skeleton (intro promise → 40-55-word snippet-answer → structured body with blockquoted copy-paste templates and tables → FAQ) and the required internal linking matrix, with all internal targets curl-verified 200 and zero duplicate paragraphs across the whole blog. Deliverables: `scripts/blog-seeds/cluster-5.mjs` (seed + validation, idempotent), QA helper `tool-results/cluster5-qa.mjs`, and this worklog.
+# Worklog — Task 10-6 · Cluster 6 "Communities & channels"
+
+**Task ID:** 10-6
+**Agent:** Content writer (blog seeds)
+**Task:** Write CLUSTER 6 — Communities & channels (5 posts, post-129 → post-133), seed script `scripts/blog-seeds/cluster-6.mjs`, following `agent-ctx/content-brief.md` conventions exactly.
+
+## Work Log
+
+1. **Read the shared brief** (`agent-ctx/content-brief.md`) in full: voice rules (easy Spanish, short sentences, tú, max 1-2 regional touches), SEO structure (intro with promise → 40-55-word snippet-answer paragraph → H2/H3 body with tables, numbered steps, bold → FAQ), insert conventions (author `Antonio C.`, status `published`, metaTitle NULL, metaDescription 140-155 chars, readingMinutes = round(words/180), views 0, publishedAt = UTC minus daysAgo), internal linking (4-8 internal per post, ≥1 in first ~150 words, 2-3 sibling blog links, 1-2 whitelist external links, never the same URL twice per post).
+
+2. **Environment check:** MariaDB up via the runtime client; dev server already running on :3000 (did NOT restart it, curl-only verification, no agent-browser). Before writing, DB held post-001/002 + clusters 1-3 (101-116); cluster 7 (134-138) appeared mid-run from a parallel agent — clusters 4/5 (117-126) still absent, so every sibling link I wrote targets posts that exist NOW (001/002, 101-116) or my own cluster posts.
+
+3. **Link target pre-verification (curl, all → 200):** `/`, `/buscar`, `/guias`, `/agregar-grupo`, `/reportar-grupo`, `/populares`, `/paises`, `/ciudades`, `/sobre-nosotros`, `/categoria/{deportes,educacion,negocios,tecnologia,compraventa,noticias,humor}`, `/pais/{mx,es,ar}`, `/ciudad/{monterrey,sevilla,buenos-aires}`, `/grupo/{futbol-argentino-la-mesa-de-debate,la-liga-mx-resultados-y-memes,emprendedores-mx-ideas-y-flujo-de-caja,ia-en-espanol-herramientas-y-prompts}`, blog posts `/blog/{como-unirse-a-…-guia-completa,grupo-de-whatsapp-solo-lectura,como-crear-un-grupo-de-…-guia-completa,como-moderar-…,es-seguro-…,que-nadie-te-anade-…,como-salir-de-…,como-encontrar-…-seguros-2026}` and `/blog` index.
+
+4. **Wrote `scripts/blog-seeds/cluster-6.mjs`** (5 posts, idempotent via ON DUPLICATE KEY UPDATE) + built-in validation logging words / metaDescription length / internal+external link counts / duplicate URLs / early-link presence, and computing readingMinutes as round(words/180). Posts (all with final FAQ, 40-55-word definition paragraph, version-dependent facts hedged "según la versión"/"hasta hoy", easy Spanish, single natural regional touch each):
+   - **post-129** `comunidad-de-whatsapp-que-es-y-para-que-sirve` · 15 days ago · 🏘️ · 1.480 words · explication with a REAL structured example (club de barrio: Anuncios / Fútbol sábado / Cuota y finanzas), qué ve cada miembro paso a paso, enlace único de la comunidad, grupo de anuncios como altavoz, para qué sí y para qué no, quién puede crear, cómo entrar (4 pasos) y salir, FAQ ×5. Links: `/categoria/deportes` (early), `/blog/es-seguro-…-publicos`, `/blog/grupo-de-whatsapp-solo-lectura` (114), `/blog/grupo-vs-comunidad-vs-canal-de-whatsapp` (130), `/blog/comunidad-de-whatsapp-business-mito-resuelto` (132), `/grupo/futbol-argentino-la-mesa-de-debate`, `/blog/como-crear-una-comunidad-en-whatsapp` (131), `/guias` (8 internal) + external `https://www.whatsapp.com/community`.
+   - **post-130** `grupo-vs-comunidad-vs-canal-de-whatsapp` · 14 · 🆚 · 1.221 words · LA tabla comparativa definitiva (6 filas: qué es / límite de gente / quién escribe / quién ve tu número / cómo se entra / para qué sirve) apuntando al featured snippet, una sección por pieza, guía de decisión "¿cuál necesitas?" con **4 escenarios** (familia→grupo; club/escuela/vecinos→comunidad; anunciar a seguidores→canal; tienda que atiende y anuncia→grupo+canal/comunidad), mezcla de piezas (embudo canal→grupo→comunidad), errores de elección, FAQ ×5. Links: `/categoria/humor` (early), 114, 111, 129, 131, 133, `/categoria/negocios`, `/guias` (8 internal) + external `https://www.whatsapp.com/community` + `https://www.whatsapp.com/channel`.
+   - **post-131** `como-crear-una-comunidad-en-whatsapp` · 13 · 🛠️ · 1.235 words · requisitos (app personal, ser admin de los grupos a incluir, diseño previo 2-4 salas), 7 pasos de creación, cómo añadir grupos existentes (3 reglas), **el manual del organizador que nadie escribe**: invitar por grupos enteros y no persona por persona, grupo de anuncios como puerta de entrada, primeras 2 semanas día por día (día 1 / días 2-4 / día 5 / semana 2), lo que nunca funciona, errores, mantenimiento (ritmo-orden-vocerías), FAQ ×5. Links: 129 (early), 132, 111, `/blog/como-moderar-…` (002), `/categoria/deportes`, `/agregar-grupo`, `/guias` (7 internal) + external `https://www.whatsapp.com/community`.
+   - **post-132** `comunidad-de-whatsapp-business-mito-resuelto` · 12 · 💼 · 1.256 words · myth-bust: HOY las comunidades NO se crean desde WhatsApp Business; origen del mito (nombre, tutoriales genéricos, plataforma empresarial), respuesta corta con hedge, por qué (diseño de cada app), **el detalle clave: un número no puede estar activo en ambas apps a la vez** → 3 caminos reales (otro número / migrar / quedarse con grupos), combinación 1 (comunidad personal + atención Business) y 2 (grupos de atención en Business + comunidad de anuncios), tabla "qué app sirve para qué cosa", 3 perfiles, FAQ ×5. Links: 129 (early), 131, 133, `/categoria/negocios`, `/grupo/emprendedores-mx-ideas-y-flujo-de-caja`, `/guias` (6 internal) + external `https://www.whatsapp.com/business` + `https://faq.whatsapp.com/`.
+   - **post-133** `como-crear-un-canal-de-whatsapp` · 11 · 📢 · 1.211 words · qué es y qué NO es (una vía, sin comentarios, número oculto, sin límite conocido), 7 pasos de creación (pestaña Novedades/Actualizades → Canales nuevos…), ajustes que valen la pena, contenido que funciona (horario fijo, 2-4 líneas, una idea por mensaje, enlaces a tus grupos, encuestas) vs lo que se hunde, semana 1 de un canal de resultados día por día, 5 vías reales para los primeros seguidores, cómo una comunidad o un directorio alimenta el canal (embudo completo), FAQ ×5. Links: `/grupo/la-liga-mx-resultados-y-memes` (early), 130, 132, 129, 131, `/buscar`, `/guias` (7 internal) + external `https://www.whatsapp.com/channel` + `https://blog.whatsapp.com/`.
+
+5. **Seeded & validated:** ran `node scripts/blog-seeds/cluster-6.mjs` once, clean — zero warnings on the first pass: words 1480/1221/1235/1256/1211 (all in 1200-2000), metaDescriptions 146/149/152/148/149 chars (all in 140-155), internal links 8/8/7/6/6 (all in 4-8), external 1/2/1/2/2 (all in 1-2), early internal link within first 150 words on all 5, 0 duplicated URLs per post, readingMinutes 8/7/7/7/7. (Rows seeded with views=0; the small view counts now in DB are real visits from my own curl verifications.)
+
+6. **Verification (curl only):**
+   - Each of the 5 post pages → **200**, contains the `<title>` with the exact post title, the `<h1>` with the exact post title, `Antonio C.` (3 occurrences each), and in-content internal hrefs confirmed present (plus page furniture links from related-sections).
+   - All **18 distinct internal URLs** linked across the 5 posts → **200** (incl. my own 5 cluster slugs, posts 107/111/114/002, categories, group details, `/guias`, `/buscar`, `/agregar-grupo`).
+   - External links: exactly the whitelist set `{www.whatsapp.com/community, www.whatsapp.com/channel, www.whatsapp.com/business, faq.whatsapp.com, blog.whatsapp.com}`, each used at most once per post.
+   - Uniqueness: paragraph-level comparison (normalized, >60 chars) of my 5 posts vs ALL 23 other posts in the DB (001/002, 101-116, 134-138) → **0 shared paragraphs**.
+   - DB sanity: all rows `published`, author `Antonio C.`, metaTitle NULL, tags JSON arrays of 3-4 plain words, coverEmoji single emoji, staggered publishedAt 15/14/13/12/11 days ago (2026-09-28 → 2026-10-02).
+   - No `src/` file touched, no `worklog.md` touched, dev server untouched.
+
+## Stage Summary
+
+Cluster 6 (Communities & channels) is fully seeded: 5 published posts (post-129 → post-133) in `blog_posts` with the exact slugs/titles from the task spec, Antonio C. byline, metaDescriptions 140-155 chars with the primary keyword, readingMinutes computed from real word counts (1.211-1.480 words each), and staggered dates. Every required link from the task spec is in place (129→130+131; 130→129+133+114; 131→129+111; 132→131+129; 133→130+129), plus the required external links (whatsapp.com/community, /channel, /business), natural sibling/site links (6-8 internal per post) and 1-2 whitelist externals per post. All internal targets verified 200. Deliverables: `scripts/blog-seeds/cluster-6.mjs` (seed + validation, idempotent) and this worklog.
+# Worklog 10-7 — Cluster 7 "Category plays + bonus"
+
+## Task ID
+10-7
+
+## Agent
+Content writer — Cluster 7 (category plays + bonus posts)
+
+## Task
+Escribir CLUSTER 7 del blog de Grupos Hoy (5 posts, post-134→post-138) siguiendo `agent-ctx/content-brief.md` EXACTAMENTE: seed script `scripts/blog-seeds/cluster-7.mjs`, convenciones de `blog_posts`, voz fácil en español, FAQ final, párrafo-definición, 1.200-2.000 palabras, Antonio C., verificación por curl, worklog propio. Nunca tocar `src/` ni `worklog.md`.
+
+## Work Log
+
+### 1. Preparación
+- Leí `agent-ctx/content-brief.md` completo + registros de agentes previos (`agent-ctx/10-2-content-writer.md`, patrón de `scripts/blog-seeds/cluster-2.mjs`).
+- Consulté la DB (mariadb runtime): categorías reales (`educacion`, `amistad`, `humor`, `compraventa`, `negocios` — NO existe `memes`, la real es `humor`, tal como avisaba la tarea), grupos live por categoría (UBA, UNAM, mate porteño, memes argentinos, e-commerce Colombia…), y posts existentes.
+- Curl-pre-verifiqué todos los destinos de enlace antes de escribir. Detecté que el slug real de cluster-3 es `/blog/crear-grupo-de-whatsapp-sin-agregar-contactos` (sin "como-", el master-map manda) → usado el correcto en post-138.
+
+### 2. Contenido creado (script idempotente, ON DUPLICATE KEY UPDATE del brief)
+| Post | Slug | daysAgo | Palabras | metaDesc | Enlaces |
+|---|---|---|---|---|---|
+| post-134 | como-organizar-un-grupo-de-estudio-en-whatsapp | 9 | 1.318 | 146 | 7 int + 1 ext |
+| post-135 | grupos-de-whatsapp-para-hacer-amigos | 8 | 1.328 | 142 | 8 int + 1 ext |
+| post-136 | etiqueta-en-grupos-de-whatsapp-2026 | 7 | 1.272 | 150 | 7 int + 1 ext |
+| post-137 | limites-de-whatsapp-2026-tabla-completa | 6 | 1.265 | 147 | 8 int + 2 ext |
+| post-138 | como-usar-grupos-de-whatsapp-para-vender-sin-spam | 5 | 1.263 | 143 | 7 int + 1 ext |
+
+Ángulos cubiertos según la tarea:
+- **post-134**: el playbook completo (normas con horario, roles con tabla, notas en nube tipo Drive, calendario de repasos 7/3 días, sprints de examen con encuestas y llamada de 32, silenciar sin culpa). Link temprano a `/categoria/educacion` (palabra ~64) + `/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar` (cluster 5).
+- **post-135**: cómo evaluar antes de entrar (tamaño 15-60, ritmo, reglas, sin datos) + tabla verde/roja + banderas rojas (dinero, "romance", cadenas) + el primer mensaje con ejemplo literal de Ana. Link temprano a `/categoria/amistad` (palabra ~68) + `/ciudad/buenos-aires` + `/blog/es-seguro-unirse-a-grupos-de-whatsapp-publicos`.
+- **post-136**: guía de etiqueta con humor (audio de 7 min, buen día 🌹, cadena "reenvía a 10", spoiler del partido, "jaja" suelto, stickers de madrugada, fuera de tema) + tabla de veredictos 2026. Usa la categoría REAL `/categoria/humor` (no /categoria/memes) + `/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta`.
+- **post-137**: LA tabla de límites (8 filas, cada una con su nota "según versión/plataforma"): grupo 1.024 · archivos 2 GB (según plataforma) · comunidad ~50 grupos ("según la documentación actual") · canales sin tope · llamadas 32 · encuestas 12 · descripción ~500 (521 clásicos) · reenvío 5 chats. Sección "por qué WhatsApp limita" (estabilidad/spam/UX) + aviso de revisión (octubre 2026) + por qué 1.024 = 2^10. Link a post-130 (`/blog/grupo-vs-comunidad-vs-canal-de-whatsapp`) + externos whitelist (faq.whatsapp.com, whatsapp.com/community).
+- **post-138**: guía para el dueño de negocio (grupo de clientes con QR en el mostrador, catálogo de WhatsApp Business, formato producto+precio+hasta cuándo con tabla, frecuencia 2-3/semana con calendario, permiso siempre, no añadir sin aviso) + "por qué el spam te sale caro" (ético: todos lo sufren, denuncias, límite de reenvíos). Feeds `/categoria/compraventa` + `/categoria/negocios` en las primeras 150 palabras + `/grupo/e-commerce-y-dropshipping-colombia` + externo `https://www.whatsapp.com/business`.
+
+Extras de cumplimiento del brief: intro 2-3 párrafos con promesa; párrafo-definición 40-55 palabras tras la intro; H2/H3; numerados; tablas; **negritas**; FAQ final 4-5 preguntas (136 y 135 llevan 5); español fácil con toques regionales puntuales (un "órale", un "che", el mate, el asado); cifras reales con hedging donde toca; tags planos; coverEmoji 1 por post; views=0; metaTitle NULL.
+
+### 3. Ajustes durante la verificación
+- Primera corrida: 4 posts bajo 1.200 palabras → amplié con secciones útiles (afición vs ciudad, el fantasma del grupo, responder a todos o a uno, fuera de tema, paso 6 "mide sin complicarte", FAQ extra grupo vs lista de difusión) → todos quedaron 1.263-1.328.
+- post-137 no tenía enlace interno en las primeras 150 palabras → añadí "En [Grupos Hoy](/) escribimos guías como esta…" en el párrafo 2 (palabra ~48).
+- Conté enlaces reales: 135 y 137 tenían 9 internos (máx. del brief: 8) → recorté el segundo enlace de ciudad (CDMX como texto plano) y el enlace redundante al post de crear grupo en 137 → 7-8 internos por post, sin URLs repetidas dentro de cada post.
+
+### 4. Verificación (curl only, sin agent-browser)
+1. `node scripts/blog-seeds/cluster-7.mjs` corre limpio, idempotente, con validación de palabras/metaDesc por post (0 warnings). Corrido 4 veces sin errores.
+2. Los 5 posts responden **200** y contienen `<title>` correcto, el `<h1>` con el título exacto, `Antonio C.` y decenas de hrefs internos (template + contenido).
+3. **32 URLs internas distintas** enlazadas (incluidos mis propios 5 posts) → todas **200**, cero 404. Los destinos de cluster 5/6 (reglas-para-grupos…, grupo-vs-comunidad…, como-crear-una-comunidad…, como-crear-un-canal…, reglas-grupos-de-whatsapp-trabajo-y-ventas) empezaron en 404 porque los agentes paralelos aún no seedeaban; hice polling y quedaron vivos antes del cierre (cluster 6 ~min 3, cluster 5 ~min 15).
+4. Externos: solo whitelist (faq.whatsapp.com ×4, whatsapp.com/community, whatsapp.com/business) — verificados en el HTML renderizado.
+5. Unicidad: script `tool-results/uniq-check-10-7.mjs` compara párrafos ≥80 chars normalizados contra los 40 posts de la DB → **0 párrafos compartidos**.
+6. Primer enlace interno por post: palabra 55/59/52/48/84 → todos dentro de las primeras 150 palabras (`tool-results/firstlink-check-10-7.mjs`).
+7. `dev.log` final: solo GET 200 de mis verificaciones; los warnings mysql2 viejos son de otro módulo (yo uso `mysql2/promise` en proceso aparte).
+8. Evidencia extra: `tool-results/linkcount-check-10-7.mjs` (7-8 internos, 1-2 externos, sin duplicados por post).
+
+## Stage Summary
+CLUSTER 7 completo y verificado: 5 posts (post-134→post-138) publicados, firmados por Antonio C., 1.263-1.328 palabras, con FAQ y párrafo-definición, jugo de enlaces dentro de rango (7-8 internos + 1-2 externos whitelist, primer enlace temprano, cero 404 en las 32 URLs internas), unicidad confirmada contra toda la DB. Script `scripts/blog-seeds/cluster-7.mjs` idempotente y re-ejecutable. No toqué `src/`, ni `worklog.md`, ni posts de otros clusters. El mapa de enlaces cruzados queda: 134↔reglas(cluster5), 135↔es-seguro/estafas/que-nadie(cluster2)+agregar-grupo, 136↔salir-del-grupo(cluster2)+moderar(post-002)+reglas(cluster5), 137↔comunidad/canal(cluster6)+134+136, 138↔crear-sin-contactos(cluster3)+denunciar(cluster2)+reglas-ventas(cluster5).
+
+---
+Task ID: 11-ORCHESTRATOR-2026-10-13
+Agent: main (Z.ai Code)
+Task: User's mega-batch: adult category normalization, like/dislike rating, share-to-site-links, verify new tab, deep internal linking, 35+3 SEO blog posts, unique country/city intros.
+
+Work Log:
+- Wave 1 (2 parallel code agents): 8-a — adult categories now server-render groups like normal categories (no gate/toggle), robots index,follow + RTA-5042-1996-RTA label, NO JSON-LD on adult pages (only global WebSite/Organization brand scripts remain), group images without alt/title on adult grids; group_feedback table + POST /api/groups/feedback (visitor-hash dedupe, upsert) + GroupFeedback client block ("¿Te resultó útil este grupo?" — emerald like, RED dislike, aria-pressed, honest counts from 0); sitemap generator now includes adult categories+groups (104 group URLs). 8-b — share menu now shares/copies https://gruposhoy.com/grupo/{slug} (never chat.whatsapp — traffic to us), split-button with native share; verify page opens WhatsApp in NEW TAB; internal-link sections on /pais + /ciudad (categories-in-city, sibling cities, cities-in-country, top categories); remark-gfm installed (markdown tables render); blog external links get target=_blank rel=noopener; "Sigue leyendo" related-posts block; footer Blog link; blog authorName → 'Antonio C.'.
+- My fixes between waves: softened 6 leftover "miles de hispanohablantes" CTAs; sql.md + BLOG AUTOR migration note + BLOG SEEDS doc; agent-ctx/content-brief.md shared brief (voice rules, slug map, link targets, verification).
+- Wave 2 (9 parallel content agents): 9-a wrote 20 unique country intros (entity_intros, 4 paras each, local elements, 6-gram pairwise overlap checks); 9-b wrote 29 unique city intros (barrios/transport/universities/teams per city, sibling-divergence enforced); 10-1..10-7 wrote 38 blog posts across 7 clusters + 3 bonus (1.2k-1.9k words each, FAQ+snippet paragraphs, 4-11 internal links + 1-2 official-external links per post, all internal link targets curl-verified 200, zero shared paragraphs, Antonio C. byline, publishedAt staggered 49→5 days ago).
+- Post-wave fixes (mine): sitemap-generator was missing a blog section entirely (blog.xml was a stale 1-URL orphan) — added blog.xml generation (40 URLs) + index entry (7 sub-sitemaps); regenerated all sitemaps.
+- Orchestrator QA: all 38 new posts + blog index render 200 (40 posts listed, author visible); feedback like-click end-to-end ([1,0]); verify page opens chat.whatsapp.com in new tab (tab t2) while t1 stays; adult category page: server-rendered 7 groups, no page JSON-LD, RTA meta, no toggle, group avatars alt-less (flags keep generic country alt); /pais/ar renders custom intro (~276 words, mate/Superclásico/Che present); /ciudad/buenos-aires same; reglas post renders 2 tables, 15 links, FAQ, 1.9k words; tsc exit 0; eslint clean; dev.log all 200s. Two dev-server OOM kills during the heavy wave (4GB sandbox, 9 agents + browser + compiles) — restarted via start-dev.sh both times, no state lost (DB persistent).
+- Committed and pushed to github.com/seowriterpk/connecta (main).
+
+Stage Summary:
+- BLOG: 40 published posts (2 existing + 38 new) across 7 keyword-researched clusters, easy local Spanish, Antonio C. author, internal+external linking per post, in blog.xml sitemap; blog/[slug] supports GFM tables + safe external links + related posts.
+- UNIQUENESS: 49 custom intros (20 countries + 29 cities) with local-only elements — the duplicate-content risk between taxonomy pages is gone.
+- ADULT: /categoria/citas-18 + contenido-exclusivo-18 (and their groups) are now normal indexable listings — no gate, count titles, RTA label, zero page schema, alt-less group images, sitemap-discoverable.
+- ENGAGEMENT: real like/dislike per group (deduped per visitor, no schema, Google-readable HTML) + share flows that spread OUR URLs.
+- LINK JUICE: taxonomy cross-links + 200+ contextual blog→directory links + related posts + footer links; every internal URL verified 200.
+- Risks/next: (1) 40 posts on /blog index unpaged — consider pagination when >60; (2) adult group pages indexable means Google may filter them via SafeSearch — monitor GSC; (3) OOM risk on heavy parallel sessions — restart via start-dev.sh; (4) production deploy: run cluster/intro seed scripts + REBRAND + ADULTO + BLOG AUTOR migrations + sitemap regen; (5) "menos de 24 horas" review-time claim on taxonomy CTAs still to soften; (6) draft posts 27 (names) marked Phase 3 by research — published anyway per user's 35-topic instruction; (7) blog listing has no pagination/tag pages per user's directive (tags are plain badges).

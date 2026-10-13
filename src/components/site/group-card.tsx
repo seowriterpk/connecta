@@ -67,15 +67,30 @@ function HeartButton({ id }: { id: string }) {
   );
 }
 
-export function GroupCard({ group }: { group: GroupCardDTO }) {
+export function GroupCard({
+  group,
+  imageAlt = true,
+}: {
+  group: GroupCardDTO;
+  /**
+   * Adult-grid directive: pass false to render the group image with NO alt
+   * and NO title attributes at all (adult category pages — SEO safety:
+   * descriptive alt text would leak adult titles into image search).
+   * Default true keeps the normal behavior (full alt text on clean groups,
+   * blank alt on adult groups elsewhere).
+   */
+  imageAlt?: boolean;
+}) {
   const searchQuery = useGroupsFilter((s) => s.search);
   const gradient = AVATAR_GRADIENTS[group.category?.color ?? "emerald"] ?? AVATAR_GRADIENTS.emerald;
   const memberPct = Math.min(100, Math.round((group.members / MEMBER_CAP) * 100));
   const isTrending = group.views >= 50 || group.members >= 700;
   const isHot = group.members >= 1000;
-  // Adult directive: blank image title/alt on adult groups (SEO safety).
-  const imgAlt = group.isAdult ? "" : group.title;
-  const imgTitle = group.isAdult ? undefined : group.title;
+  // Adult directive: blank image title/alt on adult groups (SEO safety);
+  // with imageAlt=false (adult category grids) both attributes are omitted
+  // entirely — the <img> renders with no alt and no title.
+  const imgAlt = imageAlt === false ? undefined : group.isAdult ? "" : group.title;
+  const imgTitle = imageAlt === false || group.isAdult ? undefined : group.title;
 
   // "Active recently" = lastActiveAt within 7 days
   const isActiveRecently = (() => {

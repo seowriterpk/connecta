@@ -1040,3 +1040,85 @@ Notas:
   `BASE_URL=https://gruposhoy.com node scripts/crons/sitemap-generator.mjs`.
 - Las cookies/claves internas (`cg-theme`, `cg-favorites`, …) no cambian: son
   invisibles para el usuario y renombrarlas rompería las preferencias guardadas.
+
+---
+
+## MIGRACIÓN ADULTO INDEXABLE (2026-10-13)
+
+Directiva de usuario: la sección adulta pasa de silo `noindex,nofollow` a
+**indexable** (robots `index,follow`) tanto en categorías adultas
+(`/categoria/citas-18`, `/categoria/contenido-exclusivo-18`) como en los
+grupos 18+. El sitemap es la vía de descubrimiento (las páginas limpias no
+enlazan a la zona adulta), por lo que el generador ahora incluye las
+categorías y grupos adultos. Cambios aplicados en código:
+
+- `/categoria/[slug]` y `/grupo/[slug]`: robots `index,follow`; meta etiqueta
+  de contenido adulto `<meta name="rating" content="RTA-5042-1996-RTA">` vía
+  `metadata.other.rating`.
+- Se MANTIENE sin cambios: cero JSON-LD en páginas adultas, imágenes sin
+  `alt`/`title` (en rejillas adultas se omiten los atributos por completo).
+- Enlaces caducados (`linkStatus = 'revoked'`) siguen siendo `noindex,follow`
+  para todos los grupos, limpios o adultos.
+- Sitemap (`scripts/crons/sitemap-generator.mjs`): incluye adultos en
+  `grupos-*.xml` y `categorias.xml`; `ciudades.xml` sigue solo-limpio para
+  coincidir con el contenido real de las páginas de ciudad.
+- El toggle 18+ de la home se mantiene (es una función de la home, no la
+  puerta de las categorías adultas, que ya renderizan la rejilla normal
+  en el servidor).
+
+### Tabla `group_feedback` (like/dislike por grupo)
+
+Nueva tabla del Schema Guard (se crea sola en el primer arranque, pero en
+producción ejecutar esto una vez):
+
+```sql
+CREATE TABLE IF NOT EXISTS `group_feedback` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `groupId` VARCHAR(191) NOT NULL,
+  `visitorHash` CHAR(64) NOT NULL,
+  `action` ENUM('like','dislike') NOT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_visitor_group` (`groupId`, `visitorHash`),
+  KEY `idx_groupId` (`groupId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+- Un voto por visitante y grupo (UNIQUE `groupId`+`visitorHash`); repetir
+  desde el otro botón actualiza el voto en sitio
+  (`ON DUPLICATE KEY UPDATE action = VALUES(action)`).
+- `visitorHash` = sha256(IP de `x-forwarded-for` + User-Agent + sal fija) —
+  no identifica personalmente, solo des-duplica.
+- Los contadores que ve el público salen siempre de
+  `SELECT action, COUNT(*) ... GROUP BY action` — honestos, empiezan en 0.
+- Tras aplicar en producción, regenerar sitemaps para incluir las URLs
+  adultas: `BASE_URL=https://gruposhoy.com node scripts/crons/sitemap-generator.mjs`.
+
+Verificación rápida en producción:
+
+```sql
+-- Debe devolver filas para las dos categorías adultas:
+SELECT `slug` FROM `categories` WHERE `isAdult` = 1 AND `isActive` = 1;
+-- Contadores honestos por grupo:
+SELECT `groupId`, `action`, COUNT(*) AS `total`
+FROM `group_feedback` GROUP BY `groupId`, `action`;
+```
+
+## MIGRACIÓN BLOG AUTOR (2026-10-13) — ejecutar tras MIGRACIÓN AUTORES
+
+El propietario (**Antonio C.**) firma todos los artículos del blog (decisión editorial 2026-10-13).
+Idempotente (el UPDATE deja de coincidir tras la primera pasada).
+
+```sql
+UPDATE `blog_posts` SET `authorName` = 'Antonio C.' WHERE `authorName` LIKE '%Equipo%';
+```
+
+## BLOG SEEDS (2026-10-13) — 38 artículos SEO
+
+Los 38 artículos del blog se siembran con los scripts idempotentes `scripts/blog-seeds/cluster-{1..7}.mjs`
+(mysql2, INSERT ... ON DUPLICATE KEY UPDATE por slug). Ejecutar cada script tras importar el dump base:
+
+```bash
+node scripts/blog-seeds/cluster-1.mjs   # ... y así hasta cluster-7
+node scripts/crons/sitemap-generator.mjs  # regenerar blog.xml
+```

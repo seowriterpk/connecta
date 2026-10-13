@@ -10,11 +10,16 @@ import {
   ShieldCheck,
   MapPin,
   Building2,
+  Tag,
+  Globe2,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import type { CategoryDTO } from "@/lib/types";
 import { CountryFlag } from "@/components/site/country-flag";
 import {
   getCityBySlug,
+  getCountryByCode,
+  getAllCities,
   getGroupsByCityPaginated,
   PAGE_SIZE,
 } from "@/lib/data";
@@ -137,6 +142,31 @@ export default async function CityPage({
   // Entity content (custom intros + keyword-derived pieces) — React-cache()d,
   // shares the lookup with generateMetadata.
   const content = await getTaxonomyContent("city", city.city);
+
+  // --- Internal linking (SEO) ---------------------------------------------
+  // Categorías únicas entre los grupos listados arriba (enlaces reales,
+  // nunca inventados: slugs tal cual vienen de la base de datos).
+  const cityCategories = Array.from(
+    groups
+      .map((g) => (g.category && g.category.slug ? g.category : null))
+      .filter((c): c is CategoryDTO => c !== null)
+      .reduce<Map<string, { slug: string; name: string; count: number }>>((m, c) => {
+        const e = m.get(c.slug);
+        if (e) e.count += 1;
+        else m.set(c.slug, { slug: c.slug, name: c.name, count: 1 });
+        return m;
+      }, new Map())
+      .values()
+  ).sort((a, b) => b.count - a.count);
+
+  // País de la ciudad + ciudades hermanas (mismo país, sin la actual).
+  const [country, allCities] = await Promise.all([
+    getCountryByCode(city.countryCode),
+    getAllCities(),
+  ]);
+  const siblingCities = allCities.filter(
+    (c) => c.countryCode === city.countryCode && c.slug !== city.slug
+  );
 
   // JSON-LD: CollectionPage about a City (Place subtype)
   const collectionPageJsonLd = {
@@ -354,6 +384,85 @@ export default async function CityPage({
             />
           </div>
         </section>
+
+        {/* Internal linking — categorías presentes en esta ciudad */}
+        {cityCategories.length > 0 && (
+          <Reveal>
+            <section
+              className="border-t py-10 sm:py-12"
+              aria-labelledby="city-cats-heading"
+            >
+              <div className="container mx-auto px-4">
+                <h2
+                  id="city-cats-heading"
+                  className="text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  Grupos de {city.city} por categoría
+                </h2>
+                <p className="mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground">
+                  Los grupos que ves arriba reúnen varios temas: charla local, trabajo,
+                  deportes, estudios y más. Si buscas algo concreto en {city.city}, entra en
+                  una categoría y revisa sus fichas: cada una trae descripción, tamaño
+                  aproximado y el enlace para unirse.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {cityCategories.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      href={`/categoria/${cat.slug}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Tag className="h-3.5 w-3.5 text-primary" aria-hidden />
+                      Grupos de {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </Reveal>
+        )}
+
+        {/* Internal linking — país y ciudades hermanas */}
+        {country && siblingCities.length > 0 && (
+          <Reveal>
+            <section
+              className="border-t py-10 sm:py-12"
+              aria-labelledby="city-country-heading"
+            >
+              <div className="container mx-auto px-4">
+                <h2
+                  id="city-country-heading"
+                  className="text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  Más de {country.name}
+                </h2>
+                <p className="mt-2 max-w-3xl text-pretty text-sm leading-relaxed text-muted-foreground">
+                  Si quieres ver el panorama completo del país, echa un ojo a los{" "}
+                  <Link
+                    href={`/pais/${country.code}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    grupos de WhatsApp de {country.name}
+                  </Link>
+                  . Y si prefieres comunidades de otras zonas, aquí tienes más ciudades con
+                  grupos activos en {country.name}:
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {siblingCities.map((sib) => (
+                    <Link
+                      key={sib.slug}
+                      href={`/ciudad/${sib.slug}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Globe2 className="h-3.5 w-3.5 text-primary" aria-hidden />
+                      Grupos de WhatsApp en {sib.city}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </Reveal>
+        )}
 
         {/* Long-form SEO content */}
         <section className="border-t bg-muted/20 py-10 sm:py-14" aria-labelledby="seo-heading">
