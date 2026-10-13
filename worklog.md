@@ -4094,3 +4094,9 @@ Work Log:
 
 Stage Summary:
 - Remote restored; production deploy path from DEPLOYMENT.md is actionable again (clone repo → set env → run migrations → deploy).
+
+PUSH VERIFICATION (Task 7, 2026-10-13):
+- git push --force origin main (remote had diverged pre-rebrand history with no common ancestor — sandbox re-provision reset local git; local tree is source of truth, browser-verified).
+- git ls-remote: refs/heads/main = f06f95d5ea9e2df8b5199a6b8d845710fbcb4a3d = local HEAD ✓; branch tracking main...origin/main in sync ✓.
+- Credentials stored only in local .git/config (never committed; .env* and mysql-runtime/ are gitignored).
+- Remote history now: rebrand Grupos Hoy + trust/crawl-hygiene batch + full Next.js 16 source.
