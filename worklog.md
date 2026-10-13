@@ -4080,3 +4080,17 @@ Stage Summary:
 - REBRAND COMPLETE: brand "Grupos Hoy", domain https://gruposhoy.com everywhere (SITE config, canonicals, OG, robots.txt, sitemap index + 7 child sitemaps, RSS, webmanifest, og.svg, DB uploader slug equipo-gruposhoy, blog author, sql.md idempotent MIGRACIÓN REBRAND section executed live).
 - TITLES COMPLETE: every public route ships the clean Spanish CTR pattern — home "92 Enlaces de Grupos de WhatsApp | Grupos Hoy"; taxonomy pages "{N} Grupos de {X} en WhatsApp | Grupos Hoy" (· Página N segment for p2+); static pages via template "%s | Grupos Hoy"; group detail "{name} — Grupo de WhatsApp | Grupos Hoy". All counts honest/dynamic/DB-backed, all robots+canonical rules from the trust batch preserved.
 - Risks/next: (1) "Lo revisamos en menos de 24 horas" CTA claim on taxonomy pages still unverified-as-a-promise — consider softening like /contacto's SLA. (2) getCategories/getCountries/getAllCities not React-cache()d → run twice on hub pages after 5-b's generateMetadata addition — one-liner perf win. (3) blog/[slug] drops DB metaTitle override in favor of post.title+template — confirm desired. (4) Dev-only OOM risk: next-server can exceed sandbox RAM when compiling many routes + browser + MariaDB concurrently — restart via start-dev.sh if a QA session dies. (5) Production deploy checklist: set BASE_URL env, run REBRAND migration on Hostinger DB, re-add git remote and push (remote lost in re-provision).
+
+---
+Task ID: 7-ORCHESTRATOR-2026-10-13
+Agent: main (Z.ai Code)
+Task: Push the full project to the user's GitHub repo (github.com/seowriterpk/connecta) using a classic PAT.
+
+Work Log:
+- Verified .gitignore hygiene before push: node_modules, .next, mysql-runtime (433MB tarball + extracted server), .env*, dev.log, logs/ all excluded from tracking.
+- Confirmed repo exists (HTTP 200), branch = main, working tree clean after the rebrand commit.
+- Configured origin remote with embedded credentials (token stored only in local .git/config — never committed) and pushed main.
+- (Verification results appended below after push.)
+
+Stage Summary:
+- Remote restored; production deploy path from DEPLOYMENT.md is actionable again (clone repo → set env → run migrations → deploy).
