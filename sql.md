@@ -1138,3 +1138,27 @@ node scripts/crons/sitemap-generator.mjs  # regenerar blog.xml
 UPDATE `blog_posts` SET `content` = REPLACE(`content`, '](/blog/', '](/guias/') WHERE `content` LIKE '%](/blog/%';
 UPDATE `blog_posts` SET `content` = REPLACE(`content`, '](/blog)', '](/guias)') WHERE `content` LIKE '%](/blog)%';
 ```
+
+## MIGRACIÓN VERIFICACIÓN + IMPORT (2026-10-13, tarde)
+
+1. **`link_checks` (nueva tabla)**: historial de comprobaciones automáticas de enlaces
+   del flujo `/verificar/[slug]`. La crea el SCHEMA GUARD de `src/lib/db.ts` al arrancar
+   (y `import.sql` la trae). API: `POST /api/groups/verify-check` — comprobación ligera
+   (formato + código + estado), sin fetchs externos, ~0 CPU.
+
+2. **Fusión ciudad duplicada**: `UPDATE groups SET city='Panamá' WHERE city='Ciudad de Panamá'`
+   (incluida en import.sql como post-migración idempotente).
+
+3. **`import.sql` (repo root)**: volcado COMPLETO para Hostinger — 104 grupos, 22 categorías,
+   20 países, 40 posts, 49 intros, uploader, feedback/reviews, + CREATE TABLE IF NOT EXISTS
+   para todas las tablas + post-migraciones (blog→guías, ciudad, autor, rebrand).
+   Generado con `node scripts/make-import-sql.mjs` (validado: import limpio en DB fresca,
+   re-import idempotente, colación normalizada utf8mb4_unicode_ci).
+
+4. **Puerta adulta server-side**: cookie `gh_adult=1` (la pone el toggle 18+) → las páginas
+   de ciudad incluyen grupos 18+ SOLO con cookie y pasan a `noindex, follow` en esa vista;
+   sin cookie, cero contenido adulto en el HTML. `getAllCities()` siempre excluye grupos
+   adultos (la home nunca lista ciudades solo-adultas).
+
+5. **Sitemaps**: solo URLs indexables — países/ciudades con <3 grupos limpios fuera de
+   paises.xml/ciudades.xml (misma regla thin-noindex de las páginas).

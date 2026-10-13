@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen, ChevronRight, Clock, Eye, CalendarDays, ArrowRight, PenLine, Compass } from "lucide-react";
 import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getPublishedPosts } from "@/lib/blog";
+import { hreflangAlternates } from "@/lib/hreflang";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
@@ -62,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: `${SITE.url}/guias` },
+    alternates: hreflangAlternates("/guias"),
     robots: { index: true, follow: true },
     openGraph: {
       title,

@@ -78,9 +78,10 @@ export default async function VerifyPage({ params }: PageProps) {
                   <ShieldCheck className="h-4 w-4 text-primary" /> ¿Qué hace esta página?
                 </h2>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  Antes de redirigirte a WhatsApp, verificamos que el enlace del grupo siga activo.
-                  Esta comprobación protege a los usuarios de enlaces caducados o revocados.
-                  El botón de unión se habilita cuando se completa la verificación.
+                  Antes de redirigirte a WhatsApp, nuestro sistema ejecuta una comprobación
+                  automática del enlace: formato de la invitación, estructura del código y estado
+                  del grupo en el directorio. Cada comprobación queda registrada en el historial
+                  del grupo. El botón de unión se habilita al completarla.
                 </p>
               </div>
             </div>

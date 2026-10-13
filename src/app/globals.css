@@ -303,3 +303,103 @@
   .prose-cg h2 { font-size: 1.5rem; }
   .prose-cg h3 { font-size: 1.2rem; }
 }
+
+/* ---------------------------------------------------------------------------
+   Mobile press feedback & tap UX — perceived-performance stack (task 13-b).
+   1. Kill the grey iOS/Android tap highlight (we draw our own press state).
+   2. Global press feedback: interactive elements compress ~3% while pressed
+      (a "touched" feel, zero JS). Deliberately scoped to small interactive
+      elements only (a/button/roles) — card containers (motion.article, .group)
+      are NOT targeted, so their framer-motion hover animations keep working.
+   3. touch-action: manipulation — removes the double-tap-zoom delay on iOS
+      without disabling scrolling (pan gestures stay allowed).
+   4. .page-enter — route transition used by src/app/template.tsx.
+   5. .cg-skeleton — shimmer skeleton blocks (src/app/loading.tsx), reusing
+      the existing @keyframes cg-shimmer above.
+   6. .cg-route-progress-bar — width/opacity transitions for the route-change
+      progress bar (src/components/site/route-progress-bar.tsx).
+--------------------------------------------------------------------------- */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:active:not(:disabled),
+button:active:not(:disabled),
+[role="button"]:active,
+[role="switch"]:active,
+[role="tab"]:active {
+  transform: scale(0.97);
+  transition: transform 120ms ease;
+}
+
+a,
+button,
+[role="button"],
+[role="switch"],
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Route transition (template.tsx re-mounts on every navigation) */
+@keyframes cg-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: cg-page-enter 180ms ease-out;
+}
+
+/* Shimmer skeleton block (loading.tsx) — reuses @keyframes cg-shimmer */
+.cg-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+.cg-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--foreground) 6%, transparent),
+    transparent
+  );
+  animation: cg-shimmer 1.6s infinite;
+}
+
+/* Route-change progress bar transitions */
+.cg-route-progress-bar {
+  transition:
+    width 250ms ease,
+    opacity 200ms ease;
+  box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none !important;
+  }
+  .cg-skeleton::after {
+    animation: none !important;
+  }
+  .cg-route-progress-bar {
+    transition: none !important;
+  }
+  a:active:not(:disabled),
+  button:active:not(:disabled),
+  [role="button"]:active,
+  [role="switch"]:active,
+  [role="tab"]:active {
+    transform: none;
+  }
+}

@@ -6,11 +6,6 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://gruposhoy.com/pais/bo</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://gruposhoy.com/pais/cl</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -21,37 +16,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://gruposhoy.com/pais/cr</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/cu</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/do</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/ec</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://gruposhoy.com/pais/es</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/gt</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/hn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -61,42 +26,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://gruposhoy.com/pais/ni</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/pa</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://gruposhoy.com/pais/pe</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/pr</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/py</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/sv</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/uy</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/pais/ve</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>

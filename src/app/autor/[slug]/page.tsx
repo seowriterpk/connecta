@@ -15,14 +15,17 @@ import {
   Sparkles,
   ShieldCheck,
   BadgeCheck,
+  ArrowRight,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import {
   getUploaderBySlug,
   getGroupsByUploader,
   getUploaderCategories,
   type UploaderDTO,
 } from "@/lib/data";
+import { getPublishedPostCards } from "@/lib/blog";
 import { GroupCard } from "@/components/site/group-card";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -85,7 +88,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates: hreflangAlternates(`/autor/${uploader.slug}`),
     robots: { index: true, follow: true },
     openGraph: {
       title: ogTitle,
@@ -125,6 +128,11 @@ export default async function AutorPage({ params }: PageProps) {
     getGroupsByUploader(uploader.id, 60),
     getUploaderCategories(uploader.id),
   ]);
+  // Team page asset: the Equipo Grupos Hoy author page also surfaces the
+  // editorial methodology + the guías it publishes (E-E-A-T: who is behind
+  // the content, how it is produced, and where to read more).
+  const isTeam = uploader.slug === "equipo-gruposhoy";
+  const teamGuides = isTeam ? await getPublishedPostCards(3) : [];
   const socials = buildSocialLinks(uploader);
   const totalMembers = groups.reduce((acc, g) => acc + (g.members || 0), 0);
 
@@ -306,6 +314,115 @@ export default async function AutorPage({ params }: PageProps) {
             </div>
           </div>
         </header>
+
+        {/* Team-only: how we work (E-E-A-T methodology) */}
+        {isTeam && (
+          <section className="border-b bg-muted/20 py-10 sm:py-12" aria-labelledby="metodo-heading">
+            <div className="container mx-auto px-4">
+              <div className="mx-auto max-w-4xl">
+                <h2
+                  id="metodo-heading"
+                  className="text-xl font-bold tracking-tight sm:text-2xl"
+                >
+                  Cómo trabajamos
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  El proceso que sigue cada grupo antes de aparecer en el directorio.
+                </p>
+                <ol className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <li className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      1
+                    </span>
+                    <h3 className="mt-3 text-sm font-semibold">Revisión editorial</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Cada grupo llega por el formulario de envío. Revisamos nombre, descripción,
+                      categoría y país antes de publicarlo. Nada entra sin pasar por aquí.
+                    </p>
+                  </li>
+                  <li className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      2
+                    </span>
+                    <h3 className="mt-3 text-sm font-semibold">Comprobación del enlace</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      El enlace de invitación pasa una comprobación automática de formato y
+                      estructura. Cada comprobación queda registrada en el historial del grupo y
+                      puedes verla en su página de verificación.
+                    </p>
+                  </li>
+                  <li className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      3
+                    </span>
+                    <h3 className="mt-3 text-sm font-semibold">Publicación con contexto</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Publicamos el grupo con su categoría, país y ciudad, para que quien busca
+                      lo encuentre en contexto. Las categorías para mayores de edad van siempre
+                      separadas del resto del directorio.
+                    </p>
+                  </li>
+                  <li className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      4
+                    </span>
+                    <h3 className="mt-3 text-sm font-semibold">Revisión continua</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Los usuarios pueden reportar un grupo o avisar de un enlace caído. Cuando
+                      pasa, volvemos a comprobar y actualizamos o retiramos el grupo.
+                    </p>
+                  </li>
+                </ol>
+
+                {/* Guías the team publishes */}
+                {teamGuides.length > 0 && (
+                  <div className="mt-8 rounded-2xl border bg-card p-5 sm:p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-bold tracking-tight">
+                          Las guías de Grupos Hoy
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Artículos en español, paso a paso, firmados por Antonio C. — editor
+                          responsable del proyecto.
+                        </p>
+                      </div>
+                      <Link
+                        href="/guias"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        Ver todas las guías
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      {teamGuides.map((g) => (
+                        <Link
+                          key={g.slug}
+                          href={`/guias/${g.slug}`}
+                          className="group flex flex-col rounded-xl border bg-background p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                        >
+                          <span className="text-xl" aria-hidden>
+                            {g.coverEmoji}
+                          </span>
+                          <span className="mt-2 line-clamp-2 text-xs font-semibold leading-snug">
+                            {g.title}
+                          </span>
+                          <span className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                            {g.excerpt}
+                          </span>
+                          <span className="mt-auto inline-flex items-center gap-1 pt-3 text-[11px] font-medium text-primary">
+                            Leer <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Groups grid */}
         <section className="py-10 sm:py-12" aria-labelledby="grupos-heading">

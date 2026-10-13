@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/site/command-palette";
 import { CookieConsent } from "@/components/site/cookie-consent";
 import { CompareBar } from "@/components/site/compare-bar";
 import { TranslationFix } from "@/components/site/translation-fix";
+import { RouteProgressBar } from "@/components/site/route-progress-bar";
 import { getCategories, getCountries, getGroups } from "@/lib/data";
 import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 import { SITE } from "@/lib/constants";
@@ -175,6 +176,8 @@ export default async function RootLayout({
       >
         {/* Google-Translate crash guard — must mount before any interactive tree */}
         <TranslationFix />
+        {/* Route-change progress bar (13-b) — instant tap feedback for client-side navigations */}
+        <RouteProgressBar />
         <ThemeProvider>
           {children}
           <Toaster />

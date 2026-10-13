@@ -11,6 +11,7 @@ import {
   Tag,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import {
   getTagBySlug,
   getGroupsByTagPaginated,
@@ -72,7 +73,7 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: hreflangAlternates(canonicalPath),
     robots: indexable
       ? { index: true, follow: true }
       : { index: false, follow: true },

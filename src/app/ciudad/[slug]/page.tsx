@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { cache } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -14,6 +16,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import type { CategoryDTO } from "@/lib/types";
 import { CountryFlag } from "@/components/site/country-flag";
 import {
@@ -22,6 +25,7 @@ import {
   getAllCities,
   getGroupsByCityPaginated,
   PAGE_SIZE,
+  type PaginatedGroups,
 } from "@/lib/data";
 import {
   getTaxonomyContent,
@@ -51,6 +55,29 @@ function parsePageParam(sp: { [key: string]: string | string[] | undefined }): n
   return Number.isFinite(n) ? n : 1;
 }
 
+// --- 18+ server-side gating (cookie bridge) --------------------------------
+// The 18+ preference lives in localStorage (client zustand store), which the
+// server cannot see. The client mirrors it into the `gh_adult` cookie
+// (src/lib/adult-store.ts), so here we ONLY trust that cookie: adult groups
+// enter the server-rendered HTML of this page exclusively when 18+ mode is
+// confirmed server-side. Crawlers/default visitors always get the clean list.
+const getAdultAllowed = cache(async (): Promise<boolean> => {
+  const store = await cookies();
+  return store.get("gh_adult")?.value === "1";
+});
+
+// React cache(): generateMetadata and the page body share ONE DB round-trip
+// per request (same pattern as getTaxonomyContent).
+const getCityGroups = cache(
+  (city: string, page: number, adultAllowed: boolean): Promise<PaginatedGroups | null> =>
+    getGroupsByCityPaginated(city, page, { adult: adultAllowed ? "include" : "exclude" })
+);
+
+/** True when the groups actually rendered on THIS page include 18+ groups. */
+function hasRenderedAdultGroups(result: PaginatedGroups | null): boolean {
+  return result?.groups.some((g) => g.isAdult) ?? false;
+}
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -66,17 +93,29 @@ export async function generateMetadata({
     };
   }
 
+  // 18+ cookie bridge — server-side confirmation only (never client state).
+  // Same cached lookup the page body uses → one DB round-trip per request.
+  const adultAllowed = await getAdultAllowed();
+  const result = await getCityGroups(city.city, page, adultAllowed);
+  // Invalid page (out of range) → the page body will notFound(); keep the
+  // count-based meta sane with the clean city count in the meantime.
+  const total = result?.total ?? city.groupCount;
+  const adultRendered = adultAllowed && hasRenderedAdultGroups(result);
+
   const basePath = `/ciudad/${city.slug}`;
   const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
   const canonical = `${SITE.url}${canonicalPath}`;
 
-  // Count-first CTR title — N is the same live groupCount the page header
-  // renders (getAllCities-derived; reuse, no extra queries).
-  const title = `${city.groupCount > 0 ? `${city.groupCount} ` : ""}Grupos de WhatsApp en ${city.city} | Grupos Hoy`;
+  // Count-first CTR title — honest for THIS visitor: the clean count by
+  // default (crawlers, toggle OFF) and the mixed count only when 18+ mode is
+  // confirmed server-side, matching the groups the page actually renders.
+  const title = `${total > 0 ? `${total} ` : ""}Grupos de WhatsApp en ${city.city} | Grupos Hoy`;
   // D-4 thin-content rule: city pages with fewer than 3 groups are
   // template-swapped thin pages → keep them live for users but noindex.
+  // A server-confirmed 18+ visitor ALSO gets noindex whenever the rendered
+  // HTML mixes adult groups in (clean city pages stay indexable).
   const robots =
-    city.groupCount >= 3
+    city.groupCount >= 3 && !adultRendered
       ? { index: true, follow: true }
       : { index: false, follow: true };
   // Dynamic meta description: custom hero override wins, else keyword-derived
@@ -86,13 +125,13 @@ export async function generateMetadata({
     "city",
     city.city,
     taxContent,
-    city.groupCount
+    total
   );
 
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: hreflangAlternates(canonicalPath),
     robots,
     openGraph: {
       title,
@@ -131,10 +170,16 @@ export default async function CityPage({
   if (!city) notFound();
 
   // Out-of-range page (0, negative, beyond last) → 404, matching the strict
-  // validation in getGroupsByCityPaginated.
-  const result = await getGroupsByCityPaginated(city.city, page);
+  // validation in getGroupsByCityPaginated. Adult groups only enter this
+  // list with server-side 18+ confirmation (gh_adult cookie bridge).
+  const adultAllowed = await getAdultAllowed();
+  const result = await getCityGroups(city.city, page, adultAllowed);
   if (!result) notFound();
   const groups = result.groups;
+  // Honest count for THIS visitor (clean-only by default, mixed when 18+ is
+  // confirmed server-side): the header badge, the "Mostrando X–Y de Z"
+  // range, the SEO copy and the JSON-LD all use this same number.
+  const displayTotal = result.total;
   const basePath = `/ciudad/${slug}`;
   const rangeStart = (result.page - 1) * PAGE_SIZE + 1;
   const rangeEnd = rangeStart + groups.length - 1;
@@ -173,7 +218,7 @@ export default async function CityPage({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: `Grupos de WhatsApp en ${city.city}`,
-    description: `Directorio de grupos de WhatsApp en ${city.city} ${city.countryFlag}. ${city.groupCount} comunidades hispanohablantes disponibles para unirte.`,
+    description: `Directorio de grupos de WhatsApp en ${city.city} ${city.countryFlag}. ${displayTotal} comunidades hispanohablantes disponibles para unirte.`,
     inLanguage: "es",
     url: `${SITE.url}/ciudad/${city.slug}`,
     isPartOf: {
@@ -301,8 +346,8 @@ export default async function CityPage({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <Users className="h-3.5 w-3.5 text-primary" />
-                  {city.groupCount}{" "}
-                  {city.groupCount === 1 ? "grupo disponible" : "grupos disponibles"}
+                  {displayTotal}{" "}
+                  {displayTotal === 1 ? "grupo disponible" : "grupos disponibles"}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
@@ -492,8 +537,8 @@ export default async function CityPage({
                   ciudad y prefieren conversar en español sobre lo que ocurre a diario en sus
                   barrios: planes locales, compra-venta, estudios, trabajo, deportes o
                   simplemente charlar al final del día. En Grupos Hoy hemos recopilado{" "}
-                  <strong>{city.groupCount}</strong>{" "}
-                  {city.groupCount === 1 ? "comunidad activa" : "comunidades activas"} con
+                  <strong>{displayTotal}</strong>{" "}
+                  {displayTotal === 1 ? "comunidad activa" : "comunidades activas"} con
                   enlaces revisados, descripciones claras y el número aproximado de miembros,
                   para que encuentres en segundos el espacio que mejor encaje contigo. Cada
                   enlace pasa por una revisión humana antes de publicarse, así que te llevas

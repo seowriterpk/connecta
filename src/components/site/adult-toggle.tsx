@@ -4,7 +4,9 @@
  * AdultModeToggle — the global 18+ switch (homepage hero + explorer bar).
  *
  * - First enable → AlertDialog age gate ("¿Tienes 18 años o más?").
- * - Persists via the adult-mode store (localStorage "cg-adult-18").
+ * - Persists via the adult-mode store (localStorage "cg-adult-18"), which
+ *   also mirrors the preference into the `gh_adult` cookie so server-side
+ *   listings (city pages) can gate 18+ content per visitor.
  * - Hydration-safe: renders the OFF state on server/first paint, then syncs.
  * - When enabled, client sections re-fetch content including adult groups.
  */
@@ -53,7 +55,7 @@ export function AdultModeToggle({ variant = "hero" }: { variant?: "hero" | "comp
         type="button"
         role="switch"
         aria-checked={isOn}
-        aria-label="Modo contenido 18+"
+        aria-label="Modo 18+"
         onClick={onSwitchClick}
         className={cn(
           "group relative inline-flex select-none items-center gap-2 rounded-full border transition-all duration-300",
@@ -75,7 +77,7 @@ export function AdultModeToggle({ variant = "hero" }: { variant?: "hero" | "comp
         >
           {isOn ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           <span>
-            {isOn ? "Modo 18+ activo" : "Contenido 18+"}
+            {isOn ? "Modo 18+ activo" : "Grupos 18+"}
             {variant === "hero" && (
               <span className="ml-1 hidden font-normal text-[10px] text-muted-foreground sm:inline">
                 {isOn ? "· ver todo" : "· desactivado"}
@@ -126,7 +128,7 @@ export function AdultModeToggle({ variant = "hero" }: { variant?: "hero" | "comp
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-sm leading-relaxed">
               Estás a punto de activar el <strong className="text-foreground">modo 18+</strong>.
-              Se mostrará contenido para adultos que está separado del resto del directorio.
+              Se mostrarán categorías solo para mayores de edad, separadas del resto del directorio.
               Esta preferencia se guarda en tu navegador.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -154,7 +156,7 @@ export function AdultModeToggle({ variant = "hero" }: { variant?: "hero" | "comp
             </Button>
           </AlertDialogFooter>
           <p className="text-center text-[11px] leading-snug text-muted-foreground">
-            El contenido adulto nunca se carga en la página hasta que activas esta opción.
+            Estas categorías no se muestran hasta que activas esta opción.
           </p>
         </AlertDialogContent>
       </AlertDialog>

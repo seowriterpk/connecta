@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { BookOpen, ChevronRight, Clock, Eye, CalendarDays, ArrowRight, UserRound } from "lucide-react";
 import { SITE, OG_IMAGE } from "@/lib/constants";
 import { getPublishedPostBySlug, getPublishedPosts, incrementPostViews } from "@/lib/blog";
+import { hreflangAlternates } from "@/lib/hreflang";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
@@ -28,6 +29,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Guía no encontrada", robots: { index: false, follow: false } };
   }
   const canonical = `${SITE.url}/guias/${post.slug}`;
+  // hreflang: self-referencing es + x-default (single-locale site).
+  const alternates = hreflangAlternates(`/guias/${post.slug}`);
   // Non-absolute title: the layout template appends "| Grupos Hoy".
   // (DB metaTitle overrides dropped — post.title + template is the new pattern.)
   const title = post.title;
@@ -36,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates,
     openGraph: {
       title,
       description,

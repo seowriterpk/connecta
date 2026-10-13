@@ -29,6 +29,7 @@ import {
   getAllCities,
 } from "@/lib/data";
 import { getPublishedPostCards, getPublishedPostCount } from "@/lib/blog";
+import { hreflangAlternates } from "@/lib/hreflang";
 import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
+    // hreflang: self-referencing es + x-default (single-locale Spanish site).
+    alternates: hreflangAlternates("/"),
     openGraph: {
       title,
       description,

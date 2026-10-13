@@ -1,42 +1,96 @@
 "use client";
 
+/**
+ * VerifyClient — frontend for the /verificar/[slug] flow, fully backed by a
+ * REAL backend (POST /api/groups/verify-check). The old version was a pure
+ * client-side timer with no network activity — this one:
+ *
+ *   - calls the API the moment the page mounts (visible in the network tab);
+ *   - renders the steps the SERVER returned, with their REAL results and
+ *     details (masked invite code, listing date, format verdicts);
+ *   - paces the reveal (~800ms per step) so the flow reads naturally;
+ *   - shows the honest audit-trail summary (check count + timestamp) that
+ *     matches the `link_checks` DB row the server just wrote.
+ *
+ * The checks are lightweight by design (format + structure + status), so the
+ * labels below say exactly what was checked — nothing more.
+ */
+
 import * as React from "react";
-import { CheckCircle2, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, ShieldCheck, XCircle, RefreshCw } from "lucide-react";
 import type { GroupDTO } from "@/lib/types";
 
-const CHECKS = [
-  "Comprobando enlace de invitación…",
-  "Verificando que el grupo siga activo…",
-  "Revisando disponibilidad de la imagen…",
-  "Preparando redirección a WhatsApp…",
-];
+interface CheckStep {
+  key: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+interface VerifyResponse {
+  ok: true;
+  data: {
+    steps: CheckStep[];
+    passed: boolean;
+    checkedAt: string;
+    checkCount: number;
+    listedSince: string | null;
+  };
+}
+
+const STEP_INTERVAL_MS = 800;
 
 export function VerifyClient({ group }: { group: GroupDTO }) {
-  const [progress, setProgress] = React.useState(0);
-  const [activeCheck, setActiveCheck] = React.useState(0);
-  const [ready, setReady] = React.useState(false);
+  const [steps, setSteps] = React.useState<CheckStep[] | null>(null);
+  const [revealed, setRevealed] = React.useState(0);
+  const [meta, setMeta] = React.useState<{ passed: boolean; checkCount: number; checkedAt: string } | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [done, setDone] = React.useState(false);
+
+  const runCheck = React.useCallback(() => {
+    setError(null);
+    setSteps(null);
+    setMeta(null);
+    setRevealed(0);
+    setDone(false);
+
+    fetch("/api/groups/verify-check?XTransformPort=3000", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: group.slug }),
+    })
+      .then((r) => r.json())
+      .then((j: VerifyResponse | { ok: false; error: string }) => {
+        if (!j || j.ok !== true) {
+          setError((j as { error?: string })?.error ?? "No se pudo completar la comprobación.");
+          return;
+        }
+        setSteps(j.data.steps);
+        setMeta({ passed: j.data.passed, checkCount: j.data.checkCount, checkedAt: j.data.checkedAt });
+      })
+      .catch(() => {
+        setError("No se pudo contactar con el servidor de comprobación. Inténtalo de nuevo.");
+      });
+  }, [group.slug]);
 
   React.useEffect(() => {
-    const duration = 5000; // 5 seconds
-    const steps = CHECKS.length;
-    const interval = duration / steps;
-    let elapsed = 0;
+    runCheck();
+  }, [runCheck]);
 
-    const timer = setInterval(() => {
-      elapsed += interval;
-      const pct = Math.min(100, (elapsed / duration) * 100);
-      setProgress(pct);
-      const checkIdx = Math.min(steps - 1, Math.floor((elapsed / duration) * steps));
-      setActiveCheck(checkIdx);
+  // Pace the step reveal once the server answered (presentational pacing —
+  // every result is already real and final at this point).
+  React.useEffect(() => {
+    if (!steps || done) return;
+    if (revealed >= steps.length) {
+      setDone(true);
+      return;
+    }
+    const t = window.setTimeout(() => setRevealed((n) => n + 1), STEP_INTERVAL_MS);
+    return () => window.clearTimeout(t);
+  }, [steps, revealed, done]);
 
-      if (elapsed >= duration) {
-        clearInterval(timer);
-        setReady(true);
-      }
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, []);
+  const ready = done && !!meta?.passed;
+  const hasFailure = done && meta && !meta.passed;
 
   function handleJoin() {
     // Track click (fire-and-forget)
@@ -57,32 +111,69 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
       <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-emerald-400 to-teal-500 transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${steps ? Math.round((Math.min(revealed, steps.length) / steps.length) * 100) : 6}%` }}
         >
           <div className="absolute inset-0 animate-pulse bg-white/20" />
         </div>
       </div>
 
-      {/* Checks */}
+      {/* Steps — served by the backend, paced for readability */}
       <div className="mt-4 space-y-2">
-        {CHECKS.map((check, i) => (
-          <div key={i} className="flex items-center gap-2 text-sm">
-            {i < activeCheck || ready ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-            ) : i === activeCheck ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
-            ) : (
-              <div className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/20" />
-            )}
-            <span className={i < activeCheck || ready ? "text-foreground" : i === activeCheck ? "text-foreground" : "text-muted-foreground"}>
-              {check}
-            </span>
-            {(i < activeCheck || ready) && (
-              <span className="ml-auto text-xs text-emerald-500">✓</span>
-            )}
+        {steps === null && !error && (
+          <div className="flex items-center gap-2 text-sm">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            <span className="text-foreground">Conectando con el servidor de comprobación…</span>
           </div>
-        ))}
+        )}
+        {steps?.map((step, i) => {
+          const isDone = i < revealed;
+          const isActive = i === revealed && !done;
+          if (!isDone && !isActive) {
+            return (
+              <div key={step.key} className="flex items-center gap-2 text-sm">
+                <div className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/20" />
+                <span className="text-muted-foreground">{step.label}</span>
+              </div>
+            );
+          }
+          return (
+            <div key={step.key}>
+              <div className="flex items-center gap-2 text-sm">
+                {isActive ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                ) : step.ok ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                )}
+                <span className={isActive ? "text-foreground" : "text-foreground"}>{step.label}</span>
+                {isDone && (
+                  <span className={`ml-auto text-xs ${step.ok ? "text-emerald-500" : "text-rose-500"}`}>
+                    {step.ok ? "✓" : "✕"}
+                  </span>
+                )}
+              </div>
+              {isDone && step.detail && (
+                <p className="ml-6 mt-0.5 text-xs leading-relaxed text-muted-foreground">{step.detail}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* Backend error → honest retry */}
+      {error && (
+        <div className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/[0.06] p-3">
+          <p className="text-xs leading-relaxed text-rose-700 dark:text-rose-300">{error}</p>
+          <button
+            type="button"
+            onClick={runCheck}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold shadow-sm transition active:scale-[0.98] hover:bg-muted"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Reintentar comprobación
+          </button>
+        </div>
+      )}
 
       {/* Join button */}
       <button
@@ -102,14 +193,22 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
         ) : (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando…
+            Comprobando…
           </>
         )}
       </button>
 
-      {ready && (
+      {/* Honest result summary — matches the link_checks row just written */}
+      {meta && done && meta.passed && (
         <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="h-3.5 w-3.5" /> Enlace verificado. Puedes unirte con seguridad.
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Comprobación completada · n.º {meta.checkCount} registrada en el historial del grupo
+        </p>
+      )}
+      {hasFailure && (
+        <p className="mt-2 text-center text-xs leading-relaxed text-amber-600 dark:text-amber-400">
+          La comprobación detectó incidencias en el enlace. Puedes intentarlo, pero si WhatsApp
+          dice que el enlace no sirve, avísanos para que lo renueven.
         </p>
       )}
     </div>

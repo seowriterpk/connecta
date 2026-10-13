@@ -14,6 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import type { CategoryDTO } from "@/lib/types";
 import { CountryFlag } from "@/components/site/country-flag";
 import {
@@ -92,7 +93,7 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: hreflangAlternates(canonicalPath),
     robots,
     openGraph: {
       title,

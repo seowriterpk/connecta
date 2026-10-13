@@ -83,15 +83,30 @@ async function main() {
     const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1");
     writeSitemap("categorias.xml", categories.map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9")));
 
-    // Countries
-    const countries = await q(pool, "SELECT `code` FROM `countries` WHERE `isActive` = 1");
+    // Countries — ONLY indexable ones. The pais pages apply the thin-content
+    // rule (clean live groupCount < 3 → noindex, follow); a sitemap must never
+    // list a URL the page itself noindexes (mixed robots signals waste crawl
+    // budget and confuse Google).
+    const countries = await q(
+      pool,
+      `SELECT co.\`code\`
+       FROM \`countries\` co
+       WHERE co.\`isActive\` = 1
+         AND (SELECT COUNT(*) FROM \`groups\` g
+              WHERE g.\`countryId\` = co.\`id\` AND g.\`status\` = 'live' AND g.\`isAdult\` = 0) >= 3`
+    );
     writeSitemap("paises.xml", countries.map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9")));
 
-    // Cities (only those with clean groups — city listing pages render the
-    // clean silo only, so the sitemap stays consistent with page content)
+    // Cities — ONLY indexable ones: clean live groups AND the same thin-page
+    // threshold the city page uses (>= 3 clean groups → indexable; fewer →
+    // noindex, so excluded here). Adult-included (cookie) views are never in
+    // any sitemap — sitemaps describe the clean default state.
     const cityGroups = await q(
       pool,
-      "SELECT DISTINCT `city` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0 AND `city` IS NOT NULL AND `city` <> ''"
+      `SELECT \`city\`, COUNT(*) AS \`n\`
+       FROM \`groups\`
+       WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`city\` IS NOT NULL AND \`city\` <> ''
+       GROUP BY \`city\` HAVING COUNT(*) >= 3`
     );
     writeSitemap("ciudades.xml", cityGroups.map((c) => urlEntry(`${BASE_URL}/ciudad/${citySlug(c.city)}`, undefined, "weekly", "0.8")));
 

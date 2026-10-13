@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
 import { SITE, OG_IMAGE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import { getCategories } from "@/lib/data";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: `${SITE.url}/categorias` },
+    alternates: hreflangAlternates("/categorias"),
     robots: { index: true, follow: true },
     openGraph: {
       title,

@@ -19,6 +19,7 @@ import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { CountryFlag } from "@/components/site/country-flag";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -250,7 +251,13 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={categoryId ?? "_all"} onValueChange={(v) => setCategory(v === "_all" ? null : v)}>
-                <SelectTrigger className="h-11 w-full sm:w-[170px]">
+                {/* Active-filter state (13-b): tinted trigger so taps leave a visible trace. */}
+                <SelectTrigger
+                  className={cn(
+                    "h-11 w-full sm:w-[170px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    categoryId && "border-primary/40 bg-primary/10 font-medium text-primary"
+                  )}
+                >
                   <SelectValue placeholder={adultMode ? "Categoría 18+" : "Categoría"} />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -263,7 +270,13 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                 </SelectContent>
               </Select>
               <Select value={countryId ?? "_all"} onValueChange={(v) => useGroupsFilter.getState().setCountry(v === "_all" ? null : v)}>
-                <SelectTrigger className="h-11 w-full sm:w-[160px]">
+                {/* Active-filter state (13-b). */}
+                <SelectTrigger
+                  className={cn(
+                    "h-11 w-full sm:w-[160px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    countryId && "border-primary/40 bg-primary/10 font-medium text-primary"
+                  )}
+                >
                   <SelectValue placeholder="País" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -276,7 +289,13 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                 </SelectContent>
               </Select>
               <Select value={sort} onValueChange={(v) => useGroupsFilter.getState().setSort(v as any)}>
-                <SelectTrigger className="h-11 w-full sm:w-[140px]">
+                {/* Active-filter state (13-b): non-default sort tints the trigger. */}
+                <SelectTrigger
+                  className={cn(
+                    "h-11 w-full sm:w-[140px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    sort !== "recientes" && "border-primary/40 bg-primary/10 font-medium text-primary"
+                  )}
+                >
                   <Filter className="mr-1 h-3.5 w-3.5" />
                   <SelectValue />
                 </SelectTrigger>
@@ -296,11 +315,12 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                 <button
                   onClick={() => setFavoritesOnly(!favoritesOnly)}
                   aria-pressed={favoritesOnly}
-                  className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition ${
+                  className={cn(
+                    "inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     favoritesOnly
                       ? "border-rose-400/60 bg-rose-500/10 text-rose-600 dark:text-rose-400"
                       : "bg-background text-muted-foreground hover:bg-accent hover:text-rose-500"
-                  }`}
+                  )}
                 >
                   <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
                   Solo favoritos
@@ -326,13 +346,15 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                 <button
                   key={t.tag}
                   onClick={() => setTag(tag === t.tag ? null : t.tag)}
-                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
+                  aria-pressed={tag === t.tag}
+                  className={cn(
+                    "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                     tag === t.tag
                       ? adultMode
-                        ? "border-rose-400 bg-rose-500 text-white"
-                        : "border-primary bg-primary text-primary-foreground"
+                        ? "border-rose-400 bg-rose-500 text-white shadow-sm"
+                        : "border-primary bg-primary text-primary-foreground shadow-sm"
                       : "bg-background hover:bg-accent"
-                  }`}
+                  )}
                 >
                   #{t.tag}
                 </button>

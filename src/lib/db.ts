@@ -294,6 +294,23 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
   {
+    // Verification trail for /verificar/[slug] — one row per automated link
+    // check (format + code structure + listing status). Lightweight by
+    // design: no external fetches, no CPU load, just an honest audit log.
+    name: "link_checks",
+    sql: `CREATE TABLE IF NOT EXISTS \`link_checks\` (
+      \`id\` VARCHAR(191) NOT NULL PRIMARY KEY,
+      \`groupId\` VARCHAR(191) NOT NULL,
+      \`ok\` TINYINT(1) NOT NULL DEFAULT 1,
+      \`inviteCodeLength\` INT DEFAULT NULL,
+      \`detail\` VARCHAR(255) DEFAULT NULL,
+      \`source\` VARCHAR(32) NOT NULL DEFAULT 'verify-page',
+      \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY \`idx_link_checks_group\` (\`groupId\`),
+      KEY \`idx_link_checks_created\` (\`createdAt\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
+  {
     name: "ugc_rate_limits",
     sql: `CREATE TABLE IF NOT EXISTS \`ugc_rate_limits\` (
       \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

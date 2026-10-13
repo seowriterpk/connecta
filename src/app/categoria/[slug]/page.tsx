@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Users, Plus, MessageCircle, Sparkles, ShieldCheck, ShieldAlert } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import {
   getCategoryBySlug,
   getGroupsByCategorySlugPaginated,
@@ -68,7 +69,7 @@ export async function generateMetadata({
     return {
       title: { absolute: title },
       description,
-      alternates: { canonical },
+      alternates: hreflangAlternates(canonicalPath),
       robots: { index: true, follow: true },
       other: { rating: "RTA-5042-1996-RTA" },
       openGraph: {
@@ -110,7 +111,7 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: hreflangAlternates(canonicalPath),
     openGraph: {
       title,
       description,

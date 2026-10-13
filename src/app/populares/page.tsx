@@ -15,6 +15,7 @@ import {
   Clock,
 } from "lucide-react";
 import { SITE, OG_IMAGE } from "@/lib/constants";
+import { hreflangAlternates } from "@/lib/hreflang";
 import {
   getGroups,
   getStats,
@@ -87,7 +88,7 @@ export async function generateMetadata({
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: `${SITE.url}/populares` },
+    alternates: hreflangAlternates("/populares"),
     // Filtered combinations are thin near-duplicates of /populares — keep them out of the index.
     robots: pais || cat ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {

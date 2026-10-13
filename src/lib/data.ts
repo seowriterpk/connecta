@@ -874,13 +874,19 @@ export function citySlug(city: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * All cities with live CLEAN groups (general-audience city section of the
+ * homepage, /ciudades, sibling-city links). Adult groups never count here:
+ * adult-only cities must not appear anywhere a crawler or a default visitor
+ * can see, and mixed cities show only their clean count.
+ */
 export async function getAllCities(): Promise<
   { city: string; slug: string; groupCount: number; countryCode: string; countryFlag: string }[]
 > {
   const rows = await query<Row>(
     `SELECT g.\`city\`, co.\`code\`, co.\`flag\`
      FROM \`groups\` g LEFT JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
-     WHERE g.\`status\` = 'live' AND g.\`city\` IS NOT NULL AND g.\`city\` <> ''`
+     WHERE g.\`status\` = 'live' AND g.\`city\` IS NOT NULL AND g.\`city\` <> '' AND g.\`isAdult\` = 0`
   );
   const map = new Map<string, { city: string; groupCount: number; countryCode: string; countryFlag: string }>();
   for (const r of rows as any[]) {
@@ -1047,10 +1053,19 @@ export async function getGroupsByCountryCodePaginated(
 
 export async function getGroupsByCityPaginated(
   city: string,
-  page: number
+  page: number,
+  opts?: { adult?: "exclude" | "include" }
 ): Promise<PaginatedGroups | null> {
+  // General-audience default: city listings NEVER contain adult groups in
+  // the server-rendered HTML. "include" is only allowed when the caller has
+  // server-side confirmation of 18+ mode (gh_adult cookie — see
+  // adult-store.ts / ciudad/[slug]/page.tsx); such mixed pages go noindex.
+  const adultClause = opts?.adult === "include" ? "" : " AND g.`isAdult` = 0";
   return buildPaginated(
-    { where: "g.`status` = 'live' AND g.`city` = ?", params: [city] },
+    {
+      where: `g.\`status\` = 'live' AND g.\`city\` = ?${adultClause}`,
+      params: [city],
+    },
     "g.`clicks` DESC, g.`views` DESC",
     page
   );
