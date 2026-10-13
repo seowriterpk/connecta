@@ -99,7 +99,7 @@ export default async function AdminBlogPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Entradas</CardTitle>
               <CardDescription>
-                Edita, publica o elimina artículos. El contenido se muestra tal cual en /blog.
+                Edita, publica o elimina artículos. El contenido se muestra tal cual en /guias.
               </CardDescription>
             </CardHeader>
             <CardContent>

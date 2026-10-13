@@ -127,8 +127,8 @@ async function main() {
       ]
     );
 
-    // Blog — all published posts (Antonio C. editorial line). lastmod = updatedAt
-    // so edited posts re-enter the crawl queue.
+    // Guías — all published posts (Antonio C. editorial line). lastmod = updatedAt
+    // so edited posts re-enter the crawl queue. (Blog + guías merged: /guias/{slug}.)
     const posts = await q(
       pool,
       "SELECT `slug`, `updatedAt` FROM `blog_posts` WHERE `status` = 'published' ORDER BY `publishedAt` DESC"
@@ -137,7 +137,7 @@ async function main() {
       "blog.xml",
       posts.map((p) =>
         urlEntry(
-          `${BASE_URL}/blog/${p.slug}`,
+          `${BASE_URL}/guias/${p.slug}`,
           new Date(p.updatedAt).toISOString().slice(0, 10),
           "monthly",
           "0.7"

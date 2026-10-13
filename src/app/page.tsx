@@ -7,6 +7,7 @@ import { GroupsDirectoryTable } from "@/components/site/groups-directory-table";
 import { CategoriesSection } from "@/components/site/categories-section";
 import { CountriesSection } from "@/components/site/countries-section";
 import { CitiesSection } from "@/components/site/cities-section";
+import { GuidesSection } from "@/components/site/guides-section";
 import { AboutSection } from "@/components/site/about-section";
 import { MetricsSection } from "@/components/site/metrics-section";
 import { TestimonialsSection } from "@/components/site/testimonials-section";
@@ -27,6 +28,7 @@ import {
   getMetrics,
   getAllCities,
 } from "@/lib/data";
+import { getPublishedPostCards, getPublishedPostCount } from "@/lib/blog";
 import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [categories, countries, stats, initialGroups, popularTags, metrics, cities] = await Promise.all([
+  const [categories, countries, stats, initialGroups, popularTags, metrics, cities, guidePosts, guideCount] = await Promise.all([
     getCategories(),
     getCountries(),
     getStats(),
@@ -64,6 +66,8 @@ export default async function HomePage() {
     getPopularTags(14),
     getMetrics(),
     getAllCities(),
+    getPublishedPostCards(3),
+    getPublishedPostCount(),
   ]);
 
   return (
@@ -95,6 +99,9 @@ export default async function HomePage() {
 
         {/* City pages */}
         {cities.length > 0 && <CitiesSection cities={cities} />}
+
+        {/* Guías (merged blog + guías hub) — featured posts + link juice to /guias */}
+        <GuidesSection posts={guidePosts} total={guideCount} />
 
         <AboutSection stats={stats} />
         <MetricsSection metrics={metrics} />

@@ -104,9 +104,9 @@ El aviso «Este enlace de invitación ya no es válido» tiene tres culpables ha
 Cuando te pase, no insistas con el mismo link: está muerto y no revive. Haz esto:
 
 1. Pide un **enlace nuevo** a alguien que siga dentro (en las versiones actuales, solo los admins pueden generarlo).
-2. Si no hay enlace disponible, usa las [tres vías para unirse a un grupo sin enlace](/blog/como-unirse-a-un-grupo-de-whatsapp-sin-enlace).
+2. Si no hay enlace disponible, usa las [tres vías para unirse a un grupo sin enlace](/guias/como-unirse-a-un-grupo-de-whatsapp-sin-enlace).
 3. Pide que un **admin te agregue** directo, como en el método 4.
-4. Si el fallo se repite con otros grupos, revisa [por qué no puedes unirte a un grupo de WhatsApp](/blog/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp): quizá la culpa no sea del enlace.
+4. Si el fallo se repite con otros grupos, revisa [por qué no puedes unirte a un grupo de WhatsApp](/guias/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp): quizá la culpa no sea del enlace.
 
 Los avisos exactos y sus causas también los detalla la [ayuda oficial de WhatsApp](https://faq.whatsapp.com/). Y cuando un directorio te deje colgado con un link muerto, exige lo mismo que exigimos en el nuestro: enlaces revisados.
 
@@ -138,7 +138,7 @@ Depende de tu ajuste de privacidad. Con «Todos» sí entran directo; con «Nadi
 
 ### ¿Y si quiero salir después?
 
-Ábrelo, toca el nombre del grupo y elige **Salir del grupo**. Para hacerlo con la mayor discreción posible, esta guía de [cómo salir de un grupo sin que se den cuenta](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta) lo explica paso a paso. Salir es tan fácil como entrar.`,
+Ábrelo, toca el nombre del grupo y elige **Salir del grupo**. Para hacerlo con la mayor discreción posible, esta guía de [cómo salir de un grupo sin que se den cuenta](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta) lo explica paso a paso. Salir es tan fácil como entrar.`,
   },
 
   {
@@ -156,7 +156,7 @@ Depende de tu ajuste de privacidad. Con «Todos» sí entran directo; con «Nadi
 
 Vamos con la verdad por delante: **no existe ningún truco para entrar a un grupo de WhatsApp cerrado sin invitación**. Ni apps mágicas, ni códigos ocultos, ni «métodos secretos». Los grupos son espacios privados por diseño. Quien te prometa lo contrario quiere tus datos, tu número o tu dinero.
 
-La [guía completa para unirse a un grupo de WhatsApp](/blog/como-unirse-a-un-grupo-de-whatsapp-guia-completa) explica los cuatro caminos que existen. Aquí nos quedamos con los tres que funcionan **sin enlace**: que te agreguen a mano, escanear el QR en persona y entrar por la comunidad padre. Con pasos, un mensaje de ejemplo y cero humo.
+La [guía completa para unirse a un grupo de WhatsApp](/guias/como-unirse-a-un-grupo-de-whatsapp-guia-completa) explica los cuatro caminos que existen. Aquí nos quedamos con los tres que funcionan **sin enlace**: que te agreguen a mano, escanear el QR en persona y entrar por la comunidad padre. Con pasos, un mensaje de ejemplo y cero humo.
 
 **Unirse a un grupo de WhatsApp sin enlace** significa entrar por otra vía válida: que un **administrador** te agregue a mano, que te escanee el **código QR** en persona, o que entres primero a la **comunidad** padre y de ahí pases a sus grupos. Las tres vías necesitan a alguien del grupo.
 
@@ -194,7 +194,7 @@ El camino más humano. En WhatsApp, quien está dentro puede agregarte desde sus
 3. Te busca en sus contactos, te selecciona y confirmas.
 4. Si tu privacidad está en «Nadie puede agregarme», recibirá un aviso y te mandará la invitación por chat. Tú la aceptas y entras igual.
 
-Y si tu preocupación es la contraria (que te agreguen a grupos sin quererlo), tienes la guía de [cómo evitar que nadie te añada a grupos sin permiso](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso): ese ajuste de privacidad es tu mejor amigo.
+Y si tu preocupación es la contraria (que te agreguen a grupos sin quererlo), tienes la guía de [cómo evitar que nadie te añada a grupos sin permiso](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso): ese ajuste de privacidad es tu mejor amigo.
 
 ¿Qué decirle? Algo corto y sin vuelta:
 
@@ -266,7 +266,7 @@ No. El enlace de invitación lo crean solo los administradores del grupo. Lo que
 
 ### ¿Por qué el enlace que me pasó un amigo no me deja entrar?
 
-Puede estar caducado, restablecido o con el grupo lleno. Las causas exactas y sus soluciones están en [por qué no puedes unirte a un grupo de WhatsApp](/blog/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp).
+Puede estar caducado, restablecido o con el grupo lleno. Las causas exactas y sus soluciones están en [por qué no puedes unirte a un grupo de WhatsApp](/guias/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp).
 
 ### ¿Puedo entrar si solo tengo el número de alguien del grupo?
 
@@ -322,7 +322,7 @@ Mira qué circula, no solo cuánto circula:
 
 ### 3. Reglas presentes
 
-Los grupos que sobreviven años tienen normas escritas. Búscalas en la **descripción** o en un **mensaje fijado**. Un grupo con reglas y admins que las aplican respeta tu tiempo. Las [reglas de oro para moderar grupos](/blog/como-moderar-un-grupo-de-whatsapp-exitoso) explican bien por qué la moderación es el termómetro de un grupo sano.
+Los grupos que sobreviven años tienen normas escritas. Búscalas en la **descripción** o en un **mensaje fijado**. Un grupo con reglas y admins que las aplican respeta tu tiempo. Las [reglas de oro para moderar grupos](/guias/como-moderar-un-grupo-de-whatsapp-exitoso) explican bien por qué la moderación es el termómetro de un grupo sano.
 
 ### 4. Descripción que explica el grupo
 
@@ -370,7 +370,7 @@ El mejor directorio a veces es tu agenda. Pregunta en tus grupos de amigos, trab
 
 ## Calidad no es lo mismo que seguridad
 
-Esta guía mira la calidad: que el grupo viva y valga tu tiempo. La seguridad es otro archivo: enlaces falsos, estafas y cuidado de tus datos. Para eso ya existe [cómo encontrar grupos de WhatsApp seguros en 2026](/blog/como-encontrar-grupos-de-whatsapp-seguros-2026). Usa las dos guías juntas: primero seguridad, luego calidad.
+Esta guía mira la calidad: que el grupo viva y valga tu tiempo. La seguridad es otro archivo: enlaces falsos, estafas y cuidado de tus datos. Para eso ya existe [cómo encontrar grupos de WhatsApp seguros en 2026](/guias/como-encontrar-grupos-de-whatsapp-seguros-2026). Usa las dos guías juntas: primero seguridad, luego calidad.
 
 ## ¿Cuántos grupos conviene tener a la vez?
 
@@ -380,7 +380,7 @@ Un ejercicio sano: revisa tus grupos cada cierto tiempo. Silencia los que ya no 
 
 ## Si el grupo no te llena, cambia
 
-No le tengas lealtad a un grupo malo. Salir es gratis, discreto y sano. Y cuando elijas el siguiente, [la guía para unirse paso a paso](/blog/como-unirse-a-un-grupo-de-whatsapp-guia-completa) te espera con los cuatro métodos de entrada.
+No le tengas lealtad a un grupo malo. Salir es gratis, discreto y sano. Y cuando elijas el siguiente, [la guía para unirse paso a paso](/guias/como-unirse-a-un-grupo-de-whatsapp-guia-completa) te espera con los cuatro métodos de entrada.
 
 ## Preguntas frecuentes
 
@@ -420,7 +420,7 @@ Sí, salvo que el grupo lo prohíba en sus reglas. Mucha gente entra a grupos de
 
 Esta situación es más común de lo que parece. Cada semana alguien nos escribe con el mismo drama: el enlace de un grupo que le pasó un amigo no responde. Casi siempre es una de las siete causas de esta guía, y casi siempre se arregla en minutos.
 
-Si no dominas lo básico de la entrada a grupos, arranca por la [guía completa para unirse a un grupo de WhatsApp](/blog/como-unirse-a-un-grupo-de-whatsapp-guia-completa): cinco minutos y listo. Aquí va el diagnóstico: qué causa es la tuya, cómo confirmarla y cómo arreglarla, una por una.
+Si no dominas lo básico de la entrada a grupos, arranca por la [guía completa para unirse a un grupo de WhatsApp](/guias/como-unirse-a-un-grupo-de-whatsapp-guia-completa): cinco minutos y listo. Aquí va el diagnóstico: qué causa es la tuya, cómo confirmarla y cómo arreglarla, una por una.
 
 **No puedes unirte a un grupo de WhatsApp** cuando algo bloquea tu entrada: el **enlace caducó** o fue restablecido, el grupo llegó a **1.024 miembros**, te quitaron del grupo, tu app está desactualizada, el link llegó mal copiado, tu red o tu país lo limita, o es una invitación de comunidad con restricciones.
 
@@ -459,7 +459,7 @@ La pantalla que ves: «Este enlace de invitación ya no es válido».
 **Qué hacer:**
 
 1. Pide el **enlace nuevo**: en las versiones actuales, solo los admins pueden generarlo.
-2. Si no hay enlace disponible, prueba las [tres vías para entrar sin enlace](/blog/como-unirse-a-un-grupo-de-whatsapp-sin-enlace).
+2. Si no hay enlace disponible, prueba las [tres vías para entrar sin enlace](/guias/como-unirse-a-un-grupo-de-whatsapp-sin-enlace).
 3. Si el grupo está publicado en un directorio, vuelve a su ficha: los enlaces revisados se actualizan.
 
 ## Causa 3: te sacaron del grupo (o el grupo murió)
@@ -469,7 +469,7 @@ Si antes estabas dentro y ahora el grupo ni aparece en tu lista, sospecha. Puede
 **Qué hacer:**
 
 1. Confirma con un contacto que siga dentro: ¿el grupo sigue vivo? ¿Sigues en la lista de participantes?
-2. Si te eliminaron, solo se arregla por la puerta grande: pidiendo volver. La guía [cómo saber si te eliminaron de un grupo](/blog/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp) trae las señales y hasta el mensaje para pedir reingreso.
+2. Si te eliminaron, solo se arregla por la puerta grande: pidiendo volver. La guía [cómo saber si te eliminaron de un grupo](/guias/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp) trae las señales y hasta el mensaje para pedir reingreso.
 3. Si el grupo murió para todos, toca buscar uno nuevo con vida.
 
 ## Causa 4: tu versión de WhatsApp está vieja
@@ -558,7 +558,7 @@ Directo y breve: «¿Me pasas el enlace nuevo del grupo? El que tengo ya no func
     daysAgo: 45,
     content: `Lo sospechas desde ayer: el grupo ya no está. Buscas «vecinos» en el buscador de chats y nada. Ni notificación, ni explicación, ni un «te eliminamos» con carita triste. ¿Te sacaron o te estás volviendo loco?
 
-Calma. WhatsApp no avisa cuando te quitan de un grupo: es una decisión de diseño para evitar dramas. Pero deja pistas, y las pistas se leen. Si tu caso es más bien no poder entrar a un grupo nuevo, lo que necesitas es [por qué no puedes unirte a un grupo de WhatsApp](/blog/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp).
+Calma. WhatsApp no avisa cuando te quitan de un grupo: es una decisión de diseño para evitar dramas. Pero deja pistas, y las pistas se leen. Si tu caso es más bien no poder entrar a un grupo nuevo, lo que necesitas es [por qué no puedes unirte a un grupo de WhatsApp](/guias/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp).
 
 Aquí vas a aprender las señales reales de una eliminación, los falsos positivos que confunden a todos y si puedes volver. Spoiler: se puede, pero solo por una puerta.
 
@@ -612,7 +612,7 @@ Sí, pero con una condición: **que alguien te vuelva a invitar**. No hay botón
 
 ¿Y si el grupo vive dentro de una comunidad? Entonces quien decide es un admin de la comunidad. Escríbele por privado: ellos pueden agregarte al grupo concreto que te interesa.
 
-Para ejecutar cualquiera de los dos caminos, sigue los pasos de [la guía para unirse a un grupo](/blog/como-unirse-a-un-grupo-de-whatsapp-guia-completa): enlace, QR, comunidad o admin, los cuatro valen.
+Para ejecutar cualquiera de los dos caminos, sigue los pasos de [la guía para unirse a un grupo](/guias/como-unirse-a-un-grupo-de-whatsapp-guia-completa): enlace, QR, comunidad o admin, los cuatro valen.
 
 Una advertencia honesta: si te eliminaron por romper las reglas, insiste con moderación. Un mensaje, dos como mucho. Si no contestan, la respuesta ya la tienes.
 

@@ -96,9 +96,9 @@ Una vecina que vende tortas con fotos reales y entregas en persona no es una est
 
 ## Cómo encaja esta guía con nuestra guía de grupos seguros
 
-Ya publicamos una [guía para encontrar grupos de WhatsApp seguros](/blog/como-encontrar-grupos-de-whatsapp-seguros-2026) que mira el antes: criterios para elegir bien, enlaces vivos y señales de grupos abandonados. Esta guía mira el durante: qué hacer cuando la trampa ya está adentro del grupo. Léelas en ese orden y tienes el camino completo.
+Ya publicamos una [guía para encontrar grupos de WhatsApp seguros](/guias/como-encontrar-grupos-de-whatsapp-seguros-2026) que mira el antes: criterios para elegir bien, enlaces vivos y señales de grupos abandonados. Esta guía mira el durante: qué hacer cuando la trampa ya está adentro del grupo. Léelas en ese orden y tienes el camino completo.
 
-Para completar el círculo, mira [qué ven los desconocidos de ti en un grupo público](/blog/es-seguro-unirse-a-grupos-de-whatsapp-publicos) y [cómo denunciar un grupo desde la app](/blog/como-denunciar-un-grupo-de-whatsapp).
+Para completar el círculo, mira [qué ven los desconocidos de ti en un grupo público](/guias/es-seguro-unirse-a-grupos-de-whatsapp-publicos) y [cómo denunciar un grupo desde la app](/guias/como-denunciar-un-grupo-de-whatsapp).
 
 ## Preguntas frecuentes
 
@@ -186,7 +186,7 @@ WhatsApp describe estos ajustes en su [página oficial](https://www.whatsapp.com
 
 ## El riesgo real empieza después de entrar
 
-Estar en el grupo no te hace nada. El riesgo llega después: alguien te escribe al privado, aparece «la oportunidad», cae un enlace del cielo. Las [estafas en grupos de WhatsApp tienen 9 señales claras](/blog/estafas-en-grupos-de-whatsapp-9-senales) y conviene conocerlas antes de entrar a cualquier grupo público. Detección temprana, cero sorpresas.
+Estar en el grupo no te hace nada. El riesgo llega después: alguien te escribe al privado, aparece «la oportunidad», cae un enlace del cielo. Las [estafas en grupos de WhatsApp tienen 9 señales claras](/guias/estafas-en-grupos-de-whatsapp-9-senales) y conviene conocerlas antes de entrar a cualquier grupo público. Detección temprana, cero sorpresas.
 
 La estadística aburrida también ayuda: la mayoría de los grupos públicos son exactamente lo que prometen. Gente que habla de fútbol, de cocina o de emprendimiento. Los casos feos existen, pero se concentran en los grupos que prometen dinero fácil o premios sin sorteo. Ahí es donde hay que tener los ojos abiertos.
 
@@ -209,7 +209,7 @@ La diferencia real es la puerta. En un grupo público, el enlace circula por dir
 
 ## Si te añaden sin permiso
 
-Y si el problema no es entrar tú, sino que te meten a la fuerza, hay un ajuste para eso. Te contamos la ruta completa en [cómo evitar que te añadan a grupos sin tu permiso](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). Spoiler: dos toques y el spam de añadidos se termina.
+Y si el problema no es entrar tú, sino que te meten a la fuerza, hay un ajuste para eso. Te contamos la ruta completa en [cómo evitar que te añadan a grupos sin tu permiso](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). Spoiler: dos toques y el spam de añadidos se termina.
 
 ## Preguntas frecuentes
 
@@ -299,7 +299,7 @@ Para ti, la invitación llega como un chat normal: nombre del grupo, foto y un b
 
 ## La otra mitad: qué ven de ti los desconocidos
 
-Este ajuste frena el añadido, no todo. Cuando entras a un grupo, los extraños siguen viendo tu número. Y tu foto, tu «última vez» y tu info, según tus ajustes. En [nuestra guía sobre la seguridad de los grupos públicos](/blog/es-seguro-unirse-a-grupos-de-whatsapp-publicos) tienes la checklist completa: foto solo para contactos, última vez oculta e info neutra. Cuesta cinco minutos y cubre el resto del frente.
+Este ajuste frena el añadido, no todo. Cuando entras a un grupo, los extraños siguen viendo tu número. Y tu foto, tu «última vez» y tu info, según tus ajustes. En [nuestra guía sobre la seguridad de los grupos públicos](/guias/es-seguro-unirse-a-grupos-de-whatsapp-publicos) tienes la checklist completa: foto solo para contactos, última vez oculta e info neutra. Cuesta cinco minutos y cubre el resto del frente.
 
 ### La tabla de los ajustes hermanos
 
@@ -318,7 +318,7 @@ Ojo con esto: el ajuste solo frena que te **metan**. Si tú haces clic en un enl
 
 ## Si ya estás dentro y solo quieres paz
 
-Y si ya caíste en el grupo y solo buscas silencio, tienes dos caminos: el frontal (salir) y el silencioso (silenciar o archivar). Te contamos ambos, con sus exactos, en [cómo salir de un grupo sin que se den cuenta](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta). Activa el ajuste de añadidos y no volverán a meterte.
+Y si ya caíste en el grupo y solo buscas silencio, tienes dos caminos: el frontal (salir) y el silencioso (silenciar o archivar). Te contamos ambos, con sus exactos, en [cómo salir de un grupo sin que se den cuenta](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta). Activa el ajuste de añadidos y no volverán a meterte.
 
 ## Preguntas frecuentes
 
@@ -366,7 +366,7 @@ Denuncia cuando el grupo rompe las reglas: estafas, enlaces de phishing, conteni
 
 Ejemplos concretos: un grupo que promete duplicar dinero, un enlace que clona la web de tu banco, alguien que acosa a una integrante, material ilegal de cualquier tipo. Si dudas entre «molestoso» y «denunciable», pregúntate si el contenido puede dañar a la próxima persona que entre. Si la respuesta es sí, reporta.
 
-Si el grupo es sano pero te aburre, no hace falta denunciar. Sal y listo. Saber [cómo salir de un grupo sin hacer ruido](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta) es educación digital básica. Reportar es un botón de emergencia, no un botón de disgusto.
+Si el grupo es sano pero te aburre, no hace falta denunciar. Sal y listo. Saber [cómo salir de un grupo sin hacer ruido](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta) es educación digital básica. Reportar es un botón de emergencia, no un botón de disgusto.
 
 ## Paso a paso en Android
 
@@ -424,7 +424,7 @@ Si el grupo lo encontraste por Grupos Hoy, denunciarlo solo en la app no alcanza
 
 Para eso existe el [formulario para reportar grupos](/reportar-grupo): nos avisas, comprobamos el reporte y lo quitamos del directorio para todos. Un aviso tuyo limpia el camino de cientos de personas. Ese es el acuerdo: la app sanciona cuentas, nosotros sacamos el grupo de la vitrina.
 
-Si dentro del grupo viste estafas, repasa las [9 señales de estafas en grupos de WhatsApp](/blog/estafas-en-grupos-de-whatsapp-9-senales) antes de escribir el reporte. Te ayudan a describir el problema con precisión y ahorrar tiempo de revisión.
+Si dentro del grupo viste estafas, repasa las [9 señales de estafas en grupos de WhatsApp](/guias/estafas-en-grupos-de-whatsapp-9-senales) antes de escribir el reporte. Te ayudan a describir el problema con precisión y ahorrar tiempo de revisión.
 
 ## Después de denunciar: cuatro hábitos que suman
 
@@ -433,7 +433,7 @@ Si dentro del grupo viste estafas, repasa las [9 señales de estafas en grupos d
 3. **Avisa en el grupo si aún estás.** Un «esto ya fue reportado» frena más de un entusiasta. El miedo al escrache desactiva estafadores novatos.
 4. **Revisa tus otros grupos.** Los enlaces de phishing viajan de grupo en grupo como resfrío en invierno.
 
-¿Y si el grupo vuelve con otro nombre? Suele pasar con el spam: cierran uno y renace otro con enlace nuevo. La defensa es la misma: reporta el grupo nuevo, bloquea al mensajero y activa el ajuste que decide [quién puede añadirte a grupos](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). La app actúa cuenta por cuenta; tú cortas la puerta de entrada. La constancia gana.
+¿Y si el grupo vuelve con otro nombre? Suele pasar con el spam: cierran uno y renace otro con enlace nuevo. La defensa es la misma: reporta el grupo nuevo, bloquea al mensajero y activa el ajuste que decide [quién puede añadirte a grupos](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). La app actúa cuenta por cuenta; tú cortas la puerta de entrada. La constancia gana.
 
 Para más manuales con pasos claros, nuestra [sección de guías](/guias) cubre todo el repertorio de la app.
 
@@ -535,7 +535,7 @@ Un extra para los grupos ruidosos de fotos y videos: desactiva la descarga autom
 
 ## Si te vuelven a meter
 
-Salió. Y al día siguiente estás dentro otra vez, porque alguien con tu número te reañadió. Tiene arreglo definitivo: el ajuste **«Quién puede añadirme a grupos»** corta el problema de raíz. Te explicamos la ruta completa, con pantallas exactas, en [cómo evitar que te añadan a grupos sin permiso](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso).
+Salió. Y al día siguiente estás dentro otra vez, porque alguien con tu número te reañadió. Tiene arreglo definitivo: el ajuste **«Quién puede añadirme a grupos»** corta el problema de raíz. Te explicamos la ruta completa, con pantallas exactas, en [cómo evitar que te añadan a grupos sin permiso](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso).
 
 ## Tres casos concretos, tres salidas
 
@@ -549,7 +549,7 @@ Y cuando WhatsApp anuncia cambios en estos avisos, lo cuenta en su [blog oficial
 
 Si la salida fue solo el síntoma, quizá necesites grupos que sí te llenen. En nuestra [sección de guías](/guias) tienes más manuales de WhatsApp con pasos claros, y en el [buscador de grupos](/buscar) puedes filtrar por categoría y país antes de entrar.
 
-Y si tú administras grupos, mira [cómo moderar un grupo de WhatsApp exitoso](/blog/como-moderar-un-grupo-de-whatsapp-exitoso): la mejor salida es la que nadie necesita planear. Un grupo con buen ambiente retiene gente sin esfuerzo.
+Y si tú administras grupos, mira [cómo moderar un grupo de WhatsApp exitoso](/guias/como-moderar-un-grupo-de-whatsapp-exitoso): la mejor salida es la que nadie necesita planear. Un grupo con buen ambiente retiene gente sin esfuerzo.
 
 ## Preguntas frecuentes
 

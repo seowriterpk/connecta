@@ -49,7 +49,7 @@ Al entrar a una comunidad, en la mayoría de las versiones actuales, pasa esto:
 3. Entras donde quieras con el botón **Unirme al grupo**. Un toque y listo.
 4. Cada subgrupo aparece como un chat aparte en tu lista. Los silencias por separado, como cualquier grupo.
 
-Un detalle honesto: al unirte a un subgrupo, sus miembros ven tu número, igual que en cualquier grupo. Si eso te preocupa, pasa antes por la guía de [qué ven los desconocidos cuando entras a un grupo](/blog/es-seguro-unirse-a-grupos-de-whatsapp-publicos) y ajusta tu privacidad.
+Un detalle honesto: al unirte a un subgrupo, sus miembros ven tu número, igual que en cualquier grupo. Si eso te preocupa, pasa antes por la guía de [qué ven los desconocidos cuando entras a un grupo](/guias/es-seguro-unirse-a-grupos-de-whatsapp-publicos) y ajusta tu privacidad.
 
 Otra cosa que conviene saber: los avisos del grupo de anuncios no se pueden responder. En versiones recientes la gente puede reaccionar con emojis, pero la conversa va en los subgrupos.
 
@@ -63,7 +63,7 @@ Ese enlace único es oro para pegarlo en el cartel del club, mandarlo por correo
 
 ## El grupo de anuncios: el altavoz central
 
-Es la pieza que hace funcionar el invento. Ahí publican solo los administradores y leen todos los demás. Es, en la práctica, un [grupo de WhatsApp en modo solo lectura](/blog/grupo-de-whatsapp-solo-lectura), pero incluido de fábrica.
+Es la pieza que hace funcionar el invento. Ahí publican solo los administradores y leen todos los demás. Es, en la práctica, un [grupo de WhatsApp en modo solo lectura](/guias/grupo-de-whatsapp-solo-lectura), pero incluido de fábrica.
 
 ¿Por qué importa tanto? Porque la mayoría de la gente no quiere chatear: quiere enterarse. Con el altavoz central, el aviso del partido llega sin competencia de cadenas ni bromas. Y el que sí quiere charla, se mete al subgrupo que le toque.
 
@@ -83,7 +83,7 @@ No sirve, en cambio, cuando:
 
 - El tema es uno y la charla es una sola: basta un grupo.
 - Es tu familia: una comunidad para «¿quién lleva el postre?» es matar moscas a cañonazos.
-- Solo quieres anunciar a gente que no se conoce: para eso está el canal, y en la [comparativa de grupo, comunidad y canal](/blog/grupo-vs-comunidad-vs-canal-de-whatsapp) lo ves en una tabla.
+- Solo quieres anunciar a gente que no se conoce: para eso está el canal, y en la [comparativa de grupo, comunidad y canal](/guias/grupo-vs-comunidad-vs-canal-de-whatsapp) lo ves en una tabla.
 
 La pregunta clave es simple: ¿tu gente necesita elegir qué leer? Si sí, comunidad. Si todos leen todo, grupo.
 
@@ -93,9 +93,9 @@ Hasta hoy, las condiciones son estas:
 
 - Se crea desde la **app personal de WhatsApp**, en Android o iPhone. La creación se hace desde el móvil; en el WhatsApp de escritorio no siempre está disponible, según la versión.
 - Cualquier persona con cuenta activa puede hacerlo. No hay que verificar nada ni pagar nada. Es función oficial: WhatsApp la explica en su [página sobre comunidades](https://www.whatsapp.com/community).
-- **No se crea desde WhatsApp Business.** Esa app es otra cosa y hoy no trae el botón. Te desarmo ese mito entero en [comunidades y WhatsApp Business: mito resuelto](/blog/comunidad-de-whatsapp-business-mito-resuelto).
+- **No se crea desde WhatsApp Business.** Esa app es otra cosa y hoy no trae el botón. Te desarmo ese mito entero en [comunidades y WhatsApp Business: mito resuelto](/guias/comunidad-de-whatsapp-business-mito-resuelto).
 
-Un caso típico: administras un grupo grande y desordenado, del estilo de [La Mesa de Debate de fútbol argentino](/grupo/futbol-argentino-la-mesa-de-debate), y ya no sabes dónde empieza cada tema. Ese es el momento de dar el salto. El procedimiento completo está en la guía de [cómo crear una comunidad en WhatsApp](/blog/como-crear-una-comunidad-en-whatsapp).
+Un caso típico: administras un grupo grande y desordenado, del estilo de [La Mesa de Debate de fútbol argentino](/grupo/futbol-argentino-la-mesa-de-debate), y ya no sabes dónde empieza cada tema. Ese es el momento de dar el salto. El procedimiento completo está en la guía de [cómo crear una comunidad en WhatsApp](/guias/como-crear-una-comunidad-en-whatsapp).
 
 ## Cómo entrar (si te invitan)
 
@@ -178,15 +178,15 @@ Los detalles finos cambian según la versión de la app. La estructura de la tab
 
 El clásico. Un solo chat, todos escriben, límite de 1.024 miembros. El enlace de invitación se puede restablecer cuando se compromete, y también se entra escaneando el código QR del grupo.
 
-Sus virtudes son sus defectos: la misma libertad para escribir convierte cualquier grupo grande en una olla de ruido. Por eso los administradores tienen herramientas para poner orden: fijar mensajes, cerrar el envío a todos y dejar el grupo como [solo lectura para que únicamente escriba el admin](/blog/grupo-de-whatsapp-solo-lectura).
+Sus virtudes son sus defectos: la misma libertad para escribir convierte cualquier grupo grande en una olla de ruido. Por eso los administradores tienen herramientas para poner orden: fijar mensajes, cerrar el envío a todos y dejar el grupo como [solo lectura para que únicamente escriba el admin](/guias/grupo-de-whatsapp-solo-lectura).
 
-Si vas a crear el tuyo, empieza por la [guía completa para crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa): pasos, ajustes y errores de novato.
+Si vas a crear el tuyo, empieza por la [guía completa para crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa): pasos, ajustes y errores de novato.
 
 ## Comunidad: el edificio con salas
 
 Una comunidad es un grupo de grupos. Hay un grupo de anuncios donde solo publican los administradores y varias salas de tema. Cada persona elige a cuáles entrar y silencia el resto.
 
-Es la herramienta de los clubes, las escuelas y los barrios: mucha gente, temas distintos y necesidad de que cada uno lea solo lo suyo. El caso de un club de barrio, contado socio por socio, está en [qué es una comunidad de WhatsApp y para qué sirve](/blog/comunidad-de-whatsapp-que-es-y-para-que-sirve).
+Es la herramienta de los clubes, las escuelas y los barrios: mucha gente, temas distintos y necesidad de que cada uno lea solo lo suyo. El caso de un club de barrio, contado socio por socio, está en [qué es una comunidad de WhatsApp y para qué sirve](/guias/comunidad-de-whatsapp-que-es-y-para-que-sirve).
 
 Su costo: exige administración. Alguien tiene que mantener las salas ordenadas y el altavoz central limpio. Sin organizador, una comunidad se llena de salas muertas y gente confundida.
 
@@ -196,7 +196,7 @@ Un canal es una emisora. El administrador publica y los seguidores leen. Sin com
 
 No hay límite conocido de seguidores, y la gente puede encontrarte desde el buscador de canales de la propia app, según la versión. Es la pieza para anunciar resultados, ofertas, novedades o avisos del día a desconocidos que no necesitan hablar entre sí.
 
-Si vas a lanzar el tuyo, sigue la guía de [cómo crear un canal de WhatsApp y conseguir los primeros seguidores](/blog/como-crear-un-canal-de-whatsapp).
+Si vas a lanzar el tuyo, sigue la guía de [cómo crear un canal de WhatsApp y conseguir los primeros seguidores](/guias/como-crear-un-canal-de-whatsapp).
 
 ## ¿Cuál necesitas? Cuatro escenarios
 
@@ -206,7 +206,7 @@ Tema único, poca gente, todos se conocen. **Grupo.** Una comunidad para organiz
 
 ### Escenario 2: el club, la escuela o los vecinos
 
-Mucha gente, temas con ramas, cada quien necesita información distinta. **Comunidad.** Anuncios para todos y salas para cada interés. Si arrancas de cero, ten a mano el [paso a paso para crear una comunidad](/blog/como-crear-una-comunidad-en-whatsapp), que incluye el plan de lanzamiento.
+Mucha gente, temas con ramas, cada quien necesita información distinta. **Comunidad.** Anuncios para todos y salas para cada interés. Si arrancas de cero, ten a mano el [paso a paso para crear una comunidad](/guias/como-crear-una-comunidad-en-whatsapp), que incluye el plan de lanzamiento.
 
 ### Escenario 3: anunciar a seguidores
 
@@ -273,7 +273,7 @@ Sí, y suele ser la mejor jugada. Grupo para la charla, comunidad para ordenar y
 
 La academia de baile de Laura, en Sevilla, lo vivió: armó la comunidad perfecta, invitó a doscientas personas y a los diez días solo quedaban silencios. El problema no fue la herramienta: fue el lanzamiento.
 
-Aquí tienes el paso a paso para crear una comunidad en WhatsApp desde el móvil, y el manual completo para poblarla sin hacer spam. Si el concepto todavía te da vueltas, arranca por [qué es una comunidad de WhatsApp y para qué sirve](/blog/comunidad-de-whatsapp-que-es-y-para-que-sirve) y luego vuelve por este plan.
+Aquí tienes el paso a paso para crear una comunidad en WhatsApp desde el móvil, y el manual completo para poblarla sin hacer spam. Si el concepto todavía te da vueltas, arranca por [qué es una comunidad de WhatsApp y para qué sirve](/guias/comunidad-de-whatsapp-que-es-y-para-que-sirve) y luego vuelve por este plan.
 
 Crear una comunidad en WhatsApp toma cinco minutos: abres la pestaña de comunidades, tocas «Nueva comunidad», defines el grupo de anuncios, añades grupos de temas e invitas gente. La app pide usar tu cuenta personal, y cada grupo interno admite hasta 1.024 personas.
 
@@ -282,7 +282,7 @@ Crear una comunidad en WhatsApp toma cinco minutos: abres la pestaña de comunid
 Un inventario rápido, dos minutos:
 
 - **App personal de WhatsApp**, actualizada, en Android o iPhone. La creación no siempre está disponible en la versión de escritorio, según la versión.
-- **No uses WhatsApp Business para esto**: esa app, hasta hoy, no crea comunidades. La explicación completa está en [comunidades y WhatsApp Business: mito resuelto](/blog/comunidad-de-whatsapp-business-mito-resuelto).
+- **No uses WhatsApp Business para esto**: esa app, hasta hoy, no crea comunidades. La explicación completa está en [comunidades y WhatsApp Business: mito resuelto](/guias/comunidad-de-whatsapp-business-mito-resuelto).
 - **Ser administrador de los grupos** que quieras meter dentro. Los grupos de otros no se pueden incluir.
 - **Diseño previo por escrito**: un grupo de anuncios y entre 2 y 4 salas. Ni más ni menos para empezar.
 - Un nombre claro y una descripción de dos líneas que expliquen para qué existe la comunidad.
@@ -309,7 +309,7 @@ Tres reglas, sin vueltas:
 - Al añadir un grupo, sus miembros ven la comunidad y, según la versión, entran también al grupo de anuncios. Quien quiera, se va: la salida es libre y silenciosa.
 - El grupo conserva su historial, su gente y su configuración. No se borra nada: solo pasa a vivir bajo el techo de la comunidad.
 
-Si nunca armaste un grupo propio, cubre primero eso con la [guía de crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa). Una comunidad se llena de grupos vivos, no de salas vacías.
+Si nunca armaste un grupo propio, cubre primero eso con la [guía de crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa). Una comunidad se llena de grupos vivos, no de salas vacías.
 
 ## El manual del lanzamiento: poblarla sin spam
 
@@ -362,7 +362,7 @@ La comunidad sana necesita tres cosas: ritmo, orden y vocerías.
 - **Orden:** un «prefecto» por sala, con permisos de administrador solo ahí. Reparte el trabajo y evita cuellos de botella.
 - **Vocerías:** personas que levanten la mano en cada tema. Una comunidad con cinco voces activas vale más que una con quinientas silenciosas.
 
-La moderación fina tiene su propio manual: sigue la [guía para moderar un grupo exitoso](/blog/como-moderar-un-grupo-de-whatsapp-exitoso), que aplica sala por sala.
+La moderación fina tiene su propio manual: sigue la [guía para moderar un grupo exitoso](/guias/como-moderar-un-grupo-de-whatsapp-exitoso), que aplica sala por sala.
 
 ## Si ya administras grupos
 
@@ -411,7 +411,7 @@ Entre 2 y 4. Mejor una sala con conversación que cinco vacías. Ya crecerás cu
 
 Carmen no hizo nada mal: el botón no existe ahí. Y media internet insiste en que sí. Este artículo desarma el mito y te deja las soluciones reales, con sus costos a la vista.
 
-Si el concepto todavía te da vueltas, pásale primero por [qué es y para qué sirve una comunidad de WhatsApp](/blog/comunidad-de-whatsapp-que-es-y-para-que-sirve); luego vuelve por el plan.
+Si el concepto todavía te da vueltas, pásale primero por [qué es y para qué sirve una comunidad de WhatsApp](/guias/comunidad-de-whatsapp-que-es-y-para-que-sirve); luego vuelve por el plan.
 
 Hoy, las comunidades de WhatsApp se crean desde la app personal, no desde WhatsApp Business. Business es una app aparte, pensada para atender clientes una a una o con listas y etiquetas. No trae el botón de comunidades y no hay fecha oficial de cambio. La alternativa: gestionar tu comunidad desde la cuenta personal.
 
@@ -462,7 +462,7 @@ La más usada por tiendas con clientela activa:
 
 Pros: cada app hace lo suyo y tu número de tienda no se mezcla con la comunidad. Contras: dos teléfonos que vigilar (o doble SIM) y una división que hay que explicar a los clientes.
 
-El procedimiento completo de la comunidad, incluido el plan para poblarla sin spam, está en [cómo crear una comunidad en WhatsApp paso a paso](/blog/como-crear-una-comunidad-en-whatsapp).
+El procedimiento completo de la comunidad, incluido el plan para poblarla sin spam, está en [cómo crear una comunidad en WhatsApp paso a paso](/guias/como-crear-una-comunidad-en-whatsapp).
 
 ## Combinación 2: grupos de atención en Business + comunidad de anuncios en el otro número
 
@@ -485,7 +485,7 @@ Así el mostrador no se contagia del ruido y los avisos llegan una sola vez. Req
 | Listas de difusión | Sí | Sí |
 | Atención uno a uno | Sí | Sí, con más herramientas |
 
-Nota: los canales tampoco se crean desde Business. Si tu plan incluye difusión, mira [cómo crear un canal de WhatsApp](/blog/como-crear-un-canal-de-whatsapp) desde la app personal.
+Nota: los canales tampoco se crean desde Business. Si tu plan incluye difusión, mira [cómo crear un canal de WhatsApp](/guias/como-crear-un-canal-de-whatsapp) desde la app personal.
 
 Ojo con la tabla: «no, hasta hoy» significa exactamente eso. Las apps se actualizan y las funciones se mueven.
 
@@ -550,7 +550,7 @@ Lo que no es:
 
 - **No es un grupo.** Los seguidores no escriben. Si necesitan conversar, necesitas un grupo.
 - **No es un chat.** En versiones recientes la gente puede reaccionar con emojis y, a veces, responder encuestas. Pero no hay conversación.
-- **No es una comunidad.** No hay salas ni miembros: hay un altavoz y una audiencia. La comparación fina está en [grupo vs. comunidad vs. canal](/blog/grupo-vs-comunidad-vs-canal-de-whatsapp).
+- **No es una comunidad.** No hay salas ni miembros: hay un altavoz y una audiencia. La comparación fina está en [grupo vs. comunidad vs. canal](/guias/grupo-vs-comunidad-vs-canal-de-whatsapp).
 
 ## Paso a paso: crear tu canal
 
@@ -562,7 +562,7 @@ Lo que no es:
 6. Publica el primer mensaje: qué vas a publicar, cada cuánto y por qué conviene seguirte.
 7. Consigue el **enlace de invitación** desde la info del canal y compártelo donde pueda importar.
 
-Todo el proceso se hace desde el móvil, con la app personal. Hasta hoy tampoco se crea desde WhatsApp Business: ese detalle está desarmado en [el mito de las comunidades en Business](/blog/comunidad-de-whatsapp-business-mito-resuelto), que aplica igual para canales.
+Todo el proceso se hace desde el móvil, con la app personal. Hasta hoy tampoco se crea desde WhatsApp Business: ese detalle está desarmado en [el mito de las comunidades en Business](/guias/comunidad-de-whatsapp-business-mito-resuelto), que aplica igual para canales.
 
 WhatsApp mantiene su [página oficial sobre canales](https://www.whatsapp.com/channel) con lo básico, y el [blog oficial](https://blog.whatsapp.com/) anuncia cada función nueva cuando llega.
 
@@ -616,9 +616,9 @@ Lo que no: comprar seguidores (no existe de verdad), añadir gente a la fuerza a
 
 El canal no nace solo: nace mejor cuando ya tienes estructura.
 
-- **Si administras una comunidad:** pega el enlace del canal en el grupo de anuncios y fíjalo. La comunidad entera lo verá en el altavoz central. El paso a paso para armarla está en [cómo crear una comunidad en WhatsApp](/blog/como-crear-una-comunidad-en-whatsapp).
+- **Si administras una comunidad:** pega el enlace del canal en el grupo de anuncios y fíjalo. La comunidad entera lo verá en el altavoz central. El paso a paso para armarla está en [cómo crear una comunidad en WhatsApp](/guias/como-crear-una-comunidad-en-whatsapp).
 - **Si administras grupos sueltos:** tu grupo popular es el trampolín. Anuncia el canal una vez, deja el enlace en la descripción y deja que crezca solo.
-- **Si partes de cero:** crea primero el grupo que converse y después el canal que avise. Así el embudo queda completo: el canal capta, el grupo conversa y la comunidad ordena, si la necesitas. La anatomía de las tres piezas está en [qué es una comunidad de WhatsApp](/blog/comunidad-de-whatsapp-que-es-y-para-que-sirve).
+- **Si partes de cero:** crea primero el grupo que converse y después el canal que avise. Así el embudo queda completo: el canal capta, el grupo conversa y la comunidad ordena, si la necesitas. La anatomía de las tres piezas está en [qué es una comunidad de WhatsApp](/guias/comunidad-de-whatsapp-que-es-y-para-que-sirve).
 
 El orden importa: primero la conversación, después la audiencia. Un canal sin nada detrás es un altavoz apuntando a la nada.
 

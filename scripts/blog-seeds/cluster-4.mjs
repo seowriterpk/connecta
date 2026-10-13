@@ -14,7 +14,7 @@ const posts = [
     metaDescription:
       "Aprende cómo administrar un grupo de WhatsApp: permisos de mensajes, coadministradores, aprobación de miembros y los ajustes que debes activar hoy.",
     daysAgo: 29,
-    content: `Crear el grupo fue la parte fácil. Eso ya lo cubrimos en la guía para [crear un grupo de WhatsApp desde cero](/blog/como-crear-un-grupo-de-whatsapp-guia-completa). Lo que sigue es otra historia: alguien escribe a las tres de la mañana, otro cambia la foto sin pedir permiso y un tercero agrega a veinte desconocidos en una sola tarde.
+    content: `Crear el grupo fue la parte fácil. Eso ya lo cubrimos en la guía para [crear un grupo de WhatsApp desde cero](/guias/como-crear-un-grupo-de-whatsapp-guia-completa). Lo que sigue es otra historia: alguien escribe a las tres de la mañana, otro cambia la foto sin pedir permiso y un tercero agrega a veinte desconocidos en una sola tarde.
 
 Administrar no es vigilar el grupo todo el día. Es cerrar bien las puertas una sola vez y dormir tranquilo. WhatsApp trae más ajustes de los que la gente toca, y ahí vive casi toda la diferencia entre un grupo sano y un desastre.
 
@@ -24,7 +24,7 @@ En esta guía recorremos cada ajuste con nombre y apellido: quién puede escribi
 
 ## Administrar son los candados; moderar es la convivencia
 
-Un cambio de luces antes de empezar, para no confundir conceptos. Esta guía habla de **los ajustes**: permisos, botones y candados del grupo. La convivencia del día a día (discusiones, silencios incómodos, personajes difíciles) tiene su propia guía en [cómo moderar un grupo de WhatsApp con éxito](/blog/como-moderar-un-grupo-de-whatsapp-exitoso). Los ajustes ponen las reglas del juego; la moderación hace que se cumplan. Necesitas las dos cosas, pero hoy toca la parte técnica.
+Un cambio de luces antes de empezar, para no confundir conceptos. Esta guía habla de **los ajustes**: permisos, botones y candados del grupo. La convivencia del día a día (discusiones, silencios incómodos, personajes difíciles) tiene su propia guía en [cómo moderar un grupo de WhatsApp con éxito](/guias/como-moderar-un-grupo-de-whatsapp-exitoso). Los ajustes ponen las reglas del juego; la moderación hace que se cumplan. Necesitas las dos cosas, pero hoy toca la parte técnica.
 
 ## El ajuste más importante: quién puede enviar mensajes
 
@@ -40,7 +40,7 @@ Un cambio de luces antes de empezar, para no confundir conceptos. Esta guía hab
 | Todos los participantes | Cualquiera, en cualquier momento | Familia, amigos, grupos de charla |
 | Solo administradores | Solo los admins; el resto lee | Avisos del colegio, del trabajo, del edificio |
 
-El modo restringido merece artículo propio: [grupos de WhatsApp en modo solo lectura](/blog/grupo-de-whatsapp-solo-lectura) explica cómo funciona, cómo responder por privado y qué sentido tiene.
+El modo restringido merece artículo propio: [grupos de WhatsApp en modo solo lectura](/guias/grupo-de-whatsapp-solo-lectura) explica cómo funciona, cómo responder por privado y qué sentido tiene.
 
 Un detalle que salva dolores de cabeza: cuando pases el grupo a solo administradores, avísalo. Un mensaje de dos líneas alcanza:
 
@@ -113,7 +113,7 @@ Si el enlace anduvo suelto por internet y entró gente rara, restablece el enlac
 - Restablecer enlace → cada cierto tiempo, sin drama.
 - Dos coadmins como mínimo, para que el grupo no quede huérfano.
 
-Si llegaste a esta guía con el grupo ya agonizando, hay esperanza: el [plan de 7 días para revivir un grupo muerto](/blog/como-revivir-un-grupo-de-whatsapp-muerto) arranca justo donde termina esta lista.
+Si llegaste a esta guía con el grupo ya agonizando, hay esperanza: el [plan de 7 días para revivir un grupo muerto](/guias/como-revivir-un-grupo-de-whatsapp-muerto) arranca justo donde termina esta lista.
 
 Con estos candados puestos, tu grupo se cuida solo en lo técnico y tú puedes dedicarte a lo humano. Para robar ideas, date una vuelta por el [directorio de categorías de grupos](/categorias) y mira cómo se ordenan los que funcionan de verdad.
 
@@ -150,7 +150,7 @@ La persona quitada siempre ve quién la quitó. Lo que ve el resto del grupo dep
 
 Un grupo muerto casi nunca muere solo: lo matan el spam, los horarios imposibles o la falta de propósito. Y lo que muere por causas concretas se puede reanimar con un plan concreto.
 
-Este artículo es ese plan: siete días, tarea por tarea, con mensajes listos para copiar. Antes de arrancar, conviene tener los candados del grupo bien puestos; si no revisaste los permisos todavía, date una vuelta por [cómo administrar un grupo de WhatsApp](/blog/como-administrar-un-grupo-de-whatsapp) y vuelve. Aquí nos dedicamos a revivir.
+Este artículo es ese plan: siete días, tarea por tarea, con mensajes listos para copiar. Antes de arrancar, conviene tener los candados del grupo bien puestos; si no revisaste los permisos todavía, date una vuelta por [cómo administrar un grupo de WhatsApp](/guias/como-administrar-un-grupo-de-whatsapp) y vuelve. Aquí nos dedicamos a revivir.
 
 **Un grupo de WhatsApp muerto** es un grupo en el que nadie escribe por semanas aunque la mayoría sigue dentro. Se reactiva con un plan corto: diagnosticar la causa, limpiar el spam, poner reglas claras, relanzar con un anuncio y sostener la conversación con ganchos semanales. Sin plan, el silencio vuelve.
 
@@ -173,7 +173,7 @@ Las causas de muerte suelen ser estas:
 | Sin propósito claro | El grupo se creó "porque había que crear uno" | Nadie sabe para qué sirve |
 | Cambio de vida | El curso terminó, el equipo se separó | El silencio es lógico, no es culpa de nadie |
 
-Si tu diagnóstico es spam, cuidado: las cadenas no solo aburren, también son la puerta de entrada de engaños. Las [9 señales de estafas en grupos de WhatsApp](/blog/estafas-en-grupos-de-whatsapp-9-senales) te ayudan a distinguir la basura peligrosa de la simplemente molesta.
+Si tu diagnóstico es spam, cuidado: las cadenas no solo aburren, también son la puerta de entrada de engaños. Las [9 señales de estafas en grupos de WhatsApp](/guias/estafas-en-grupos-de-whatsapp-9-senales) te ayudan a distinguir la basura peligrosa de la simplemente molesta.
 
 Si el diagnóstico es "cambió la vida", sé honesto contigo: quizá no toca revivir, sino cerrar con dignidad. Llegamos a eso al final.
 
@@ -182,7 +182,7 @@ Si el diagnóstico es "cambió la vida", sé honesto contigo: quizá no toca rev
 Un relanzamiento sobre la basura vieja no funciona. Hay que barrer antes:
 
 1. **Quita a los spammers.** Mantén pulsado su nombre en la lista y elige Eliminar del grupo. Sin anuncio dramático: los hechos hablan solos.
-2. **Renueva la descripción.** Ahí vive el contrato del grupo: propósito en una línea, reglas en dos. Tienes [reglas para grupos de WhatsApp listas para copiar y pegar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar) en esta otra guía; toma las que sirvan y adapta el tono a tu gente.
+2. **Renueva la descripción.** Ahí vive el contrato del grupo: propósito en una línea, reglas en dos. Tienes [reglas para grupos de WhatsApp listas para copiar y pegar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar) en esta otra guía; toma las que sirvan y adapta el tono a tu gente.
 3. **Ajusta el nombre si el propósito cambió.** Un "Fútbol amigos" que ya solo comparte memes, o se llama como lo que es, o cambia de rumbo.
 4. **Manda una encuesta.** Pregunta directa: "¿Le damos otra vida a este grupo?" con opciones: "Sí, con todo", "Solo avisos", "No, déjalo morir". Las encuestas nativas de WhatsApp se crean en dos toques y la gente las contesta sin pena.
 
@@ -238,7 +238,7 @@ El plan tiene límites honestos. Claudica si se cumplen una o más de estas:
 En ese caso, cierra con clase y abre de cero:
 
 1. Anuncia el cierre con fecha: "este grupo se apaga el viernes; gracias por todo".
-2. Crea el grupo nuevo solo con la gente que participaba, siguiendo la [guía completa para crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa), que incluye permisos, enlace y QR desde el primer minuto.
+2. Crea el grupo nuevo solo con la gente que participaba, siguiendo la [guía completa para crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa), que incluye permisos, enlace y QR desde el primer minuto.
 3. Comparte el enlace del grupo nuevo en el viejo antes de apagarlo.
 4. Empieza chico. Un grupo de 20 personas comprometidas vive más que uno de 400 espectadores.
 
@@ -279,7 +279,7 @@ Solo si te vuelven a invitar. Pide a un administrador que te sume de nuevo o ent
 
 Ser administrador es tener llaves que otros no tienen. Pero el cargo también carga mitos: que los admins leen tus privados, ven tu ubicación o saben quién silenció el grupo. Casi todo eso es película.
 
-Aquí va el desglose completo: cómo se llega a ser administrador (nadie llega solo), qué pasa si el creador se va, qué puede hacer cada rol y, la parte que más interesa, qué ven los admins de ti y qué no. Lo técnico de permisos y botones vive en [cómo administrar un grupo de WhatsApp](/blog/como-administrar-un-grupo-de-whatsapp); aquí vamos al fondo de los derechos.
+Aquí va el desglose completo: cómo se llega a ser administrador (nadie llega solo), qué pasa si el creador se va, qué puede hacer cada rol y, la parte que más interesa, qué ven los admins de ti y qué no. Lo técnico de permisos y botones vive en [cómo administrar un grupo de WhatsApp](/guias/como-administrar-un-grupo-de-whatsapp); aquí vamos al fondo de los derechos.
 
 **Ser administrador de un grupo de WhatsApp** es tener permisos que los demás no tienen: enviar mensajes en grupos restringidos, editar la información, agregar o quitar participantes y designar otros administradores. Nadie se hace admin solo: alguien con esos derechos te nombra, normalmente el creador del grupo.
 
@@ -317,7 +317,7 @@ Una de las dudas más buscadas y peor explicadas. Vamos por partes:
 - **El grupo no se disuelve.** El creador es una persona con permisos, no el cimiento del edificio. Si se va, el grupo sigue respirando.
 - **Si quedan otros administradores**, nada cambia en la práctica: ellos siguen manejando permisos y miembros. Un grupo puede vivir años sin su creador.
 - **Si el creador era el único admin**, la app suele resolverlo sola: según la versión, WhatsApp puede dejar el mando al administrador o participante más antiguo, o nombrar a cualquiera de los que siguen dentro. La app no explica el criterio y no conviene apostar a la suerte: si eres creador y te vas, designa sucesor antes de salir.
-- **Si el grupo queda sin ningún administrador**, es un grupo huérfano: nadie puede sumar gente ni tocar candados. Ese caso tiene guía propia en [cómo recuperar un grupo eliminado o que se quedó sin administrador](/blog/como-recuperar-un-grupo-de-whatsapp-eliminado), con el procedimiento paso a paso.
+- **Si el grupo queda sin ningún administrador**, es un grupo huérfano: nadie puede sumar gente ni tocar candados. Ese caso tiene guía propia en [cómo recuperar un grupo eliminado o que se quedó sin administrador](/guias/como-recuperar-un-grupo-de-whatsapp-eliminado), con el procedimiento paso a paso.
 
 Un detalle cultural que sorprende: el "admin más antiguo" no tiene más derechos que un admin de ayer. WhatsApp no lleva registro de antigüedad del mando. Dentro de la app, todos los administradores pesan exactamente igual.
 
@@ -346,7 +346,7 @@ Otra cosa que un admin NO ve: la historia del grupo. No existe un registro de qu
 - **"El admin sabe si silencié el grupo."** Falso. WhatsApp no avisa quién silencia. Nadie lo sabe, jamás.
 - **"El admin ve mi última conexión."** Solo si tu ajuste de privacidad lo permite, igual que cualquier contacto. No es un poder del cargo.
 - **"El admin puede ver mi lista de contactos."** Falso. Solo ve a los participantes del grupo, nada más.
-- **"Si me eliminaron, me llega notificación."** No. No hay notificación, pero hay señales: el chat se congela y dejas de ver la info actualizada. Las detallamos en [cómo saber si te eliminaron de un grupo de WhatsApp](/blog/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp).
+- **"Si me eliminaron, me llega notificación."** No. No hay notificación, pero hay señales: el chat se congela y dejas de ver la info actualizada. Las detallamos en [cómo saber si te eliminaron de un grupo de WhatsApp](/guias/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp).
 
 ## Te nombraron admin y no quieres el cargo
 
@@ -358,7 +358,7 @@ Sucede más de lo que parece, y hay salida elegante:
 
 La tabla oficial de permisos y roles, con cada caso, está en el [centro de ayuda de WhatsApp](https://faq.whatsapp.com/): cuando dudes de qué puede hacer un admin, esa es la fuente, no el grupito de memes.
 
-Ser administrador es menos poder y más servicio: tienes candados a cambio de dolores de cabeza. Si aceptas el cargo con eso claro, va a irte bien. Y para la parte humana del trabajo (discusiones, personajes difíciles, silencios), la guía de [cómo moderar un grupo de WhatsApp con éxito](/blog/como-moderar-un-grupo-de-whatsapp-exitoso) es tu siguiente lectura. Para más guías del sitio, el [índice completo](/guias) va creciendo semana a semana.
+Ser administrador es menos poder y más servicio: tienes candados a cambio de dolores de cabeza. Si aceptas el cargo con eso claro, va a irte bien. Y para la parte humana del trabajo (discusiones, personajes difíciles, silencios), la guía de [cómo moderar un grupo de WhatsApp con éxito](/guias/como-moderar-un-grupo-de-whatsapp-exitoso) es tu siguiente lectura. Para más guías del sitio, el [índice completo](/guias) va creciendo semana a semana.
 
 ## Preguntas frecuentes
 
@@ -397,7 +397,7 @@ Solo si tu ajuste de "última vez y en línea" lo permite, y lo ve igual cualqui
 
 La sorpresa para casi todos: WhatsApp no tiene un botón "eliminar grupo para todos". Puedes borrarlo de tu vista en dos toques, pero disolverlo de verdad lleva una secuencia. Hacerla mal deja gente colgada o un grupo zombi.
 
-Aquí va la secuencia exacta, qué ve cada persona en cada paso y una alternativa más elegante: entregar el mando en vez de quemar el grupo. Si no tienes claro qué puede y qué no puede hacer un admin, empieza por [cómo ser administrador de un grupo de WhatsApp](/blog/como-ser-administrador-de-un-grupo-de-whatsapp): conocer tus límites evita decisiones de madrugada.
+Aquí va la secuencia exacta, qué ve cada persona en cada paso y una alternativa más elegante: entregar el mando en vez de quemar el grupo. Si no tienes claro qué puede y qué no puede hacer un admin, empieza por [cómo ser administrador de un grupo de WhatsApp](/guias/como-ser-administrador-de-un-grupo-de-whatsapp): conocer tus límites evita decisiones de madrugada.
 
 **Eliminar un grupo de WhatsApp siendo administrador** requiere quitar a todos los participantes uno a uno y luego salir del grupo. WhatsApp no ofrece un botón que borre el grupo para todos a la vez. Salir y eliminar solo lo quita de tu teléfono: el grupo sigue vivo para los demás.
 
@@ -409,7 +409,7 @@ Eliminar es irreversible; el arrepentimiento, no. Antes de tocar nada:
 - **Guarda fotos y documentos** que solo existan ahí. El chat exportado lo referencia todo, pero los originales conviene tenerlos a mano.
 - **Anota lo aprendido.** Si mañana nace un grupo parecido, querrás recordar qué reglas funcionaron y cuáles no.
 
-Un aviso honesto: cada miembro conserva en su teléfono el historial que ya recibió. Lo que tú borres no borra la copia de nadie más. Y si ya lo cerraste con arrepentimiento encima, mira [cómo recuperar un grupo de WhatsApp eliminado](/blog/como-recuperar-un-grupo-de-whatsapp-eliminado) para saber qué se puede rescatar y qué no.
+Un aviso honesto: cada miembro conserva en su teléfono el historial que ya recibió. Lo que tú borres no borra la copia de nadie más. Y si ya lo cerraste con arrepentimiento encima, mira [cómo recuperar un grupo de WhatsApp eliminado](/guias/como-recuperar-un-grupo-de-whatsapp-eliminado) para saber qué se puede rescatar y qué no.
 
 ## Opción A: salir y eliminar el grupo solo para ti
 
@@ -419,7 +419,7 @@ Válida cuando el grupo sigue siendo útil para los demás y tú simplemente qui
 2. Baja hasta **Salir del grupo** y confirma.
 3. Aparecerá la opción **Eliminar grupo** (o eliminar el chat): tócala y desaparece de tu lista.
 
-Qué pasa afuera: el grupo sigue vivo con toda la gente adentro. En las versiones recientes, el aviso de que saliste lo ven sobre todo los administradores; el resto puede ni enterarse. Si prefieres una despedida aún más silenciosa, hay guía para [salir de un grupo sin que se den cuenta](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta).
+Qué pasa afuera: el grupo sigue vivo con toda la gente adentro. En las versiones recientes, el aviso de que saliste lo ven sobre todo los administradores; el resto puede ni enterarse. Si prefieres una despedida aún más silenciosa, hay guía para [salir de un grupo sin que se den cuenta](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta).
 
 Cuidado con un detalle: si eras el único administrador y te vas, el grupo queda sin timón. Según la versión, WhatsApp nombra a alguien por su cuenta o el grupo queda huérfano. Mejor entregar el mando antes de salir: lo vemos abajo.
 
@@ -461,7 +461,7 @@ Antes de quemar el grupo, una pregunta honesta: ¿el problema es el grupo o es t
 3. **Quédate unas semanas** de transición para responder dudas y presentar a la gente nueva.
 4. Recién entonces, sal por la Opción A, sin apuro y sin drama.
 
-Y si el grupo está medio muerto pero aún quieres salvarlo, el [plan de reactivación en 7 días](/blog/como-revivir-un-grupo-de-whatsapp-muerto) cuesta menos que un cierre y a veces cambia la historia.
+Y si el grupo está medio muerto pero aún quieres salvarlo, el [plan de reactivación en 7 días](/guias/como-revivir-un-grupo-de-whatsapp-muerto) cuesta menos que un cierre y a veces cambia la historia.
 
 Un caso aparte: si el motivo real del cierre es el contenido (acoso, engaños, material ilegal), eliminar el grupo no limpia nada. Ese material sigue en los teléfonos. La salida correcta es reportarlo: la denuncia deja registro en WhatsApp y ayuda a proteger a otros. Las reglas oficiales sobre grupos y su cierre están en el [centro de ayuda de WhatsApp](https://faq.whatsapp.com/), por si quieres leer la fuente directa.
 
@@ -512,7 +512,7 @@ Cada teléfono ya tiene descargado lo que descargó. Tú solo controlas tu propi
 
 La verdad tiene dos caras. Existe automatización oficial de WhatsApp, sólida pero limitada. Y existe un mercado enorme de apps no oficiales que juegan con tu número y pueden terminar en bloqueo: adiós grupo, adiós clientes, adiós número.
 
-Este artículo es el repaso honesto que nadie te escribe porque nadie gana con él: qué funciona de verdad, qué es humo y qué te puede costar la cuenta. Lo técnico de permisos y candados vive en [cómo administrar un grupo de WhatsApp](/blog/como-administrar-un-grupo-de-whatsapp); aquí juzgamos herramientas.
+Este artículo es el repaso honesto que nadie te escribe porque nadie gana con él: qué funciona de verdad, qué es humo y qué te puede costar la cuenta. Lo técnico de permisos y candados vive en [cómo administrar un grupo de WhatsApp](/guias/como-administrar-un-grupo-de-whatsapp); aquí juzgamos herramientas.
 
 **Un bot para administrar grupos de WhatsApp** es un programa que automatiza tareas del grupo: dar la bienvenida, responder mensajes o agregar gente. WhatsApp solo acepta automatización por sus vías oficiales (la app Business y su plataforma para empresas). Las demás herramientas no oficiales arriesgan bloqueo del número.
 
@@ -544,7 +544,7 @@ Para negocios más grandes existe la plataforma de mensajería de WhatsApp Busin
 
 El mercado informal promete tres milagros. Vamos uno por uno:
 
-- **"Agrega miles de miembros automático."** Se choca con un muro conocido: el ajuste de privacidad que permite a cada persona decidir [quién puede añadirlo a grupos](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). Contra ese candado, estas herramientas insisten con invitaciones en masa. Resultado: reportes, y los reportes acumulados terminan en bloqueo.
+- **"Agrega miles de miembros automático."** Se choca con un muro conocido: el ajuste de privacidad que permite a cada persona decidir [quién puede añadirlo a grupos](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso). Contra ese candado, estas herramientas insisten con invitaciones en masa. Resultado: reportes, y los reportes acumulados terminan en bloqueo.
 - **"Spider de números."** Programas que recorren la web juntando teléfonos para después bombardearlos con invitaciones. Además de invadir la privacidad de gente que no pidió nada, genera exactamente el spam que tú querías evitar.
 - **"Bot anti-spam para el grupo."** No existe API pública para moderar grupos comunes. Lo que venden como "bot" suele ser un cliente modificado de WhatsApp conectado con tu número: la definición misma del riesgo.
 
@@ -560,7 +560,7 @@ Las condiciones de uso de WhatsApp prohíben los clientes no oficiales y la mens
 
 La regla de oro: si una herramienta pide tu número y una instalación que no viene de la tienda oficial, está apostando con tu identidad digital. Un emprendedor de Medellín lo resumió bien después de perder su número de ventas: "el bot me ahorró dos horas y me costó la cartera de clientes".
 
-Y hay un segundo riesgo silencioso: muchas de estas herramientas son directamente estafas. Los mismos trucos de siempre (urgencia, pago por adelantado, soporte que desaparece) adaptados a administradores desesperados. La guía de [señales de estafas en grupos de WhatsApp](/blog/estafas-en-grupos-de-whatsapp-9-senales) aplica igual afuera de los grupos: léela antes de pagar.
+Y hay un segundo riesgo silencioso: muchas de estas herramientas son directamente estafas. Los mismos trucos de siempre (urgencia, pago por adelantado, soporte que desaparece) adaptados a administradores desesperados. La guía de [señales de estafas en grupos de WhatsApp](/guias/estafas-en-grupos-de-whatsapp-9-senales) aplica igual afuera de los grupos: léela antes de pagar.
 
 ## Cómo detectar humo en 30 segundos
 
@@ -578,7 +578,7 @@ La administración de grupos es menos automática y más humana de lo que promet
 - **Bienvenida de verdad:** un mensaje personal cuando entra alguien nuevo. En grupos comunes lo mandas tú; no hay bot nativo que lo haga por ti.
 - **Reglas a la vista:** la descripción del grupo con dos líneas claras, donde todos las vean.
 - **Limpieza periódica:** quitar el spam apenas aparece. Los administradores ven los movimientos entre ellos, y el resto del grupo lo nota por el silencio sano.
-- **Grupo apagado:** antes de contratar un "bot de reactivación", corre el [plan de 7 días para revivir un grupo muerto](/blog/como-revivir-un-grupo-de-whatsapp-muerto). Cuesta cero y funciona más que cualquier panel.
+- **Grupo apagado:** antes de contratar un "bot de reactivación", corre el [plan de 7 días para revivir un grupo muerto](/guias/como-revivir-un-grupo-de-whatsapp-muerto). Cuesta cero y funciona más que cualquier panel.
 - **Negocio real:** si vendes, la automatización legal de WhatsApp Business es tu aliada. Para comparar experiencia con otros, los [grupos de negocios en español](/categoria/negocios) del directorio son buen punto de partida.
 
 Las reglas de automatización admitidas y las vías oficiales están explicadas en el [centro de ayuda de WhatsApp](https://faq.whatsapp.com/): cuando dudes, ahí está la fuente, no la publicidad.
@@ -622,7 +622,7 @@ En grupos comunes no se puede de forma nativa. La bienvenida automática existe 
 
 Internet vende "apps para recuperar grupos eliminados" y tutoriales que terminan en cualquier cosa menos en tu grupo. La verdad es más simple y más dura: el grupo en sí, una vez disuelto, no se restaura con ningún botón. Pero tu historial puede salvarse, y un grupo vivo te puede recibir de vuelta.
 
-Esta guía separa lo posible de lo imposible, con pasos concretos para cada caso. Si estás a punto de eliminar uno y quieres saber cuánto perderás, léela junto a [cómo eliminar un grupo siendo administrador](/blog/como-eliminar-un-grupo-de-whatsapp-siendo-administrador): son las dos caras de la misma moneda.
+Esta guía separa lo posible de lo imposible, con pasos concretos para cada caso. Si estás a punto de eliminar uno y quieres saber cuánto perderás, léela junto a [cómo eliminar un grupo siendo administrador](/guias/como-eliminar-un-grupo-de-whatsapp-siendo-administrador): son las dos caras de la misma moneda.
 
 **Recuperar un grupo de WhatsApp eliminado** significa dos cosas distintas: restaurar tu historial de mensajes (posible con una copia de seguridad) y restaurar el grupo en sí (imposible una vez disuelto). Si el grupo sigue existiendo y tienes un enlace de invitación vivo, puedes volver a entrar como cualquier miembro.
 
@@ -653,11 +653,11 @@ El grupo sigue respirando; el problema es la puerta de entrada:
 
 - **Pide reingreso.** Solo los administradores pueden sumar participantes: ubica a uno y pídele que te agregue. Con el ajuste de privacidad activo, te llegará una invitación por privado que aceptas o rechazas.
 - **Usa un enlace vivo.** Si guardaste el enlace de invitación (o alguien te lo reenvía) y nadie lo restableció, puedes entrar por tu cuenta.
-- **Si el enlace no te deja entrar**, las causas son concretas: enlace revocado, aprobación pendiente o restricción del grupo. La guía de [por qué no puedes unirte a un grupo de WhatsApp](/blog/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp) explica cada caso y su solución.
+- **Si el enlace no te deja entrar**, las causas son concretas: enlace revocado, aprobación pendiente o restricción del grupo. La guía de [por qué no puedes unirte a un grupo de WhatsApp](/guias/por-que-no-puedo-unirme-a-un-grupo-de-whatsapp) explica cada caso y su solución.
 
 Qué NO recuperas al volver: los mensajes enviados mientras estuviste fuera no aparecen. Tu historial viejo, eso sí, sigue en tu teléfono si no lo borraste: al reentrar, la conversación arranca donde tú la dejaste, con un vacío en el medio.
 
-¿No sabes si saliste o te eliminaron? Hay señales para distinguirlo, y las repasamos en [cómo saber si te eliminaron de un grupo](/blog/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp). El diagnóstico cambia la estrategia: si saliste, pides volver; si te eliminaron, mejor escríbele primero al admin por privado.
+¿No sabes si saliste o te eliminaron? Hay señales para distinguirlo, y las repasamos en [cómo saber si te eliminaron de un grupo](/guias/como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp). El diagnóstico cambia la estrategia: si saliste, pides volver; si te eliminaron, mejor escríbele primero al admin por privado.
 
 ## Caso 3: el grupo se disolvió de verdad
 
@@ -672,7 +672,7 @@ Lo que sí sobrevive:
 ### El procedimiento de reconstrucción
 
 1. **Junta a los viejos miembros.** El grupo anterior, un chat individual, una llamada: da igual el medio, importa la lista de gente.
-2. **Una persona crea el grupo nuevo.** Cualquier miembro puede: la [guía completa para crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa) incluye permisos, enlace y QR desde el primer minuto.
+2. **Una persona crea el grupo nuevo.** Cualquier miembro puede: la [guía completa para crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa) incluye permisos, enlace y QR desde el primer minuto.
 3. **Comparte el enlace; no agregues sin permiso.** Respeta el ajuste de privacidad de cada quien: mejor invitación que imposición.
 4. **Cada quien restaura su historial** si tiene copia (siguiente sección). El historial colectivo no se recompone solo: cada teléfono cuenta la parte que vivió.
 5. **Pon reglas desde el inicio** para que el grupo nuevo no herede la enfermedad del viejo.

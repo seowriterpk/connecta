@@ -178,7 +178,7 @@ export function BlogEditorForm({ csrfToken, post, postId }: Props) {
             <div className="space-y-1.5">
               <Label htmlFor="post-slug">Slug (URL)</Label>
               <div className="flex items-center gap-2">
-                <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">/blog/</span>
+                <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">/guias/</span>
                 <Input
                   id="post-slug"
                   value={slug}
@@ -288,7 +288,7 @@ export function BlogEditorForm({ csrfToken, post, postId }: Props) {
             </Button>
             {postId && post?.status === "published" && (
               <Button asChild variant="ghost" className="w-full gap-1.5 text-xs">
-                <Link href={`/blog/${post.slug}`} target="_blank">
+                <Link href={`/guias/${post.slug}`} target="_blank">
                   <ExternalLink className="h-3.5 w-3.5" />
                   <span>Ver publicada</span>
                 </Link>

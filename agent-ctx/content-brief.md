@@ -68,10 +68,10 @@ readingMinutes (integer, words/180 rounded), views (0 — never fake), published
   dev-barcelona-programacion-y-cafe, emprendedores-mx-ideas-y-flujo-de-caja,
   freelance-ar-trabajar-en-dolares, e-commerce-y-dropshipping-colombia, beisbol-dominicano-pelota-invernal
   (more: SELECT slug,groupName FROM groups WHERE status='live' AND isAdult=0 — pick relevant ones)
-- EXISTING blog posts: /blog/como-encontrar-grupos-de-whatsapp-seguros-2026,
-  /blog/como-moderar-un-grupo-de-whatsapp-exitoso
+- EXISTING blog posts: /guias/como-encontrar-grupos-de-whatsapp-seguros-2026,
+  /guias/como-moderar-un-grupo-de-whatsapp-exitoso
 
-## MASTER BLOG SLUG MAP (38 posts — your cross-links may target ANY of these /blog/{slug} URLs)
+## MASTER BLOG SLUG MAP (38 posts — your cross-links may target ANY of these /guias/{slug} URLs)
 Cluster 1: como-unirse-a-un-grupo-de-whatsapp-guia-completa · como-unirse-a-un-grupo-de-whatsapp-sin-enlace · como-encontrar-grupos-de-whatsapp-que-valgan-la-pena · por-que-no-puedo-unirme-a-un-grupo-de-whatsapp · como-saber-si-me-eliminaron-de-un-grupo-de-whatsapp
 Cluster 2: estafas-en-grupos-de-whatsapp-9-senales · es-seguro-unirse-a-grupos-de-whatsapp-publicos · que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso · como-denunciar-un-grupo-de-whatsapp · como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta
 Cluster 3: como-crear-un-grupo-de-whatsapp-guia-completa · crear-grupo-de-whatsapp-sin-agregar-contactos · crear-grupo-de-whatsapp-desde-excel · grupo-de-whatsapp-solo-lectura · crear-grupo-de-whatsapp-contigo-mismo · crear-grupo-de-whatsapp-en-iphone
@@ -104,7 +104,7 @@ Run: `node scripts/blog-seeds/cluster-N.mjs` (from project root).
 
 ## Verification (mandatory, curl only — NO agent-browser)
 1. `node scripts/blog-seeds/cluster-N.mjs` runs clean.
-2. For EVERY post: `curl -s http://localhost:3000/blog/{slug}` → 200, contains the <title>,
+2. For EVERY post: `curl -s http://localhost:3000/guias/{slug}` → 200, contains the <title>,
    the h1 text, `Antonio C.`, and at least 4 internal `href="/…"` links; word count sanity.
 3. For EVERY distinct internal URL you linked: `curl -s -o /dev/null -w "%{http_code}"` → 200
    (404 links are unacceptable — fix anchors/slugs if any).

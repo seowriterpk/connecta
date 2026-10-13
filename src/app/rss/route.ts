@@ -65,16 +65,16 @@ export async function GET() {
     })
     .join("\n");
 
-  // Blog posts — newest first, mixed into the feed (guid = canonical URL).
-  const blogItemsXml = posts
+  // Guías — newest first, mixed into the feed (guid = canonical URL).
+  const guiasItemsXml = posts
     .map((p) => {
-      const postUrl = `${SITE.url}/blog/${p.slug}`;
+      const postUrl = `${SITE.url}/guias/${p.slug}`;
       return `    <item>
       <title>${xmlEscape(p.title)}</title>
       <link>${xmlEscape(postUrl)}</link>
       <guid isPermaLink="true">${xmlEscape(postUrl)}</guid>
       <description>${xmlEscape(normalize(p.excerpt, 320))}</description>
-      <category>Blog</category>
+      <category>Guías</category>
       <author>${xmlEscape(p.authorName)}</author>
       <pubDate>${toRfc822(p.publishedAt ?? p.createdAt)}</pubDate>
     </item>`;
@@ -105,7 +105,7 @@ export async function GET() {
     <atom:link href="${xmlEscape(selfUrl)}" rel="self" type="application/rss+xml" />
     <atom:link href="${xmlEscape(SITE.url)}/sitemap.xml" rel="related" type="application/xml" />
 ${itemsXml}
-${blogItemsXml}
+${guiasItemsXml}
   </channel>
 </rss>`;
 

@@ -1122,3 +1122,19 @@ Los 38 artículos del blog se siembran con los scripts idempotentes `scripts/blo
 node scripts/blog-seeds/cluster-1.mjs   # ... y así hasta cluster-7
 node scripts/crons/sitemap-generator.mjs  # regenerar blog.xml
 ```
+
+## MIGRACIÓN BLOG → GUÍAS (2026-10-13) — fusión /blog + /guias
+
+**Decisión editorial:** `/blog` y `/guias` se fusionan en UNA sola sección: **`/guias`**
+(término español natural para contenido tipo "cómo"). Los posts viven en `/guias/{slug}`;
+`/blog` y `/blog/{slug}` responden 308 → `/guias` y `/guias/{slug}` (`permanentRedirect`).
+
+- Los scripts `cluster-{1..7}.mjs` ya enlazan con `](/guias/...)` (sed aplicado 2026-10-13).
+- RSS, sitemap (blog.xml), admin, footer y home enlazan `/guias/{slug}`.
+- Para bases de datos antiguas con contenido que aún apunte a `/blog/`, esta pasada lo
+  normaliza (idempotente: 0 filas si ya está limpio):
+
+```sql
+UPDATE `blog_posts` SET `content` = REPLACE(`content`, '](/blog/', '](/guias/') WHERE `content` LIKE '%](/blog/%';
+UPDATE `blog_posts` SET `content` = REPLACE(`content`, '](/blog)', '](/guias)') WHERE `content` LIKE '%](/blog)%';
+```

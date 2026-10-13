@@ -41,7 +41,7 @@ No hace falta un reglamento de tres páginas. Basta con tres normas cortas, fija
 2. **Qué se comparte.** Apuntes, fechas, dudas puntuales y repasos. Los memes, las cadenas y las noticias políticas van a otro lado. De verdad: a otro lado.
 3. **Dónde está el material.** Un solo enlace, siempre el mismo, visible en la descripción del grupo.
 
-Si no quieres redactarlas desde cero, toma las [reglas para grupos de WhatsApp listas para copiar y pegar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar) y adapta tres líneas. Fija el mensaje con las normas para que el recién llegado las lea sin preguntar.
+Si no quieres redactarlas desde cero, toma las [reglas para grupos de WhatsApp listas para copiar y pegar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar) y adapta tres líneas. Fija el mensaje con las normas para que el recién llegado las lea sin preguntar.
 
 ## Paso 2: reparte roles desde el arranque
 
@@ -103,7 +103,7 @@ Cada quien silencia a su hora y contesta cuando puede. Un grupo de estudio que r
 - **Añadir gente sin avisar.** Si tu compañera de la otra comisión quiere entrar, compártele el enlace de invitación.
 - **Dejar que los audios reemplacen los resúmenes.** El audio no se puede subrayar. Si el resumen suena y no se lee, algo falla.
 
-Si necesitas montar el grupo desde cero, la [guía completa para crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa) te lleva paso a paso. Y si el material debe quedar congelado para consulta, un [grupo donde solo escriben los administradores](/blog/grupo-de-whatsapp-solo-lectura) funciona como vitrina de apuntes.
+Si necesitas montar el grupo desde cero, la [guía completa para crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa) te lleva paso a paso. Y si el material debe quedar congelado para consulta, un [grupo donde solo escriben los administradores](/guias/grupo-de-whatsapp-solo-lectura) funciona como vitrina de apuntes.
 
 ## Preguntas frecuentes
 
@@ -171,7 +171,7 @@ Algunas señales no son «depende»: son directamente no. Te piden dinero, demas
 - **Cadenas y «reenvía a 10».** Las cadenas son la banda sonora del grupo malo. Son falsas por definición: si un mensaje amenaza, miente.
 - **Piden fotos o dirección.** Nadie sano necesita tu dirección para ir al cine contigo.
 
-Para profundizar, lee [qué tan seguro es unirse a grupos públicos de WhatsApp](/blog/es-seguro-unirse-a-grupos-de-whatsapp-publicos): cubre el mismo tema con más detalle. Y si el mensaje que te llega huele a oferta rara, las [9 señales de estafa más comunes](/blog/estafas-en-grupos-de-whatsapp-9-senales) te van a sonar familiares.
+Para profundizar, lee [qué tan seguro es unirse a grupos públicos de WhatsApp](/guias/es-seguro-unirse-a-grupos-de-whatsapp-publicos): cubre el mismo tema con más detalle. Y si el mensaje que te llega huele a oferta rara, las [9 señales de estafa más comunes](/guias/estafas-en-grupos-de-whatsapp-9-senales) te van a sonar familiares.
 
 ## La etiqueta del primer mensaje
 
@@ -218,7 +218,7 @@ Hay gente que entra, mira y nunca escribe. El fantasma del grupo no hace amigos:
 
 ## Si te molestan, tienes herramientas
 
-No hace falta aguantar. Bloquea al insistente, reporta el contenido raro y ajusta tu privacidad. WhatsApp explica en su [centro de ayuda](https://faq.whatsapp.com/) cómo limitar quién puede agregarte a grupos. Además, [que nadie te agregue sin permiso](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso) tiene arreglo con dos ajustes bien puestos.
+No hace falta aguantar. Bloquea al insistente, reporta el contenido raro y ajusta tu privacidad. WhatsApp explica en su [centro de ayuda](https://faq.whatsapp.com/) cómo limitar quién puede agregarte a grupos. Además, [que nadie te agregue sin permiso](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso) tiene arreglo con dos ajustes bien puestos.
 
 ## Preguntas frecuentes
 
@@ -285,7 +285,7 @@ Alternativa moderna: un emoji de sol en respuesta a algo concreto. O nada. El si
 
 Falso por definición. WhatsApp no cobra por usar la app, no desactiva cuentas por no reenviar y jamás avisa así. Las cadenas son la parte más vieja y más viva del internet, y en los grupos hacen daño real: tapan la información útil y asustan a la gente que confía.
 
-En Grupos Hoy las vemos disfrazadas de todo: sorteos falsos, alertas médicas inventadas y «consejos» de seguridad que son lo contrario de seguro. Suelen venir de la mano de las [señales típicas de las estafas en grupos](/blog/estafas-en-grupos-de-whatsapp-9-senales). Si un mensaje dice «reenvía o pasa algo», reenvíalo a la papelera.
+En Grupos Hoy las vemos disfrazadas de todo: sorteos falsos, alertas médicas inventadas y «consejos» de seguridad que son lo contrario de seguro. Suelen venir de la mano de las [señales típicas de las estafas en grupos](/guias/estafas-en-grupos-de-whatsapp-9-senales). Si un mensaje dice «reenvía o pasa algo», reenvíalo a la papelera.
 
 ## El spoiler del partido
 
@@ -332,9 +332,9 @@ El problema no es desviarse: es quedarse. Un tirón de diez mensajes fuera de te
 
 Hay grupos donde la etiqueta llegó tarde: cuatro cadenas diarias, dos audios eternos y un tío político con teorías. Tienes dos caminos civilizados.
 
-El primero es poner orden: unas [reglas por escrito, listas para copiar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar), pactadas sin gritar, cambian la dinámica de cualquier grupo en una semana. Los administradores tienen además una [guía entera de moderación](/blog/como-moderar-un-grupo-de-whatsapp-exitoso) para esto.
+El primero es poner orden: unas [reglas por escrito, listas para copiar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar), pactadas sin gritar, cambian la dinámica de cualquier grupo en una semana. Los administradores tienen además una [guía entera de moderación](/guias/como-moderar-un-grupo-de-whatsapp-exitoso) para esto.
 
-El segundo camino es la retirada. Existe la forma de [salir de un grupo sin que se den cuenta](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta): silencioso y sin drama. No es despedida: es higiene digital. Y si los memes eran lo único rescatable, el [grupo de memes argentinos](/grupo/memes-argentinos-editorial-de-humor) te espera con humor de verdad.
+El segundo camino es la retirada. Existe la forma de [salir de un grupo sin que se den cuenta](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta): silencioso y sin drama. No es despedida: es higiene digital. Y si los memes eran lo único rescatable, el [grupo de memes argentinos](/grupo/memes-argentinos-editorial-de-humor) te espera con humor de verdad.
 
 ## Preguntas frecuentes
 
@@ -398,17 +398,17 @@ Guarda la tabla. Ahora vamos fila por fila, porque cada límite cuenta una histo
 
 Es el número más famoso y el más estable del ecosistema. ¿Por qué 1.024 y no 1.000? Porque es una potencia de dos: los ingenieros piensan en binario y para ellos es un número redondo.
 
-En la práctica, un grupo de 1.024 miembros ya no es una conversación: es una plaza. Si tu grupo se acerca al tope, conviene pensar en otra estructura. En nuestra [comparativa de grupo, comunidad y canal](/blog/grupo-vs-comunidad-vs-canal-de-whatsapp) va el análisis de cuándo conviene cada una.
+En la práctica, un grupo de 1.024 miembros ya no es una conversación: es una plaza. Si tu grupo se acerca al tope, conviene pensar en otra estructura. En nuestra [comparativa de grupo, comunidad y canal](/guias/grupo-vs-comunidad-vs-canal-de-whatsapp) va el análisis de cuándo conviene cada una.
 
 ### Comunidades: el anuncio más los subgrupos
 
 Una comunidad reúne varios grupos bajo un paraguas: un grupo de anuncios que administran los moderadores y los subgrupos temáticos. Según la documentación actual, caben alrededor de 50 grupos por comunidad, contando el de anuncios.
 
-Si administras mucha gente, mira [cómo crear una comunidad en WhatsApp](/blog/como-crear-una-comunidad-en-whatsapp) paso a paso. Meta también explica el concepto en su [página oficial de comunidades](https://www.whatsapp.com/community), con ejemplos de colegios y vecindarios.
+Si administras mucha gente, mira [cómo crear una comunidad en WhatsApp](/guias/como-crear-una-comunidad-en-whatsapp) paso a paso. Meta también explica el concepto en su [página oficial de comunidades](https://www.whatsapp.com/community), con ejemplos de colegios y vecindarios.
 
 ### Canales: audiencia sin techo
 
-Los canales son difusión en un solo sentido: el administrador escribe y los seguidores leen. No hay tope práctico de seguidores publicado, y esa es la razón por la que clubes, medios y creadores los usan para avisos masivos. Si quieres el tuyo, la [guía para crear un canal de WhatsApp](/blog/como-crear-un-canal-de-whatsapp) lo explica en diez minutos.
+Los canales son difusión en un solo sentido: el administrador escribe y los seguidores leen. No hay tope práctico de seguidores publicado, y esa es la razón por la que clubes, medios y creadores los usan para avisos masivos. Si quieres el tuyo, la [guía para crear un canal de WhatsApp](/guias/como-crear-un-canal-de-whatsapp) lo explica en diez minutos.
 
 ### Llamadas de grupo: hasta 32 personas
 
@@ -422,11 +422,11 @@ Las encuestas de grupo aceptan una pregunta y hasta doce opciones. Suficiente pa
 
 ### Archivos: hasta 2 GB
 
-El tope de 2 GB es amplio, pero no todo lo que cabe se debe enviar. Un video de 2 GB consume datos, batería y paciencia ajena. Para compartir material de clase o catálogos, un enlace a la nube sigue siendo más amable con el que recibe. Lo explica bien nuestra [guía para organizar un grupo de estudio](/blog/como-organizar-un-grupo-de-estudio-en-whatsapp): el chat coordina, la carpeta archiva.
+El tope de 2 GB es amplio, pero no todo lo que cabe se debe enviar. Un video de 2 GB consume datos, batería y paciencia ajena. Para compartir material de clase o catálogos, un enlace a la nube sigue siendo más amable con el que recibe. Lo explica bien nuestra [guía para organizar un grupo de estudio](/guias/como-organizar-un-grupo-de-estudio-en-whatsapp): el chat coordina, la carpeta archiva.
 
 ### Reenvío masivo: 5 chats por vez
 
-WhatsApp limita el reenvío de un mismo mensaje a 5 chats por vez, y marca los mensajes muy reenviados. Es una medida antichadenas pensada para frenar la desinformación. Por eso las cadenas piden «reenvía a 10»: el propio sistema les pone la zancadilla. La [guía de etiqueta de 2026](/blog/etiqueta-en-grupos-de-whatsapp-2026) celebra este límite con cariño.
+WhatsApp limita el reenvío de un mismo mensaje a 5 chats por vez, y marca los mensajes muy reenviados. Es una medida antichadenas pensada para frenar la desinformación. Por eso las cadenas piden «reenvía a 10»: el propio sistema les pone la zancadilla. La [guía de etiqueta de 2026](/guias/etiqueta-en-grupos-de-whatsapp-2026) celebra este límite con cariño.
 
 ## Por qué WhatsApp limita
 
@@ -498,7 +498,7 @@ El grupo de clientes existe para una sola cosa: que quien quiera enterarse, se e
 3. **No añadas desconocidos sin avisar.** Si quieres sumar a alguien de tu agenda, mándale un mensaje antes: «¿te agrego a mis avisos?». Un «sí» vale más que un cliente secuestrado.
 4. **Presenta el grupo al entrar.** Un mensaje fijado: qué se publica, cada cuánto y que cualquiera puede salir sin drama.
 
-Si nunca armaste un grupo por enlace, [crear un grupo sin agregar contactos](/blog/crear-grupo-de-whatsapp-sin-agregar-contactos) explica el método completo, QR incluido.
+Si nunca armaste un grupo por enlace, [crear un grupo sin agregar contactos](/guias/crear-grupo-de-whatsapp-sin-agregar-contactos) explica el método completo, QR incluido.
 
 ## Paso 2: el catálogo de WhatsApp Business
 
@@ -567,11 +567,11 @@ Y una costumbre sana de vez en cuando: pregunta. «¿Prefieren avisos los lunes 
 Merece su propia sección, porque el spam no es solo feo: es un mal negocio.
 
 - **Todo el mundo lo sufre.** Tus clientes ya aguantan diez grupos así. El undécimo que se porta bien se gana la atención.
-- **La gente tiene herramientas.** Cualquiera puede reportar contenido y salir sin aviso: así se [denuncia un grupo que hace spam](/blog/como-denunciar-un-grupo-de-whatsapp). Las cuentas que acumulan denuncias pueden quedar suspendidas.
+- **La gente tiene herramientas.** Cualquiera puede reportar contenido y salir sin aviso: así se [denuncia un grupo que hace spam](/guias/como-denunciar-un-grupo-de-whatsapp). Las cuentas que acumulan denuncias pueden quedar suspendidas.
 - **WhatsApp pone zancadillas.** La app limita el reenvío masivo de mensajes. Hacer spam es pelear contra el sistema, no solo contra tu clienta.
 - **Quema tu marca.** Recuperar a un cliente que te bloqueó cuesta mucho más que una campaña bien hecha.
 
-Para afinar las reglas de tu grupo, las [reglas para grupos de trabajo y ventas](/blog/reglas-grupos-de-whatsapp-trabajo-y-ventas) vienen listas para copiar. Y si quieres ver cómo lo hacen los que ya venden, el [grupo de e-commerce y dropshipping de Colombia](/grupo/e-commerce-y-dropshipping-colombia) es un buen vivero de ideas.
+Para afinar las reglas de tu grupo, las [reglas para grupos de trabajo y ventas](/guias/reglas-grupos-de-whatsapp-trabajo-y-ventas) vienen listas para copiar. Y si quieres ver cómo lo hacen los que ya venden, el [grupo de e-commerce y dropshipping de Colombia](/grupo/e-commerce-y-dropshipping-colombia) es un buen vivero de ideas.
 
 ## Preguntas frecuentes
 

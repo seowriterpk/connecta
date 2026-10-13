@@ -108,7 +108,7 @@ export function AdminBlogList({ posts, csrfToken }: Props) {
                   </span>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{p.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">/blog/{p.slug} · {p.views.toLocaleString("es-ES")} lecturas</p>
+                    <p className="truncate text-xs text-muted-foreground">/guias/{p.slug} · {p.views.toLocaleString("es-ES")} lecturas</p>
                   </div>
                 </div>
               </td>
@@ -130,7 +130,7 @@ export function AdminBlogList({ posts, csrfToken }: Props) {
                 <div className="flex items-center justify-end gap-1">
                   {p.status === "published" && (
                     <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Ver en el sitio">
-                      <Link href={`/blog/${p.slug}`} target="_blank">
+                      <Link href={`/guias/${p.slug}`} target="_blank">
                         <ExternalLink className="h-3.5 w-3.5" />
                         <span className="sr-only">Ver</span>
                       </Link>

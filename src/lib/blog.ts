@@ -72,6 +72,14 @@ function toDTO(r: PostRow): BlogPostDTO {
 const PUBLIC_FIELDS =
   "`id`, `slug`, `title`, `excerpt`, `content`, `coverEmoji`, `tags`, `authorName`, `status`, `metaTitle`, `metaDescription`, `readingMinutes`, `views`, `publishedAt`, `createdAt`, `updatedAt`";
 
+export interface BlogPostCardDTO {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverEmoji: string;
+  readingMinutes: number;
+}
+
 /** All published posts, newest first (blog index / sitemap / RSS). */
 export async function getPublishedPosts(limit = 50): Promise<BlogPostDTO[]> {
   const rows = await query<PostRow>(
@@ -79,6 +87,29 @@ export async function getPublishedPosts(limit = 50): Promise<BlogPostDTO[]> {
     [Math.min(Math.max(limit, 1), 100)]
   );
   return rows.map(toDTO);
+}
+
+/** Lightweight card view of published posts (home Guías section) — no content column. */
+export async function getPublishedPostCards(limit = 3): Promise<BlogPostCardDTO[]> {
+  const rows = await query<PostRow>(
+    "SELECT `slug`, `title`, `excerpt`, `coverEmoji`, `readingMinutes` FROM `blog_posts` WHERE `status` = 'published' ORDER BY `publishedAt` DESC, `createdAt` DESC LIMIT ?",
+    [Math.min(Math.max(limit, 1), 100)]
+  );
+  return rows.map((r) => ({
+    slug: String(r.slug),
+    title: String(r.title),
+    excerpt: String(r.excerpt ?? ""),
+    coverEmoji: String(r.coverEmoji ?? "📘"),
+    readingMinutes: Number(r.readingMinutes ?? 4),
+  }));
+}
+
+/** Honest total of published posts (counts in titles/sections). */
+export async function getPublishedPostCount(): Promise<number> {
+  const rows = await query<PostRow>(
+    "SELECT COUNT(*) AS n FROM `blog_posts` WHERE `status` = 'published'"
+  );
+  return Number(rows[0]?.n ?? 0);
 }
 
 /** One published post by slug (article page). */

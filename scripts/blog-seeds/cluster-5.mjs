@@ -14,7 +14,7 @@ const posts = [
     metaDescription:
       "Reglas para grupos de WhatsApp para copiar y pegar: 7 plantillas de familia, amigos, trabajo, ventas, estudio, vecinos y padres, con sanciones claras.",
     daysAgo: 22,
-    content: `Todo grupo de WhatsApp arranca igual: ilusión, fotos y cero reglas. A la tercera semana ya hay cadenas, memes a las 2 de la mañana y una pelea por un audio de siete minutos. Si tú administras, esto te suena: en la guía de [cómo moderar un grupo de WhatsApp con éxito](/blog/como-moderar-un-grupo-de-whatsapp-exitoso) ya cubrimos la parte técnica. Falta la otra mitad: las reglas mismas.
+    content: `Todo grupo de WhatsApp arranca igual: ilusión, fotos y cero reglas. A la tercera semana ya hay cadenas, memes a las 2 de la mañana y una pelea por un audio de siete minutos. Si tú administras, esto te suena: en la guía de [cómo moderar un grupo de WhatsApp con éxito](/guias/como-moderar-un-grupo-de-whatsapp-exitoso) ya cubrimos la parte técnica. Falta la otra mitad: las reglas mismas.
 
 La buena noticia es que no tienes que escribir nada. Abajo tienes **7 plantillas de reglas para grupos de WhatsApp listas para copiar y pegar**: familia, amigos, trabajo, ventas, estudio, vecinos y padres de familia. Cada una cabe en un solo mensaje y se pega tal cual.
 
@@ -131,7 +131,7 @@ Copia el bloque que necesites y pégalo tal cual. Cámbiale solo lo que va entre
 > 6. Las fiestas y las bromas van al grupo de charla de los papás.
 > El grupo de avisos guarda información: cada mensaje innecesario la entierra.
 
-Tres de estas plantillas tienen guía propia con más detalle: la de [padres de familia](/blog/reglas-grupo-de-whatsapp-padres-de-familia), la de [vecinos](/blog/reglas-grupo-de-whatsapp-vecinos) y la de [trabajo y ventas](/blog/reglas-grupos-de-whatsapp-trabajo-y-ventas).
+Tres de estas plantillas tienen guía propia con más detalle: la de [padres de familia](/guias/reglas-grupo-de-whatsapp-padres-de-familia), la de [vecinos](/guias/reglas-grupo-de-whatsapp-vecinos) y la de [trabajo y ventas](/guias/reglas-grupos-de-whatsapp-trabajo-y-ventas).
 
 ## Qué hacer cuando alguien rompe las reglas
 
@@ -185,7 +185,7 @@ Sí. El límite de WhatsApp es de 1.024 miembros por grupo, y a ese tamaño las 
     daysAgo: 21,
     content: `El grupo de padres de familia tiene un don: convertir un aviso de "traigan bata de laboratorio" en 130 mensajes. Hay cadenas, audios de madrugada y la pregunta eterna de si mañana hay clase. La escuela de María, en Monterrey, lo sufre igual que cualquier colegio de Sevilla. Es caos universal, no culpa de tu delegada.
 
-Lo que cambia la ecuación son las reglas. Ya publicamos el pack general de [reglas para grupos de WhatsApp listas para copiar y pegar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar); esta es la versión escuela, la más pedida de todas.
+Lo que cambia la ecuación son las reglas. Ya publicamos el pack general de [reglas para grupos de WhatsApp listas para copiar y pegar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar); esta es la versión escuela, la más pedida de todas.
 
 Aquí van las reglas que sí funcionan, el truco de los dos grupos y la plantilla del grupo de avisos, lista para copiar tal cual.
 
@@ -205,7 +205,7 @@ Por eso el grupo de padres no se arregla con paciencia. Se arregla con estructur
 
 El error clásico es querer que un solo grupo sea a la vez el periódico y la plaza pública. No puede. La solución son dos grupos con nombres que se expliquen solos:
 
-- **Grupo de avisos, [grado].** Solo entra información oficial. Escriben la profesora y la delegada; los demás leen. WhatsApp lo resuelve de fábrica: el grupo se configura para que solo los administradores envíen mensajes. El paso a paso está en [cómo poner un grupo de WhatsApp en modo solo lectura](/blog/grupo-de-whatsapp-solo-lectura).
+- **Grupo de avisos, [grado].** Solo entra información oficial. Escriben la profesora y la delegada; los demás leen. WhatsApp lo resuelve de fábrica: el grupo se configura para que solo los administradores envíen mensajes. El paso a paso está en [cómo poner un grupo de WhatsApp en modo solo lectura](/guias/grupo-de-whatsapp-solo-lectura).
 - **Grupo de charla, [grado].** Felicitaciones, memes escolares y planes del fin de semana. Aquí sí es libre: quien quiera hablar, habla.
 
 En Chile le dicen grupo de apoderados; en España, grupo de clase; en México, de mamás y papás. El truco de los dos grupos funciona igual en los tres países. Y si la escuela tiene varios cursos, WhatsApp tiene un formato a la medida: la [comunidad con grupo de anuncios y subgrupos](https://www.whatsapp.com/community). Cada curso en su subgrupo y los avisos arriba de todo.
@@ -225,7 +225,7 @@ Si la profesora prefiere no participar, no pasa nada: la delegada copia y pega l
 
 1. **Solo avisos oficiales en el grupo de avisos.** Cada mensaje extra entierra el aviso anterior.
 2. **Horario: de 7:00 a 21:00.** A las 23:50 nadie resuelve nada de la escuela.
-3. **Cero cadenas.** "Reenvía a 10 mamás" no es un aviso: es ruido. Y muchas cadenas esconden [estafas clásicas de WhatsApp](/blog/estafas-en-grupos-de-whatsapp-9-senales).
+3. **Cero cadenas.** "Reenvía a 10 mamás" no es un aviso: es ruido. Y muchas cadenas esconden [estafas clásicas de WhatsApp](/guias/estafas-en-grupos-de-whatsapp-9-senales).
 4. **Dudas por privado a la delegada.** Ahí se agrupan y se responden juntas.
 5. **Respuestas agrupadas un día fijo.** El miércoles, por ejemplo. El día fijo quita ansiedad: ya nadie persigue la respuesta.
 6. **Sin audios largos.** Un aviso que hay que escuchar dos veces ya no es un aviso.
@@ -270,7 +270,7 @@ Primero un privado amable: "Hola, te paso las reglas del grupo: sin cadenas, par
 
 ### ¿Cuándo se cierra el grupo del año escolar?
 
-Con el ciclo. En diciembre se agradece, se archiva y se abre el grupo nuevo en marzo. Para irse sin drama, ya tenemos la guía de [cómo salir de un grupo de WhatsApp sin que se den cuenta](/blog/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta).
+Con el ciclo. En diciembre se agradece, se archiva y se abre el grupo nuevo en marzo. Para irse sin drama, ya tenemos la guía de [cómo salir de un grupo de WhatsApp sin que se den cuenta](/guias/como-salir-de-un-grupo-de-whatsapp-sin-que-se-den-cuenta).
 
 ### ¿Funciona igual en primaria y secundaria?
 
@@ -292,7 +292,7 @@ Sí. En primaria lo administran los papás; en secundaria pueden entrar los prop
 
 La convivencia se juega en esos detalles. Un edificio de Sevilla y un barrio de Buenos Aires sufren los mismos temas con distinto acento: che, del tema del agua no se salva nadie. Bien organizado, el grupo de vecinos evita peleas de escalera. Mal organizado, las multiplica.
 
-Las reglas generales ya están en nuestro pack de [reglas para grupos de WhatsApp para copiar y pegar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar). Aquí va la versión edificio y barrio, con plantilla incluida.
+Las reglas generales ya están en nuestro pack de [reglas para grupos de WhatsApp para copiar y pegar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar). Aquí va la versión edificio y barrio, con plantilla incluida.
 
 Las **reglas de un grupo de vecinos** organizan la convivencia: qué cuenta como urgencia, qué horario se respeta y qué se hace con el spam de ventas. Sirven para un edificio de 20 departamentos y para un barrio de cientos de casas. El objetivo es simple: avisos claros y cero guerras.
 
@@ -354,7 +354,7 @@ El admin eterno se quema. Y el grupo quemado queda huérfano en el peor momento.
 
 El admin que se va entrega el mando con tres cosas: las reglas actualizadas, el enlace de invitación y la lista de vecinos autorizados.
 
-Antes de agregar a nadie de la nada, pídele permiso por privado. La cortesía funciona en las dos direcciones: si te molesta que te agreguen sin consultar, la guía de [cómo evitar que te agreguen a grupos sin permiso](/blog/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso) te va a resultar familiar.
+Antes de agregar a nadie de la nada, pídele permiso por privado. La cortesía funciona en las dos direcciones: si te molesta que te agreguen sin consultar, la guía de [cómo evitar que te agreguen a grupos sin permiso](/guias/que-nadie-te-anada-a-grupos-de-whatsapp-sin-permiso) te va a resultar familiar.
 
 ## Plantilla de reglas para grupos de vecinos
 
@@ -412,7 +412,7 @@ Enfríalo. Cambia los permisos a "solo administradores" un par de días, publica
 
 El grupo de ventas sufre el mal contrario. Sin formato, cada publicación es distinta, el "se vende" se repite diez veces y el grupo se vuelve ruido. Nadie compra en un mercado donde no se entiende nada.
 
-Son dos mundos con dos males distintos. Por eso este artículo trae **dos sets de reglas**: uno de etiqueta laboral y otro de formato de venta. Las plantillas generales están en [reglas para grupos de WhatsApp para copiar y pegar](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar); aquí van los dos manuales específicos.
+Son dos mundos con dos males distintos. Por eso este artículo trae **dos sets de reglas**: uno de etiqueta laboral y otro de formato de venta. Las plantillas generales están en [reglas para grupos de WhatsApp para copiar y pegar](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar); aquí van los dos manuales específicos.
 
 Las **reglas de un grupo de WhatsApp de trabajo** ordenan los mensajes laborales: quién escribe, en qué horario y qué tema va a otro grupo. Las de un grupo de ventas definen el formato de cada publicación: producto, precio, foto y ubicación. Sin reglas, el grupo laboral quema y el de ventas se vuelve ruido.
 
@@ -495,7 +495,7 @@ Aclaremos algo honesto: WhatsApp no tiene botón para silenciar a una sola perso
 
 ## Seguridad en la compraventa
 
-Los grupos de venta atraen estafas como el azúcar a las hormigas. Tres señales clásicas: "págame por adelantado y te lo envío", "se me cayó la cuenta, págale a mi hermana" y precios de regalo de un desconocido sin historial. La lista completa de nueve señales está en nuestra guía de [estafas en grupos de WhatsApp](/blog/estafas-en-grupos-de-whatsapp-9-senales). Regla de oro: entrega en persona y pago al ver el producto.
+Los grupos de venta atraen estafas como el azúcar a las hormigas. Tres señales clásicas: "págame por adelantado y te lo envío", "se me cayó la cuenta, págale a mi hermana" y precios de regalo de un desconocido sin historial. La lista completa de nueve señales está en nuestra guía de [estafas en grupos de WhatsApp](/guias/estafas-en-grupos-de-whatsapp-9-senales). Regla de oro: entrega en persona y pago al ver el producto.
 
 ## Dónde buscar y publicar grupos de venta
 
@@ -557,7 +557,7 @@ Antes de la lista, el método. Un buen nombre de grupo pasa cuatro pruebas:
 - **La prueba de la pantalla ajena.** El nombre aparece en tu lista de chats todos los días: un jefe o una suegra lo va a ver. Si te sonrojaría, no va.
 - **La prueba de la voz.** Si suena bien cuando alguien lo dice en voz alta ("¿llegó algo al comité del una más?"), tiene futuro.
 
-Un detalle técnico: el nombre se edita en la información del grupo, tocando el lápiz junto al nombre actual. Los pasos completos, con permisos y foto, están en la [guía de cómo crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa).
+Un detalle técnico: el nombre se edita en la información del grupo, tocando el lápiz junto al nombre actual. Los pasos completos, con permisos y foto, están en la [guía de cómo crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa).
 
 ## Un aviso antes de cambiar el nombre
 
@@ -816,7 +816,7 @@ Y si quieres ver nombres con oficio en vivo, el directorio tiene ejemplos: [meme
 
 ## El nombre necesita una descripción
 
-Un nombre gracioso llama la atención; una buena descripción la retiene. Juntos son la portada del grupo: el nombre hace reír y la descripción explica para qué sirve, la regla mínima y el horario. Las 60 frases listas están en [descripciones para grupos de WhatsApp](/blog/descripciones-para-grupos-de-whatsapp).
+Un nombre gracioso llama la atención; una buena descripción la retiene. Juntos son la portada del grupo: el nombre hace reír y la descripción explica para qué sirve, la regla mínima y el horario. Las 60 frases listas están en [descripciones para grupos de WhatsApp](/guias/descripciones-para-grupos-de-whatsapp).
 
 ## Preguntas frecuentes
 
@@ -854,7 +854,7 @@ Uno con humor contenido: "Sueldos y lágrimas" o "Eso era un mensaje" hacen reí
     daysAgo: 17,
     content: `El nombre del grupo dice quién eres. La descripción dice qué se hace ahí. Es la diferencia entre "Los invictos del sofá" y "Los invictos del sofá: planes del finde, se confirma el viernes".
 
-La descripción es la carta de presentación del grupo: la leen los miembros, y también quien recibe el enlace, antes de aceptar. En la guía de [nombres graciosos para grupos de WhatsApp](/blog/nombres-para-grupos-de-whatsapp-graciosos) resolvimos la mitad divertida; esta es la mitad útil.
+La descripción es la carta de presentación del grupo: la leen los miembros, y también quien recibe el enlace, antes de aceptar. En la guía de [nombres graciosos para grupos de WhatsApp](/guias/nombres-para-grupos-de-whatsapp-graciosos) resolvimos la mitad divertida; esta es la mitad útil.
 
 Qué incluye este artículo: el límite real del campo, la fórmula de tres partes que conviene escribir y 60 descripciones listas para copiar, entre graciosas y estéticas, por tipo de grupo.
 
@@ -880,7 +880,7 @@ Consejo práctico: escribe la descripción en tus notas, con contador de caracte
 Las descripciones que funcionan combinan tres cosas, en este orden:
 
 1. **Propósito.** Para qué existe el grupo, en una línea.
-2. **Regla mínima.** Una sola, la más importante. La lista completa de reglas va mejor en un mensaje fijado: las plantillas están en [reglas para grupos de WhatsApp](/blog/reglas-para-grupos-de-whatsapp-copiar-y-pegar).
+2. **Regla mínima.** Una sola, la más importante. La lista completa de reglas va mejor en un mensaje fijado: las plantillas están en [reglas para grupos de WhatsApp](/guias/reglas-para-grupos-de-whatsapp-copiar-y-pegar).
 3. **Horario.** Cuándo se escribe y cuándo no.
 
 De las tres, la regla es la que más peleas evita. "Aquí solo avisos" en la descripción cambia el grupo desde el primer día.
@@ -995,7 +995,7 @@ La descripción no necesita ser obra de arte. Necesita responder tres preguntas:
 
 Cuando publiques tu grupo en [nuestro directorio de grupos](/agregar-grupo), te pedimos una descripción clara: es el primer filtro de calidad. Los grupos que llegan con buena descripción se entienden solos: mira [dev Barcelona: programación y café](/grupo/dev-barcelona-programacion-y-cafe) y cómo el nombre y la descripción se complementan.
 
-Y si estás creando el grupo desde cero, la descripción se configura en los primeros minutos: los pasos completos están en la [guía para crear un grupo de WhatsApp](/blog/como-crear-un-grupo-de-whatsapp-guia-completa).
+Y si estás creando el grupo desde cero, la descripción se configura en los primeros minutos: los pasos completos están en la [guía para crear un grupo de WhatsApp](/guias/como-crear-un-grupo-de-whatsapp-guia-completa).
 
 ## Preguntas frecuentes
 

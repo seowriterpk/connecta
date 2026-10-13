@@ -15,7 +15,7 @@ const posts = [
       "Aprende cómo crear un grupo de WhatsApp en Android, iPhone y Web paso a paso: nombre, foto, permisos, enlace de invitación y QR, actualizado a 2026.",
     readingMinutes: 9,
     daysAgo: 36,
-    content: `Entrar a grupos es fácil: un enlace y ya estás adentro. Elegir bien cuáles valen la pena ya lo vimos en nuestra guía para [encontrar grupos de WhatsApp seguros](/blog/como-encontrar-grupos-de-whatsapp-seguros-2026). Hoy toca el otro lado del mostrador: crear el tuyo propio.
+    content: `Entrar a grupos es fácil: un enlace y ya estás adentro. Elegir bien cuáles valen la pena ya lo vimos en nuestra guía para [encontrar grupos de WhatsApp seguros](/guias/como-encontrar-grupos-de-whatsapp-seguros-2026). Hoy toca el otro lado del mostrador: crear el tuyo propio.
 
 Un grupo bien armado ordena tu vida en dos minutos. La familia, el equipo del sábado, el curso de la escuela o el negocio del barrio. En México le dicen "el grupo de la fam"; en España, "el grupo de los vecinos". En todos lados cumple el mismo papel.
 
@@ -29,7 +29,7 @@ Antes de tocar el botón verde, tres cosas rápidas:
 
 - **WhatsApp actualizado.** Las rutas de esta guía cambian poco entre versiones, pero conviene tener la última instalada.
 - **Un propósito claro.** "Avisos del curso" crece distinto que "memes entre amigos". Decide primero qué va a pasar ahí dentro.
-- **Definir cómo invitar.** Puedes agregar gente de tu agenda o compartir enlace. El segundo camino respeta más la privacidad: lo explico en [cómo crear un grupo sin agregar contactos](/blog/crear-grupo-de-whatsapp-sin-agregar-contactos).
+- **Definir cómo invitar.** Puedes agregar gente de tu agenda o compartir enlace. El segundo camino respeta más la privacidad: lo explico en [cómo crear un grupo sin agregar contactos](/guias/crear-grupo-de-whatsapp-sin-agregar-contactos).
 
 Si no tienes los teléfonos guardados, no pasa nada. El grupo se crea igual y la invitación se reparte después.
 
@@ -56,7 +56,7 @@ En iPhone los pasos son casi idénticos; solo cambia el mapa de botones:
 4. Elige contactos, toca la flecha y pon el nombre.
 5. Confirma y a correr.
 
-Tengo una guía dedicada con las rarezas de iOS: [cómo crear un grupo de WhatsApp en iPhone](/blog/crear-grupo-de-whatsapp-en-iphone), incluida la comparación completa contra Android y dónde queda el código QR en cada sistema.
+Tengo una guía dedicada con las rarezas de iOS: [cómo crear un grupo de WhatsApp en iPhone](/guias/crear-grupo-de-whatsapp-en-iphone), incluida la comparación completa contra Android y dónde queda el código QR en cada sistema.
 
 ## Cómo crear un grupo desde WhatsApp Web
 
@@ -83,7 +83,7 @@ El nombre es la etiqueta que todos verán cada día. Tres reglas simples:
 - **Que explique el propósito.** "Tercero B – avisos" se autodescribe en dos palabras.
 - **Un toque de humor si el tono lo permite.** "Los que nunca leen" funciona en la familia; en el grupo del trabajo, mejor no.
 
-La **descripción del grupo** es el otro campo de oro: un par de líneas con reglas, horarios o para qué sirve. Quien entra nuevo la lee primero y se ahorra media hora de preguntas. Y cuando el grupo crezca, pásate por las [reglas de moderación](/blog/como-moderar-un-grupo-de-whatsapp-exitoso) que explicamos por separado: mantener el orden es otra habilidad.
+La **descripción del grupo** es el otro campo de oro: un par de líneas con reglas, horarios o para qué sirve. Quien entra nuevo la lee primero y se ahorra media hora de preguntas. Y cuando el grupo crezca, pásate por las [reglas de moderación](/guias/como-moderar-un-grupo-de-whatsapp-exitoso) que explicamos por separado: mantener el orden es otra habilidad.
 
 ## Cómo ponerle foto al grupo
 
@@ -100,7 +100,7 @@ Por defecto, cualquier participante puede cambiar nombre, foto y descripción. S
 Estos dos interruptores deciden cómo respira tu grupo. Viven en la **información del grupo**, hacia abajo:
 
 - **Editar datos del grupo.** Define quién puede cambiar nombre, foto y descripción: todos o solo administradores. Si tu grupo es abierto, elige "solo administradores" y evita que un gracioso lo rebautice a las tres de la mañana.
-- **Editar permisos de envío de mensajes.** Define quién escribe: todos o solo administradores. Es el famoso modo anuncios. Si tu grupo será de avisos, actívalo desde el día uno: el paso a paso completo está en [cómo poner un grupo de solo lectura](/blog/grupo-de-whatsapp-solo-lectura).
+- **Editar permisos de envío de mensajes.** Define quién escribe: todos o solo administradores. Es el famoso modo anuncios. Si tu grupo será de avisos, actívalo desde el día uno: el paso a paso completo está en [cómo poner un grupo de solo lectura](/guias/grupo-de-whatsapp-solo-lectura).
 
 Configurar esto al crear el grupo te ahorra la mayoría de los problemas futuros. Es la diferencia entre un grupo ordenado y un mercado de fin de semana.
 
@@ -130,7 +130,7 @@ Un grupo admite hasta **1.024 miembros**. El número es generoso; agregarlos de 
 
 - WhatsApp puede frenarte un rato si agregas a mucha gente que no te tiene agendada. Es la presión natural de la app contra el spam.
 - Ir por tandas funciona mejor: agregas, esperas, agregas de nuevo.
-- Si tienes los teléfonos en una planilla, el flujo completo de importación está en [cómo crear un grupo desde Excel](/blog/crear-grupo-de-whatsapp-desde-excel).
+- Si tienes los teléfonos en una planilla, el flujo completo de importación está en [cómo crear un grupo desde Excel](/guias/crear-grupo-de-whatsapp-desde-excel).
 
 La regla de oro: pide permiso antes de agregar a alguien que no conoce al resto. Es más lento y funciona diez veces mejor.
 
@@ -162,7 +162,7 @@ Hasta 1.024. Si necesitas más gente organizada, las comunidades te dan varias s
 
 ### ¿Puedo crear un grupo solo conmigo?
 
-Sí, y es un truco viejo pero vigente: funciona como bloc de notas privado. Lo explicamos con humor en [cómo crear un grupo contigo mismo](/blog/crear-grupo-de-whatsapp-contigo-mismo).
+Sí, y es un truco viejo pero vigente: funciona como bloc de notas privado. Lo explicamos con humor en [cómo crear un grupo contigo mismo](/guias/crear-grupo-de-whatsapp-contigo-mismo).
 
 ### ¿Qué pasa si me salgo de un grupo que yo creé?
 
@@ -183,7 +183,7 @@ El grupo sigue existiendo sin ti. Si hay otros administradores, quedan a cargo; 
     daysAgo: 35,
     content: `Agregar gente a un grupo uno por uno es la vieja escuela. Funciona, pero expone números, molesta a los sorprendidos y te come la tarde. Hay una forma más educada de armar el grupo: sin tocar la agenda.
 
-La idea es simple: creas el grupo, generas el enlace o el QR, y cada persona entra cuando quiere. Nadie queda metido a la fuerza y nadie ve números ajenos antes de tiempo. La base del proceso está en [la guía completa para crear grupos](/blog/como-crear-un-grupo-de-whatsapp-guia-completa); aquí nos concentramos en el enfoque que respeta la privacidad.
+La idea es simple: creas el grupo, generas el enlace o el QR, y cada persona entra cuando quiere. Nadie queda metido a la fuerza y nadie ve números ajenos antes de tiempo. La base del proceso está en [la guía completa para crear grupos](/guias/como-crear-un-grupo-de-whatsapp-guia-completa); aquí nos concentramos en el enfoque que respeta la privacidad.
 
 Al terminar vas a tener tu grupo armado y una invitación lista para repartir por donde quieras, sin haber agregado un solo contacto.
 
@@ -211,7 +211,7 @@ WhatsApp pide al menos un participante para crear un grupo. Soluciones honestas:
 
 ¿Agregaste a un convidado de piedra? Entra a la **información del grupo**, tócalo en la lista de participantes y elige **Eliminar**. Queda un grupo de un solo miembro: tú, esperando invitados.
 
-Si quieres profundizar en ese truco de grupo de una persona, mira [cómo crear un grupo contigo mismo](/blog/crear-grupo-de-whatsapp-contigo-mismo), donde lo usamos como bloc de notas.
+Si quieres profundizar en ese truco de grupo de una persona, mira [cómo crear un grupo contigo mismo](/guias/crear-grupo-de-whatsapp-contigo-mismo), donde lo usamos como bloc de notas.
 
 ## Paso 2: genera el enlace de invitación
 
@@ -238,7 +238,7 @@ En un evento funciona de maravilla: proyectas el QR, la gente escanea con la cá
 Antes de repartir la invitación, un minuto de higiene:
 
 - En **Editar datos del grupo**, elige **solo administradores**. Así ningún recién llegado cambia el nombre o la foto.
-- En **Editar permisos de envío de mensajes**, decide si todos escriben o solo tú. Para grupos de avisos, el modo de administradores es el indicado: lo detallamos en [cómo poner un grupo de solo lectura](/blog/grupo-de-whatsapp-solo-lectura).
+- En **Editar permisos de envío de mensajes**, decide si todos escriben o solo tú. Para grupos de avisos, el modo de administradores es el indicado: lo detallamos en [cómo poner un grupo de solo lectura](/guias/grupo-de-whatsapp-solo-lectura).
 
 Preparar esto antes de invitar evita la clásica sorpresa del enlace compartido y el grupo rebautizado al día siguiente.
 
@@ -283,7 +283,7 @@ WhatsApp documenta el comportamiento de los enlaces de invitación en su [centro
 
 Y si entra alguien a molestar, expúlsalo y usa la [herramienta para reportar grupos](/reportar-grupo) si la cosa va a más. Un enlace revocado a tiempo vale más que diez disculpas.
 
-¿Y si tu lista de gente vive en un Excel con cientos de filas? Entonces el flujo cambia: mira [cómo importar contactos desde Excel](/blog/crear-grupo-de-whatsapp-desde-excel) y decide después si agregas o mandas el enlace a cada uno.
+¿Y si tu lista de gente vive en un Excel con cientos de filas? Entonces el flujo cambia: mira [cómo importar contactos desde Excel](/guias/crear-grupo-de-whatsapp-desde-excel) y decide después si agregas o mandas el enlace a cada uno.
 
 ## Un directorio que piensa igual
 
@@ -322,7 +322,7 @@ Sí, y mejor que agregar a mano. El enlace repartido por canales confiables junt
     daysAgo: 34,
     content: `La escuela tiene la lista en Excel. La iglesia también. El club de barrio y la tienda con sus clientes: todos igual. Y alguien siempre pregunta lo mismo: "¿no hay forma de pasar esta hoja a un grupo de WhatsApp de una vez?".
 
-La respuesta honesta: no hay importación directa, pero hay un puente rapidísimo. Crear el grupo es la parte fácil (si no la tienes fresca, revisa la [guía completa para crear grupos](/blog/como-crear-un-grupo-de-whatsapp-guia-completa)). Lo interesante es el camino de los teléfonos, y ese camino sí se recorre en minutos.
+La respuesta honesta: no hay importación directa, pero hay un puente rapidísimo. Crear el grupo es la parte fácil (si no la tienes fresca, revisa la [guía completa para crear grupos](/guias/como-crear-un-grupo-de-whatsapp-guia-completa)). Lo interesante es el camino de los teléfonos, y ese camino sí se recorre en minutos.
 
 Aquí va el flujo exacto: limpiar la hoja, importar los contactos, sincronizar el móvil y armar el grupo. Con límites claros y advertencias de las que nadie te cuenta.
 
@@ -419,11 +419,11 @@ Este apartado merece negrita: **pide permiso antes de agregar a desconocidos**. 
 
 Manda un mensaje corto antes: "Hola, soy Rosario del colegio, ¿te agrego al grupo de avisos?". Con eso ganas tres cosas: gente que se queda, cero reportes y una app que no te frena. En Honduras, en Ecuador o en España, la cortesía corre igual de bien.
 
-¿Prefieres que cada quien decida? El método elegante es no agregar a nadie: manda el **enlace de invitación** a los teléfonos de tu lista y deja que entren solos. Ese flujo completo está en [cómo crear un grupo sin agregar contactos](/blog/crear-grupo-de-whatsapp-sin-agregar-contactos).
+¿Prefieres que cada quien decida? El método elegante es no agregar a nadie: manda el **enlace de invitación** a los teléfonos de tu lista y deja que entren solos. Ese flujo completo está en [cómo crear un grupo sin agregar contactos](/guias/crear-grupo-de-whatsapp-sin-agregar-contactos).
 
 ## Si el grupo es de puro aviso, cierra la puerta
 
-Escuelas, iglesias y negocios rara vez quieren que 300 personas escriban a la vez. Para eso existe el modo de solo administradores: solo tú publicas y el resto lee. La configuración paso a paso está en [cómo poner un grupo de solo lectura](/blog/grupo-de-whatsapp-solo-lectura), y es el complemento natural de una importación masiva.
+Escuelas, iglesias y negocios rara vez quieren que 300 personas escriban a la vez. Para eso existe el modo de solo administradores: solo tú publicas y el resto lee. La configuración paso a paso está en [cómo poner un grupo de solo lectura](/guias/grupo-de-whatsapp-solo-lectura), y es el complemento natural de una importación masiva.
 
 Y si andas buscando inspiración, en el directorio hay [grupos de educación](/categoria/educacion) y [grupos de negocios](/categoria/negocios) para ver cómo lo hacen los demás. Cuando el tuyo esté andando, publícalo [en el directorio de grupos](/agregar-grupo) para que lo encuentre más gente.
 
@@ -462,7 +462,7 @@ No. Business es una app separada con etiquetas y listas de difusión, pero tampo
 
 Para eso existe un ajuste que casi nadie usa: **solo los administradores pueden enviar mensajes**. Un grupo de WhatsApp se convierte en un tablón de anuncios, sin cadenas de "buen día" ni stickers de gatitos a las seis de la mañana.
 
-Si aún no tienes el grupo creado, empieza por la [guía completa para crear grupos](/blog/como-crear-un-grupo-de-whatsapp-guia-completa). Si ya lo tienes, quédate: activar el modo solo lectura toma dos minutos, y aquí van los pasos, los usos que de verdad lo aprovechan y los casos donde conviene otra herramienta.
+Si aún no tienes el grupo creado, empieza por la [guía completa para crear grupos](/guias/como-crear-un-grupo-de-whatsapp-guia-completa). Si ya lo tienes, quédate: activar el modo solo lectura toma dos minutos, y aquí van los pasos, los usos que de verdad lo aprovechan y los casos donde conviene otra herramienta.
 
 Un **grupo de WhatsApp de solo lectura** es un grupo donde únicamente los administradores pueden enviar mensajes. Se activa en los ajustes del grupo con la opción *Editar permisos de envío de mensajes* y se revierte cuando quieras. Los demás miembros leen, reciben y pueden salir, pero no escriben.
 
@@ -510,7 +510,7 @@ Aquí viene la decisión fina. Los canales de WhatsApp son difusión en estado p
 - Los seguidores **no se ven entre sí**, ni saben quién más sigue.
 - Nadie espera responder, porque un canal tiene una sola voz.
 
-Si tu meta es llegar a gente nueva más allá de tu círculo, el canal gana la partida. Tienes el análisis a fondo en [grupo versus comunidad versus canal](/blog/grupo-vs-comunidad-vs-canal-de-whatsapp) y el montaje paso a paso en [cómo crear un canal de WhatsApp](/blog/como-crear-un-canal-de-whatsapp). WhatsApp describe el formato en su [página oficial de canales](https://www.whatsapp.com/channel).
+Si tu meta es llegar a gente nueva más allá de tu círculo, el canal gana la partida. Tienes el análisis a fondo en [grupo versus comunidad versus canal](/guias/grupo-vs-comunidad-vs-canal-de-whatsapp) y el montaje paso a paso en [cómo crear un canal de WhatsApp](/guias/como-crear-un-canal-de-whatsapp). WhatsApp describe el formato en su [página oficial de canales](https://www.whatsapp.com/channel).
 
 Regla rápida: doscientos padres del colegio, grupo de solo lectura. Veinte mil interesados en tus recetas, canal.
 
@@ -545,7 +545,7 @@ Combinación ganadora para una tienda: modo solo lectura para publicar precios, 
 - **Activarlo y olvidar la escucha.** La gente necesita preguntar. Deja un cauce: un chat de consultas o un horario de preguntas en el propio grupo.
 - **Cambiarlo cada dos días.** Un día se escribe, al otro no, al otro sí. La gente se marea y se va. Decide la regla y mantenla.
 - **Usarlo en grupos sociales.** Un grupo de amigos de solo lectura es una fiesta donde solo habla el anfitrión. Para eso existe el mute personal.
-- **Arrancar en silencio un grupo recién importado.** Si acabas de meter a trescientas personas venidas de un Excel, dales la bienvenida y explica la regla. El flujo completo de importación está en [cómo crear un grupo desde Excel](/blog/crear-grupo-de-whatsapp-desde-excel), y arranca con las puertas bien señalizadas.
+- **Arrancar en silencio un grupo recién importado.** Si acabas de meter a trescientas personas venidas de un Excel, dales la bienvenida y explica la regla. El flujo completo de importación está en [cómo crear un grupo desde Excel](/guias/crear-grupo-de-whatsapp-desde-excel), y arranca con las puertas bien señalizadas.
 
 ## Tu tablón también puede crecer
 
@@ -590,7 +590,7 @@ Sí, y es de los mejores usos. Precios, promos y horarios llegan sin ruido. Si a
 
 La idea es vieja y buena: un lugar donde mandarte cosas a ti mismo. Lo que llega desde el teléfono lo abres en la computadora; lo que escribes en la computadora lo llevas en el bolsillo. Sin cables, sin cuentas nuevas, sin apps extra.
 
-WhatsApp hoy lo soporta de dos maneras: el chat oficial de mensaje a ti mismo y el truco clásico del grupo de una sola persona. Los dos funcionan, y aquí van explicados de a poco, con los usos que la gente les da de verdad. Si nunca creaste un grupo, la base está en la [guía completa para crear grupos](/blog/como-crear-un-grupo-de-whatsapp-guia-completa).
+WhatsApp hoy lo soporta de dos maneras: el chat oficial de mensaje a ti mismo y el truco clásico del grupo de una sola persona. Los dos funcionan, y aquí van explicados de a poco, con los usos que la gente les da de verdad. Si nunca creaste un grupo, la base está en la [guía completa para crear grupos](/guias/como-crear-un-grupo-de-whatsapp-guia-completa).
 
 Un **grupo de WhatsApp contigo mismo** es un grupo con un único miembro: tú. Funciona como bloc de notas dentro de la app: guardas textos, enlaces, fotos, notas de voz y archivos, sincronizados entre tu móvil y WhatsApp Web. Hay dos caminos: el chat oficial y el truco del grupo.
 
@@ -622,7 +622,7 @@ Resultado: un grupo donde el único integrante eres tú. Administrador y único 
 
 ¿Por qué funciona? Porque WhatsApp no exige que un grupo tenga más de una persona para existir. La condición solo aplica al momento de crear: después, el grupo sobrevive con quien quede. Al eliminar al otro participante, queda un grupo de WhatsApp normal, con la única diferencia de que en él respira una sola persona.
 
-Un consejo de amigo: si involucras a otra persona, que sepa del truco. Nadie quiere ver que "salió de un grupo" sin explicación. Y si prefieres no tocar a nadie, el enfoque completo para armar grupos sin usar la agenda está en [cómo crear grupos sin agregar contactos](/blog/crear-grupo-de-whatsapp-sin-agregar-contactos).
+Un consejo de amigo: si involucras a otra persona, que sepa del truco. Nadie quiere ver que "salió de un grupo" sin explicación. Y si prefieres no tocar a nadie, el enfoque completo para armar grupos sin usar la agenda está en [cómo crear grupos sin agregar contactos](/guias/crear-grupo-de-whatsapp-sin-agregar-contactos).
 
 ## Cuál elegir: la comparación honesta
 
@@ -666,7 +666,7 @@ Ese es el punto: el bloc no hace nada solo, pero convierte el caos en una cola. 
 
 No todo pertenece al bloc. **Contraseñas y datos bancarios, fuera.** El chat viaja cifrado de extremo a extremo como cualquier conversación, pero tu copia de seguridad depende de tus ajustes y de tu teléfono. Para secretos, una app dedicada a eso.
 
-Y si lo que buscas es charlar con gente nueva, tu bloc no ayuda: revisa primero [cómo elegir grupos de WhatsApp seguros](/blog/como-encontrar-grupos-de-whatsapp-seguros-2026) y entra a comunidades bien moderadas.
+Y si lo que buscas es charlar con gente nueva, tu bloc no ayuda: revisa primero [cómo elegir grupos de WhatsApp seguros](/guias/como-encontrar-grupos-de-whatsapp-seguros-2026) y entra a comunidades bien moderadas.
 
 ¿Más guías así? Pásate por [nuestras guías de WhatsApp](/guias) y llévate la que necesites.
 
@@ -705,7 +705,7 @@ Sí, no hay límite de grupos. Puedes tener uno para notas de trabajo y otro par
 
 María, que se pasó de Android a iPhone en Madrid, tardó una semana en encontrar "Nuevo grupo". La opción estaba ahí, escondida a plena vista. Si te pasa algo así, esta guía es para ti.
 
-Van los pasos exactos en iPhone, las diferencias reales frente a Android y los tropiezos típicos de quien cambia de bando. La versión larga y multiplataforma está en [la guía completa para crear grupos](/blog/como-crear-un-grupo-de-whatsapp-guia-completa); aquí vamos directo a lo iPhone.
+Van los pasos exactos en iPhone, las diferencias reales frente a Android y los tropiezos típicos de quien cambia de bando. La versión larga y multiplataforma está en [la guía completa para crear grupos](/guias/como-crear-un-grupo-de-whatsapp-guia-completa); aquí vamos directo a lo iPhone.
 
 Crear un **grupo de WhatsApp en iPhone** se hace desde la pestaña Chats: tocas el botón de nuevo chat, eliges Nuevo grupo, seleccionas participantes y pones nombre. El resultado es idéntico al de Android. Lo único que cambia es el camino: botones arriba, hoja de compartir de iOS y contactos vía iCloud.
 
@@ -722,7 +722,7 @@ Aviso para recién llegados de Android: chau burbuja verde flotante. En iPhone t
 
 ## Dónde quedó el enlace y el QR en iPhone
 
-El enlace de invitación sigue siendo la mejor forma de sumar gente sin tocar la agenda; el método completo está en [cómo crear un grupo sin agregar contactos](/blog/crear-grupo-de-whatsapp-sin-agregar-contactos). En iPhone, la ruta es:
+El enlace de invitación sigue siendo la mejor forma de sumar gente sin tocar la agenda; el método completo está en [cómo crear un grupo sin agregar contactos](/guias/crear-grupo-de-whatsapp-sin-agregar-contactos). En iPhone, la ruta es:
 
 1. Entra al grupo y toca el nombre para abrir la **información**.
 2. Toca **Invitar mediante enlace**.
@@ -738,7 +738,7 @@ Los interruptores de admin viven como en Android; solo cambia el punto de partid
 - **Editar datos del grupo**: define quién cambia nombre, foto y descripción.
 - **Editar permisos de envío de mensajes**: define quién escribe, todos o solo administradores.
 
-Ese segundo ajuste convierte tu grupo en tablón de anuncios. La configuración detallada está en [cómo poner un grupo de solo lectura](/blog/grupo-de-whatsapp-solo-lectura), y funciona igual en iPhone que en el resto de las plataformas.
+Ese segundo ajuste convierte tu grupo en tablón de anuncios. La configuración detallada está en [cómo poner un grupo de solo lectura](/guias/grupo-de-whatsapp-solo-lectura), y funciona igual en iPhone que en el resto de las plataformas.
 
 ## Los contactos: el tropiezo clásico del iPhone
 

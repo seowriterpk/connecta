@@ -4631,3 +4631,42 @@ Stage Summary:
 - ENGAGEMENT: real like/dislike per group (deduped per visitor, no schema, Google-readable HTML) + share flows that spread OUR URLs.
 - LINK JUICE: taxonomy cross-links + 200+ contextual blog→directory links + related posts + footer links; every internal URL verified 200.
 - Risks/next: (1) 40 posts on /blog index unpaged — consider pagination when >60; (2) adult group pages indexable means Google may filter them via SafeSearch — monitor GSC; (3) OOM risk on heavy parallel sessions — restart via start-dev.sh; (4) production deploy: run cluster/intro seed scripts + REBRAND + ADULTO + BLOG AUTOR migrations + sitemap regen; (5) "menos de 24 horas" review-time claim on taxonomy CTAs still to soften; (6) draft posts 27 (names) marked Phase 3 by research — published anyway per user's 35-topic instruction; (7) blog listing has no pagination/tag pages per user's directive (tags are plain badges).
+
+---
+Task ID: 12-MERGE-2026-10-13
+Agent: main (Z.ai Code)
+Task: User request — combine /blog and gruposhoy.com/guias into ONE section using the suitable Spanish term; fix the missing 20+ blog posts (sandbox was re-provisioned again, DB wiped). All reasoning/communication in English per user instruction.
+
+Work Log:
+- Environment restored AGAIN (3rd full reset: .env → SQLite, mysql-runtime empty, dev server dead):
+  - Re-downloaded MariaDB 11.8.6 tarball (433.584.725 bytes exact, gzip -t OK) from archive.mariadb.org/mariadb-11.8.6/bintar-linux-systemd-x86_64/ — NOTE: correct URL now includes the /bintar-linux-systemd-x86_64/ subdirectory (the old flat URL 404s).
+  - bash scripts/patches/setup-mariadb.sh → MariaDB up on 127.0.0.1:3306.
+  - Imported full sql.md (base dump + AUTORES + PAÍSES + REBRAND + ADULTO + BLOG AUTOR migrations) → 104 groups, 22 categories, 20 countries, 2 base posts, up-equipo.
+  - THE 38 CLUSTER POSTS WERE THE ROOT CAUSE of "I don't see 20+ blogs": the previous sessions' DB rows were lost with the sandbox; scripts/blog-seeds/cluster-{1..7}.mjs + intro-seeds re-seeded everything → 40 published posts, 49 intros (20 countries + 29 cities), single author Antonio C.
+- MERGE DECISION (the suitable Spanish term): "Guías" — all 40 posts are how-to guide content; /guias is the Spanish term, already linked from 100+ post bodies (content brief made every post link /guias as the hub). /blog URLs are NOT yet indexed (site pre-launch) → safe to consolidate onto /guias now with zero link-equity loss.
+- Code changes:
+  - src/app/guias/page.tsx REWRITTEN: single merged hub — count-first CTR title `40 Guías de Grupos de WhatsApp | Grupos Hoy` (dynamic via generateMetadata + getPublishedPosts), "Empieza por aquí" 6 quick-start theme cards deep-linking to key posts, full 40-post grid (cards with date/reading time/views/author), agregar-grupo CTA, Blog JSON-LD (10 real BlogPosting headlines+urls) + BreadcrumbList (Inicio > Guías). Old static GUIDES hub (6 hardcoded cards linking to /blog) deleted along with src/lib/guides.ts.
+  - src/app/guias/[slug]/page.tsx NEW (moved from blog/[slug]): post detail with canonical /guias/{slug}, OG article, Article JSON-LD mainEntityOfPage /guias/{slug}, breadcrumb Inicio > Guías > title, GFM tables, related groups, "Sigue leyendo" → /guias/{slug}.
+  - src/app/blog/page.tsx + blog/[slug]/page.tsx REPLACED with permanentRedirect (308) → /guias and /guias/{slug} (slug 1:1, no lookup).
+  - Footer: duplicate "Blog" link removed (Guías kept; Newspaper import dropped).
+  - RSS: post items now /guias/{slug} with <category>Guías</category>.
+  - sitemap-generator.mjs: blog.xml emits /guias/{slug} (40 URLs); regenerated all sitemaps (104 groups total).
+  - Admin blog UI: "Ver publicada" links + slug prefix labels → /guias/.
+  - Home page: NEW GuidesSection (server component, src/components/site/guides-section.tsx) between Cities and About — 3 newest guides (getPublishedPostCards) + honest total (getPublishedPostCount) + "Ver todas" link; feeds home link juice into the merged hub. blog.ts gained lightweight getPublishedPostCards()/getPublishedPostCount() (no content column).
+  - agent-ctx/content-brief.md: all /blog/ targets → /guias/ (external whitelist untouched).
+  - sql.md: documented MIGRACIÓN BLOG → GUÍAS (idempotent REPLACE content statements for legacy DBs) + corrected download path note.
+- Link-rewrite sweep: 123 markdown links across the 7 cluster seed scripts sed'd `](/blog/` → `](/guias/` BEFORE re-seeding, so DB content links are correct at insert time; verified DB after seed: 0 `](/blog/` links, 38 posts with /guias links. Base posts (001/002) never had /blog links.
+- QA (curl + agent-browser, desktop 1920px + mobile 390px):
+  - /guias → 200, title "40 Guías de Grupos de WhatsApp | Grupos Hoy", 40 post cards + 6 quick starts, Antonio C. visible, no console errors.
+  - /blog → 308 → /guias; /blog/{slug} → 308 → /guias/{slug} (curl and in-browser URL change verified).
+  - Post detail (reglas-para-grupos-...): 200, canonical /guias/..., 2 GFM tables, 4 internal /guias links + 1 external target=_blank, breadcrumb Inicio > Guías, H1 correct.
+  - Home: #guias section renders 3 cards, title "92 Enlaces de Grupos..." (honest), footer has Guías and NO Blog link.
+  - Mobile 390px: no horizontal scroll, 40 cards render, sticky footer intact.
+  - tsc --noEmit exit 0; bun run lint clean; dev.log all 200/308 (only pre-existing mysql2 callback-API warning from an unrelated module; one-off 109s cold render, steady-state home 0.4-0.7s, /guias 0.37s).
+- NOT committed yet at time of this entry (commit+push follows immediately).
+
+Stage Summary:
+- ONE content section: /guias ("Guías" — the Spanish term) — /blog + /guias merged, /blog 308-redirects, 40 posts live and visible (user's "20+ blogs" complaint resolved: root cause was the wiped sandbox DB, now fully re-seeded from idempotent scripts).
+- All internal links, RSS, sitemap, admin, footer, home now point to /guias/{slug}; future re-provisions reseed correct URLs directly.
+- Ops note for next sessions: MariaDB tarball URL is https://archive.mariadb.org/mariadb-11.8.6/bintar-linux-systemd-x86_64/mariadb-11.8.6-linux-systemd-x86_64.tar.gz (flat path 404s now).
+- Risks/next: (1) if Google ever indexed /blog URLs pre-launch, the 308s cover it; (2) adult pages + feedback/share features from Task 8/11 restored with the DB (spot-check /categoria/citas-18 renders 7 groups); (3) cron webDevReview must be re-created after sandbox resets — done this session.
