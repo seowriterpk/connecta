@@ -4794,3 +4794,20 @@ Stage Summary:
 - User-facing answer to their constraint: applied because it could be done with zero CPU/RAM/speed cost (pure SSR HTML + compositor-only shimmer); evidence captured in QA.
 - Known cosmetics: the SSR'd fixed "Búsqueda rápida ⌘K" pill (bottom-left) shows during loading — pre-existing behavior, kept for continuity (it never disappears/reappears between loading and loaded states).
 - Risks/next: (1) dev-mode cold compile stalls hide ALL loading UI (router waits for first byte) — production build streams immediately, no action needed; (2) warm client navigations from router cache skip the skeleton entirely (desired — instant nav); (3) remaining nice-to-have: dedicated skeletons for /verificar flow steps and /lista; (4) OOM risk under parallel sessions persists — restart via ./start-dev.sh.
+
+---
+Task ID: 17-GIT-PUSH-2026-10-14
+Agent: main (Z.ai Code)
+Task: User reported skeleton update missing on the live site — asked whether new files had been pushed to git.
+
+Work Log:
+- Diagnosed: `git status` showed `main` ahead of `origin/main` by 2 commits — Task 15 (5df7219: conditional import.sql + import-schema-fix.sql) and Task 16 (bd70ce1: 28 loading.tsx boundaries + route-skeletons.tsx, ~950 lines) were committed locally but NEVER pushed, so the Hostinger deployment never received them.
+- Pushed: `git push origin main` → `c967b2b..bd70ce1 main -> main`. Verified branch now in sync (`## main...origin/main`, no ahead marker).
+- Confirmed dev server still healthy after push (dev.log tail: all 200s; only known external /api/img 403 noise from WhatsApp CDN hotlink rejection).
+- Left the untracked tool-results/read_*.txt artifact uncommitted (internal tool output, not project code).
+
+Stage Summary:
+- Both pending commits (import SQL idempotency + YouTube skeleton screens) are now on github.com/seowriterpk/connecta main.
+- USER ACTION REQUIRED for live site: redeploy on Hostinger (git pull / redeploy app via their deployment flow) — the repo now contains the skeleton update; after deploy, hard-refresh (Ctrl+F5) a group/guías page on gruposhoy.com and navigate between sections to see the layout-matching skeletons during load.
+- NOTE: skeletons are SSR streaming boundaries — they appear on cold navigation; on Hostinger production (built output) they stream immediately. Also reminder: if not yet done, import.sql (now idempotent) can be safely re-run on the live DB and sitemaps regenerated via `BASE_URL=gruposhoy.com node scripts/crons/sitemap-generator.mjs`.
+- Risks/next: none introduced by the push; remaining next-phase items unchanged (live redeploy verification, /verificar + /lista dedicated skeletons nice-to-have, OOM watch).
