@@ -1,7 +1,10 @@
 /**
- * Global navigation loading fallback (task 13-b) — root-level App Router
- * Suspense boundary. Shows instantly on initial loads while the page's
- * server components stream. Per-segment loading.tsx files (which cover
- * client-side navigations) re-export the same shared UI.
+ * Root loading fallback (16) — the root SEGMENT is the homepage, so its
+ * boundary must mirror the HOME layout (hero + filter bar + rows), not a
+ * generic grid. Every other public route has its own segment loading.tsx.
  */
-export { default } from "@/components/site/route-loading-fallback";
+import { HomeRouteSkeleton } from "@/components/site/route-skeletons";
+
+export default function Loading() {
+  return <HomeRouteSkeleton />;
+}

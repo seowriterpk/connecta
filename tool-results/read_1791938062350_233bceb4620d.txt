@@ -1,0 +1,634 @@
+     1→"use client";
+     2→
+     3→import * as React from "react";
+     4→import Link from "next/link";
+     5→import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown } from "lucide-react";
+     6→import { motion } from "framer-motion";
+     7→import { useGroupsFilter } from "@/lib/store";
+     8→import { useAdultModeHydrated } from "@/lib/adult-store";
+     9→import type {
+    10→  CategoryLiteDTO,
+    11→  CountryLiteDTO,
+    12→  GroupCardDTO,
+    13→} from "@/lib/lite-dto";
+    14→import { GroupImage } from "@/components/site/group-image";
+    15→import { SearchPredictive } from "@/components/site/search-predictive";
+    16→import { useFavorites } from "@/lib/favorites";
+    17→import { CompareIconButton } from "@/components/site/compare-button";
+    18→import { AdultModeToggle } from "@/components/site/adult-toggle";
+    19→import { CountryFlag } from "@/components/site/country-flag";
+    20→import { Button } from "@/components/ui/button";
+    21→import { Badge } from "@/components/ui/badge";
+    22→import { cn } from "@/lib/utils";
+    23→import {
+    24→  Select,
+    25→  SelectContent,
+    26→  SelectItem,
+    27→  SelectTrigger,
+    28→  SelectValue,
+    29→} from "@/components/ui/select";
+    30→
+    31→interface Props {
+    32→  groups: GroupCardDTO[];
+    33→  categories: CategoryLiteDTO[];
+    34→  countries: CountryLiteDTO[];
+    35→  popularTags: { tag: string; count: number }[];
+    36→}
+    37→
+    38→const PAGE_SIZE = 30;
+    39→
+    40→function fmt(n: number): string {
+    41→  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+    42→  return `${n}`;
+    43→}
+    44→
+    45→export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanCategories, countries, popularTags: cleanTags }: Props) {
+    46→  const {
+    47→    search, categoryId, countryId, sort, tag, favoritesOnly,
+    48→    setSearch, setCategory, setCountry, setTag, setSort, setFavoritesOnly, reset,
+    49→  } = useGroupsFilter();
+    50→  const favoriteIds = useFavorites((s) => s.ids);
+    51→  // 18+ mode: when ON the whole directory switches to the adult silo —
+    52→  // ONLY adult groups are listed (clean rows hidden), and the filter row
+    53→  // swaps to adult categories / adult tags. Adult rows are never in SSR HTML.
+    54→  const { enabled: adultMode } = useAdultModeHydrated();
+    55→
+    56→  const [groups, setGroups] = React.useState<GroupCardDTO[]>(initialGroups);
+    57→  const [loading, setLoading] = React.useState(false);
+    58→  const [localSearch, setLocalSearch] = React.useState(search);
+    59→  const [limit, setLimit] = React.useState(PAGE_SIZE);
+    60→  const [totalCount, setTotalCount] = React.useState<number | null>(null);
+    61→  const [loadingMore, setLoadingMore] = React.useState(false);
+    62→  // Skip the redundant initial groups re-fetch when SSR already provided the
+    63→  // exact default view (see the fetch effect below).
+    64→  const skipInitialRef = React.useRef(true);
+    65→  // Adult taxonomies — fetched client-side only when 18+ is active.
+    66→  const [adultCategories, setAdultCategories] = React.useState<CategoryLiteDTO[] | null>(null);
+    67→  const [adultTags, setAdultTags] = React.useState<{ tag: string; count: number }[] | null>(null);
+    68→
+    69→  // Fetch adult categories + tags for the filter row (client-only, adult silo).
+    70→  React.useEffect(() => {
+    71→    if (!adultMode) {
+    72→      setAdultCategories(null);
+    73→      setAdultTags(null);
+    74→      return;
+    75→    }
+    76→    let cancelled = false;
+    77→    fetch("/api/categories?adult=only&XTransformPort=3000")
+    78→      .then((r) => r.json())
+    79→      .then((j) => {
+    80→        if (!cancelled && j?.ok && Array.isArray(j.data)) setAdultCategories(j.data);
+    81→      })
+    82→      .catch(() => {});
+    83→    fetch("/api/tags?adult=only&limite=14&XTransformPort=3000")
+    84→      .then((r) => r.json())
+    85→      .then((j) => {
+    86→        if (!cancelled && j?.ok && Array.isArray(j.data)) setAdultTags(j.data);
+    87→      })
+    88→      .catch(() => {});
+    89→    return () => {
+    90→      cancelled = true;
+    91→    };
+    92→  }, [adultMode]);
+    93→
+    94→  // Track the silo so a category chosen in one silo never leaks into the other.
+    95→  const prevAdultMode = React.useRef(false);
+    96→  React.useEffect(() => {
+    97→    if (prevAdultMode.current !== adultMode) {
+    98→      prevAdultMode.current = adultMode;
+    99→      // Silo switch: the active category/tag may not exist in the new silo.
+   100→      if (categoryId) useGroupsFilter.getState().setCategory(null);
+   101→      if (tag) useGroupsFilter.getState().setTag(null);
+   102→    }
+   103→  }, [adultMode, categoryId, tag]);
+   104→
+   105→  React.useEffect(() => {
+   106→    const t = setTimeout(() => setSearch(localSearch), 250);
+   107→    return () => clearTimeout(t);
+   108→  }, [localSearch, setSearch]);
+   109→
+   110→  React.useEffect(() => {
+   111→    let cancelled = false;
+   112→    const ctl = new AbortController();
+   113→    const params = new URLSearchParams();
+   114→    if (search) params.set("q", search);
+   115→    if (categoryId) params.set("cat", categoryId);
+   116→    if (countryId) params.set("pais", countryId);
+   117→    if (tag) params.set("tag", tag);
+   118→    if (sort) params.set("orden", sort);
+   119→    // 18+ ON → adult silo: ONLY adult groups (clean rows hidden).
+   120→    if (adultMode) params.set("adult", "only");
+   121→    params.set("limite", String(PAGE_SIZE));
+   122→
+   123→    // First mount on the default view: SSR already rendered exactly this list
+   124→    // (sort=recientes, no filters, clean silo) — skip re-downloading the 30
+   125→    // groups, fetch ONLY the total count for the pagination footer.
+   126→    const isDefaultView =
+   127→      !search && !categoryId && !countryId && !tag && sort === "recientes" && !adultMode;
+   128→    if (skipInitialRef.current && isDefaultView && initialGroups.length > 0) {
+   129→      skipInitialRef.current = false;
+   130→      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal })
+   131→        .then((r) => r.json())
+   132→        .then((j) => {
+   133→          if (!cancelled && j?.ok && typeof j.data === "number") setTotalCount(j.data);
+   134→        })
+   135→        .catch(() => {});
+   136→      return () => {
+   137→        cancelled = true;
+   138→        ctl.abort();
+   139→      };
+   140→    }
+   141→    skipInitialRef.current = false;
+   142→
+   143→    setLoading(true);
+   144→    Promise.all([
+   145→      fetch(`/api/groups?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()),
+   146→      fetch(`/api/groups/count?${params.toString()}&XTransformPort=3000`, { signal: ctl.signal }).then((r) => r.json()).catch(() => null),
+   147→    ])
+   148→      .then(([json, countJson]) => {
+   149→        if (cancelled) return;
+   150→        if (json.ok && Array.isArray(json.data)) {
+   151→          setGroups(json.data);
+   152→          setLimit(PAGE_SIZE);
+   153→          if (countJson?.ok && typeof countJson.data === "number") {
+   154→            setTotalCount(countJson.data);
+   155→          }
+   156→        }
+   157→      })
+   158→      .catch(() => {})
+   159→      .finally(() => !cancelled && setLoading(false));
+   160→    return () => {
+   161→      cancelled = true;
+   162→      ctl.abort();
+   163→    };
+   164→    return () => { cancelled = true; };
+   165→  }, [search, categoryId, countryId, tag, sort, adultMode]);
+   166→
+   167→  function loadMore() {
+   168→    if (loadingMore) return;
+   169→    setLoadingMore(true);
+   170→    const nextLimit = limit + PAGE_SIZE;
+   171→    setLimit(nextLimit);
+   172→    const params = new URLSearchParams();
+   173→    if (search) params.set("q", search);
+   174→    if (categoryId) params.set("cat", categoryId);
+   175→    if (countryId) params.set("pais", countryId);
+   176→    if (tag) params.set("tag", tag);
+   177→    if (sort) params.set("orden", sort);
+   178→    if (adultMode) params.set("adult", "only");
+   179→    params.set("limite", String(nextLimit));
+   180→    fetch(`/api/groups?${params.toString()}&XTransformPort=3000`)
+   181→      .then((r) => r.json())
+   182→      .then((json) => {
+   183→        if (json.ok && Array.isArray(json.data)) {
+   184→          setGroups(json.data);
+   185→        }
+   186→      })
+   187→      .catch(() => {})
+   188→      .finally(() => setLoadingMore(false));
+   189→  }
+   190→
+   191→  const hasMore = totalCount !== null ? groups.length < totalCount : groups.length >= PAGE_SIZE;
+   192→
+   193→  // Client-side favorites filter (localStorage ids).
+   194→  const displayedGroups = favoritesOnly
+   195→    ? groups.filter((g) => favoriteIds.includes(g.id))
+   196→    : groups;
+   197→
+   198→  const hasFilters = Boolean(search || categoryId || countryId || tag || favoritesOnly);
+   199→  // Active taxonomies follow the active silo (clean vs adult-only).
+   200→  const activeCategories = adultMode ? (adultCategories ?? []) : cleanCategories;
+   201→  const activeTags = adultMode ? (adultTags ?? []) : cleanTags;
+   202→  const catName = activeCategories.find((c) => c.id === categoryId)?.name;
+   203→  const countryName = countries.find((c) => c.id === countryId)?.name;
+   204→
+   205→  return (
+   206→    <section id="grupos" className="border-t bg-background">
+   207→      <div className="container mx-auto px-4 py-12 sm:py-16">
+   208→        {/* Section header */}
+   209→        <div className="mb-6">
+   210→          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+   211→            {adultMode ? (
+   212→              <span className="inline-flex flex-wrap items-center gap-2">
+   213→                Directorio 18+
+   214→                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">Solo adultos</span>
+   215→              </span>
+   216→            ) : (
+   217→              "Directorio de grupos de WhatsApp"
+   218→            )}
+   219→          </h2>
+   220→          <p className="mt-1 text-sm text-muted-foreground">
+   221→            {adultMode ? (
+   222→              <span>
+   223→                Mostrando <span className="font-semibold text-rose-600 dark:text-rose-400">solo grupos 18+</span>. El resto del directorio está oculto mientras el modo esté activo.
+   224→              </span>
+   225→            ) : (
+   226→              <span>
+   227→                Explora {groups.length}+ comunidades activas en español.{" "}
+   228→                Contenido 100% apto para todos.
+   229→              </span>
+   230→            )}
+   231→          </p>
+   232→        </div>
+   233→
+   234→        {/* Search + filters bar */}
+   235→        <div className="sticky top-16 z-30 -mx-4 border-y bg-background/95 px-4 py-3 backdrop-blur">
+   236→          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+   237→            <div className="flex-1">
+   238→              <SearchPredictive
+   239→                value={localSearch}
+   240→                onChange={setLocalSearch}
+   241→                onSubmit={(q) => {
+   242→                  if (q) {
+   243→                    setLocalSearch(q);
+   244→                    setSearch(q);
+   245→                  }
+   246→                }}
+   247→                placeholder="Buscar grupos: fútbol, memes, inglés, emprendimiento…"
+   248→                adultParam={adultMode ? "only" : undefined}
+   249→                ariaLabel="Buscar grupos"
+   250→              />
+   251→            </div>
+   252→            <div className="flex flex-wrap items-center gap-2">
+   253→              <Select value={categoryId ?? "_all"} onValueChange={(v) => setCategory(v === "_all" ? null : v)}>
+   254→                {/* Active-filter state (13-b): tinted trigger so taps leave a visible trace. */}
+   255→                <SelectTrigger
+   256→                  className={cn(
+   257→                    "h-11 w-full sm:w-[170px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+   258→                    categoryId && "border-primary/40 bg-primary/10 font-medium text-primary"
+   259→                  )}
+   260→                >
+   261→                  <SelectValue placeholder={adultMode ? "Categoría 18+" : "Categoría"} />
+   262→                </SelectTrigger>
+   263→                <SelectContent className="max-h-72">
+   264→                  <SelectItem value="_all">{adultMode ? "Todas las 18+" : "Todas las categorías"}</SelectItem>
+   265→                  {activeCategories.map((c) => (
+   266→                    <SelectItem key={c.id} value={c.id}>
+   267→                      {c.icon} {c.name}
+   268→                    </SelectItem>
+   269→                  ))}
+   270→                </SelectContent>
+   271→              </Select>
+   272→              <Select value={countryId ?? "_all"} onValueChange={(v) => useGroupsFilter.getState().setCountry(v === "_all" ? null : v)}>
+   273→                {/* Active-filter state (13-b). */}
+   274→                <SelectTrigger
+   275→                  className={cn(
+   276→                    "h-11 w-full sm:w-[160px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+   277→                    countryId && "border-primary/40 bg-primary/10 font-medium text-primary"
+   278→                  )}
+   279→                >
+   280→                  <SelectValue placeholder="País" />
+   281→                </SelectTrigger>
+   282→                <SelectContent className="max-h-72">
+   283→                  <SelectItem value="_all">Todos los países</SelectItem>
+   284→                  {countries.map((c) => (
+   285→                    <SelectItem key={c.id} value={c.id}>
+   286→                      <CountryFlag code={c.code} name={c.name} /> {c.name}
+   287→                    </SelectItem>
+   288→                  ))}
+   289→                </SelectContent>
+   290→              </Select>
+   291→              <Select value={sort} onValueChange={(v) => useGroupsFilter.getState().setSort(v as any)}>
+   292→                {/* Active-filter state (13-b): non-default sort tints the trigger. */}
+   293→                <SelectTrigger
+   294→                  className={cn(
+   295→                    "h-11 w-full sm:w-[140px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+   296→                    sort !== "recientes" && "border-primary/40 bg-primary/10 font-medium text-primary"
+   297→                  )}
+   298→                >
+   299→                  <Filter className="mr-1 h-3.5 w-3.5" />
+   300→                  <SelectValue />
+   301→                </SelectTrigger>
+   302→                <SelectContent>
+   303→                  <SelectItem value="destacados">Destacados</SelectItem>
+   304→                  <SelectItem value="populares">Más populares</SelectItem>
+   305→                  <SelectItem value="miembros">Más miembros</SelectItem>
+   306→                  <SelectItem value="recientes">Más recientes</SelectItem>
+   307→                </SelectContent>
+   308→              </Select>
+   309→              {hasFilters && (
+   310→                <Button variant="ghost" size="sm" className="h-11 gap-1" onClick={reset}>
+   311→                  <X className="h-4 w-4" /> Limpiar
+   312→                </Button>
+   313→              )}
+   314→              {favoriteIds.length > 0 && (
+   315→                <button
+   316→                  onClick={() => setFavoritesOnly(!favoritesOnly)}
+   317→                  aria-pressed={favoritesOnly}
+   318→                  className={cn(
+   319→                    "inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring",
+   320→                    favoritesOnly
+   321→                      ? "border-rose-400/60 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+   322→                      : "bg-background text-muted-foreground hover:bg-accent hover:text-rose-500"
+   323→                  )}
+   324→                >
+   325→                  <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
+   326→                  Solo favoritos
+   327→                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+   328→                    favoritesOnly ? "bg-rose-500/20" : "bg-muted"
+   329→                  }`}>
+   330→                    {favoriteIds.length}
+   331→                  </span>
+   332→                </button>
+   333→              )}
+   334→              {/* 18+ mode toggle — controls whether adult rows are fetched */}
+   335→              <div className="flex h-11 items-center">
+   336→                <AdultModeToggle variant="compact" />
+   337→              </div>
+   338→            </div>
+   339→          </div>
+   340→
+   341→          {/* Popular tags quick chips (clean tags, or adult tags in 18+ mode) */}
+   342→          {activeTags.length > 0 && (
+   343→            <div className="cg-scroll mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1">
+   344→              <span className="shrink-0 text-xs text-muted-foreground">Etiquetas:</span>
+   345→              {activeTags.map((t) => (
+   346→                <button
+   347→                  key={t.tag}
+   348→                  onClick={() => setTag(tag === t.tag ? null : t.tag)}
+   349→                  aria-pressed={tag === t.tag}
+   350→                  className={cn(
+   351→                    "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+   352→                    tag === t.tag
+   353→                      ? adultMode
+   354→                        ? "border-rose-400 bg-rose-500 text-white shadow-sm"
+   355→                        : "border-primary bg-primary text-primary-foreground shadow-sm"
+   356→                      : "bg-background hover:bg-accent"
+   357→                  )}
+   358→                >
+   359→                  #{t.tag}
+   360→                </button>
+   361→              ))}
+   362→            </div>
+   363→          )}
+   364→        </div>
+   365→
+   366→        {/* Groups rows */}
+   367→        <div className="mt-6">
+   368→          {loading && groups.length === 0 ? (
+   369→            <div className="space-y-2.5">
+   370→              {Array.from({ length: 8 }).map((_, i) => (
+   371→                <div key={i} className="h-[104px] animate-pulse rounded-2xl border bg-muted/30" />
+   372→              ))}
+   373→            </div>
+   374→          ) : displayedGroups.length === 0 ? (
+   375→            <div className="rounded-2xl border border-dashed py-16 text-center">
+   376→              <p className="font-semibold">
+   377→                {favoritesOnly
+   378→                  ? "No hay grupos guardados que coincidan"
+   379→                  : "No encontramos grupos con esos filtros"}
+   380→              </p>
+   381→              <p className="mt-1 text-sm text-muted-foreground">
+   382→                {favoritesOnly
+   383→                  ? "Guarda grupos con el corazón ♡ para verlos aquí filtrados."
+   384→                  : "Prueba con otra categoría, país o búsqueda."}
+   385→              </p>
+   386→            </div>
+   387→          ) : (
+   388→            <div className="space-y-2.5">
+   389→              {displayedGroups.map((g) => (
+   390→                <GroupRow key={g.id} group={g} searchQuery={search} />
+   391→              ))}
+   392→            </div>
+   393→          )}
+   394→        </div>
+   395→
+   396→        {/* Load more button */}
+   397→        {hasMore && !loading && groups.length > 0 && (
+   398→          <div className="mt-6 flex flex-col items-center gap-2">
+   399→            <Button onClick={loadMore} disabled={loadingMore} variant="outline" size="lg" className="gap-2">
+   400→              <Loader2 className={`h-4 w-4 animate-spin ${loadingMore ? "inline" : "hidden"}`} />
+   401→              <span className={loadingMore ? "inline" : "hidden"}>Cargando…</span>
+   402→              <span className={loadingMore ? "hidden" : "inline"}>Cargar más grupos</span>
+   403→            </Button>
+   404→            {totalCount !== null && (
+   405→              <p className="text-xs text-muted-foreground">
+   406→                Mostrando {groups.length} de {totalCount} grupos
+   407→              </p>
+   408→            )}
+   409→          </div>
+   410→        )}
+   411→        {!hasMore && !loading && groups.length > 0 && totalCount !== null && (
+   412→          <p className="mt-6 text-center text-xs text-muted-foreground">
+   413→            {groups.length} {groups.length === 1 ? "grupo" : "grupos"} encontrados
+   414→          </p>
+   415→        )}
+   416→
+   417→        {/* CTA */}
+   418→        <div className="mt-8 flex justify-center">
+   419→          <Button asChild variant="outline" size="lg">
+   420→            <Link href="/agregar-grupo">Publica tu grupo en el directorio</Link>
+   421→          </Button>
+   422→        </div>
+   423→      </div>
+   424→    </section>
+   425→  );
+   426→}
+   427→
+   428→// Category color gradients (same palette as GroupCard).
+   429→const ROW_GRADIENTS: Record<string, string> = {
+   430→  emerald: "from-emerald-500 to-teal-600",
+   431→  rose: "from-rose-500 to-pink-600",
+   432→  fuchsia: "from-fuchsia-500 to-purple-600",
+   433→  sky: "from-sky-500 to-blue-600",
+   434→  slate: "from-slate-500 to-gray-700",
+   435→  teal: "from-teal-500 to-cyan-600",
+   436→  lime: "from-lime-500 to-green-600",
+   437→  violet: "from-violet-500 to-purple-600",
+   438→  amber: "from-amber-500 to-orange-600",
+   439→  yellow: "from-yellow-400 to-amber-500",
+   440→  stone: "from-stone-500 to-zinc-700",
+   441→  orange: "from-orange-500 to-red-600",
+   442→  red: "from-red-500 to-rose-700",
+   443→  cyan: "from-cyan-500 to-sky-600",
+   444→  indigo: "from-indigo-500 to-blue-600",
+   445→  blue: "from-blue-500 to-indigo-600",
+   446→  pink: "from-pink-500 to-rose-600",
+   447→  green: "from-green-500 to-emerald-600",
+   448→  purple: "from-purple-500 to-violet-600",
+   449→};
+   450→
+   451→function RowHeartButton({ id }: { id: string }) {
+   452→  const toggle = useFavorites((s) => s.toggle);
+   453→  const has = useFavorites((s) => s.ids.includes(id));
+   454→  return (
+   455→    <motion.button
+   456→      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
+   457→      aria-pressed={has}
+   458→      onClick={(e) => {
+   459→        e.stopPropagation();
+   460→        e.preventDefault();
+   461→        toggle(id);
+   462→      }}
+   463→      whileTap={{ scale: 0.8 }}
+   464→      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition ${
+   465→        has
+   466→          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+   467→          : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
+   468→      }`}
+   469→    >
+   470→      <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} />
+   471→    </motion.button>
+   472→  );
+   473→}
+   474→
+   475→function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: string }) {
+   476→  const isActiveRecently = group.lastActiveAt
+   477→    ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
+   478→    : false;
+   479→  const isHot = group.members >= 1000;
+   480→  const isTrending = group.views >= 50 || group.members >= 700;
+   481→  const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
+   482→  // Adult directive: blank image title/alt on adult groups (SEO safety).
+   483→  const imgAlt = group.isAdult ? "" : group.title;
+   484→  const imgTitle = group.isAdult ? undefined : group.title;
+   485→
+   486→  return (
+   487→    <motion.article
+   488→      whileHover={{ y: -2 }}
+   489→      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+   490→      className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
+   491→    >
+   492→      {/* Category color left accent */}
+   493→      <span
+   494→        className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${gradient} opacity-60 transition-opacity group-hover:opacity-100`}
+   495→        aria-hidden
+   496→      />
+   497→      {/* Decorative corner wash */}
+   498→      <span
+   499→        className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-[0.07] blur-2xl transition group-hover:opacity-20`}
+   500→        aria-hidden
+   501→      />
+   502→
+   503→      {/* Stretched link: whole row stays clickable; sits ABOVE static content
+   504→          (z-[1]) but BELOW interactive controls (details summary, actions). */}
+   505→      <Link
+   506→        href={`/grupo/${group.slug}`}
+   507→        title={imgTitle}
+   508→        aria-label={group.isAdult ? "Ver grupo 18+" : `Ver grupo ${group.title}`}
+   509→        className="absolute inset-0 z-[1] rounded-2xl"
+   510→      />
+   511→
+   512→      {/* Image / icon */}
+   513→      <div className="relative shrink-0 pl-1">
+   514→        <GroupImage
+   515→          src={group.imageUrl}
+   516→          alt={imgAlt}
+   517→          title={imgTitle}
+   518→          size={56}
+   519→          className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
+   520→          fallbackEmoji={group.category?.icon}
+   521→        />
+   522→        {isActiveRecently && (
+   523→          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
+   524→            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
+   525→          </span>
+   526→        )}
+   527→      </div>
+   528→
+   529→      {/* Content: name + compact stats always visible; país/ciudad/categoría/
+   530→          descripción collapsed behind a native <details> dropdown (content
+   531→          stays in the HTML for Googlebot — we only minimize visually). */}
+   532→      <div className="min-w-0 flex-1">
+   533→        <div className="flex items-start gap-2">
+   534→          <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
+   535→            <Highlight text={group.title} query={searchQuery} />
+   536→          </h3>
+   537→          {group.isAdult && (
+   538→            <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
+   539→              18+
+   540→            </span>
+   541→          )}
+   542→          {group.isVerified && (
+   543→            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
+   544→          )}
+   545→          {group.isFeatured && (
+   546→            <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
+   547→          )}
+   548→          {isHot && <Flame className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-label="Popular" />}
+   549→        </div>
+   550→        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+   551→          <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
+   552→            <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
+   553→          </span>
+   554→          {isTrending && (
+   555→            <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
+   556→              <TrendingUp className="h-3 w-3" /> Tendencia
+   557→            </span>
+   558→          )}
+   559→        </div>
+   560→
+   561→        <details className="group/details relative z-[2]">
+   562→          <summary
+   563→            className="-ml-1 flex min-h-8 cursor-pointer select-none list-none items-center gap-1 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
+   564→            aria-label={`Mostrar país, ciudad, categoría y descripción de ${group.isAdult ? "este grupo 18+" : group.title}`}
+   565→          >
+   566→            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
+   567→              <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
+   568→            </span>
+   569→            <span className="truncate">País, ciudad, categoría y descripción</span>
+   570→          </summary>
+   571→          <div className="space-y-1.5 px-1 pb-1 pt-1.5 text-xs">
+   572→            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+   573→              {group.country && (
+   574→                <span className="inline-flex items-center gap-1">
+   575→                  <CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}
+   576→                </span>
+   577→              )}
+   578→              {group.city && (
+   579→                <span className="inline-flex items-center gap-1">
+   580→                  <MapPin className="h-3 w-3" /> {group.city}
+   581→                </span>
+   582→              )}
+   583→              <span className="inline-flex items-center gap-1">
+   584→                <Eye className="h-3 w-3" /> {fmt(group.views)}
+   585→              </span>
+   586→              {group.category && (
+   587→                <Badge variant="outline" className="gap-1 font-normal">
+   588→                  {group.category.icon} {group.category.name}
+   589→                </Badge>
+   590→              )}
+   591→            </div>
+   592→            <p className="line-clamp-3 break-words text-muted-foreground/90">
+   593→              <Highlight text={group.description} query={searchQuery} />
+   594→            </p>
+   595→          </div>
+   596→        </details>
+   597→      </div>
+   598→
+   599→      {/* Actions: heart + compare + join CTA */}
+   600→      <div className="relative z-[2] flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2 sm:pl-2">
+   601→        <div className="flex flex-row items-center gap-0.5 sm:gap-1">
+   602→          <RowHeartButton id={group.id} />
+   603→          <CompareIconButton slug={group.slug} title={group.title} />
+   604→        </div>
+   605→        <span
+   606→          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
+   607→          aria-hidden
+   608→        >
+   609→          Unirme
+   610→          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+   611→        </span>
+   612→      </div>
+   613→    </motion.article>
+   614→  );
+   615→}
+   616→
+   617→function Highlight({ text, query }: { text: string; query: string }) {
+   618→  if (!query || query.trim().length === 0) return <>{text}</>;
+   619→  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+   620→  const regex = new RegExp(`(${escaped})`, "gi");
+   621→  const parts = text.split(regex);
+   622→  return (
+   623→    <>
+   624→      {parts.map((part, i) =>
+   625→        part.toLowerCase() === query.trim().toLowerCase() ? (
+   626→          <mark key={i} className="rounded bg-primary/20 px-0.5 text-primary">{part}</mark>
+   627→        ) : (
+   628→          <React.Fragment key={i}>{part}</React.Fragment>
+   629→        )
+   630→      )}
+   631→    </>
+   632→  );
+   633→}
+   634→

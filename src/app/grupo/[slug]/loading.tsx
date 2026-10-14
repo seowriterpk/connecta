@@ -1,3 +1,7 @@
-/** Segment loading fallback (13-b) — re-exports the shared route loading UI.
- *  Segment-level boundaries are what flash instantly on client-side navigation. */
-export { default } from "@/components/site/route-loading-fallback";
+/** Segment loading fallback (16) — detail skeleton mirroring /grupo/[slug]:
+ *  group header + sticky join bar + two-column article/sidebar layout. */
+import { GrupoRouteSkeleton } from "@/components/site/route-skeletons";
+
+export default function Loading() {
+  return <GrupoRouteSkeleton />;
+}

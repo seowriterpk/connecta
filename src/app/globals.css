@@ -357,11 +357,14 @@ textarea {
   animation: cg-page-enter 180ms ease-out;
 }
 
-/* Shimmer skeleton block (loading.tsx) — reuses @keyframes cg-shimmer */
+/* Shimmer skeleton block (loading.tsx / route-skeletons.tsx) — reuses
+   @keyframes cg-shimmer. contain:paint isolates each block's painting
+   (the only animation is the compositor-friendly translateX shimmer). */
 .cg-skeleton {
   position: relative;
   overflow: hidden;
   background-color: var(--muted);
+  contain: paint;
 }
 .cg-skeleton::after {
   content: "";

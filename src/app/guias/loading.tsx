@@ -1,3 +1,7 @@
-/** Segment loading fallback (13-b) — re-exports the shared route loading UI.
- *  Segment-level boundaries are what flash instantly on client-side navigation. */
-export { default } from "@/components/site/route-loading-fallback";
+/** Segment loading fallback (16) — YouTube-style layout-mimicking skeleton.
+ *  Mirrors the /guias hub: gradient header + quick-start cards + post grid. */
+import { GuiasRouteSkeleton } from "@/components/site/route-skeletons";
+
+export default function Loading() {
+  return <GuiasRouteSkeleton />;
+}
