@@ -6,13 +6,21 @@
  *
  * What it produces (MySQL + MariaDB compatible, phpMyAdmin-importable):
  *   1. Session preamble (charset, SQL mode, FK checks off).
- *   2. CREATE TABLE IF NOT EXISTS for every business table (SHOW CREATE TABLE,
- *      collation normalized to utf8mb4_unicode_ci — universal).
+ *   2. CREATE TABLE IF NOT EXISTS for every business table (SHOW CREATE TABLE
+ *      rewritten with IF NOT EXISTS, collation normalized to
+ *      utf8mb4_unicode_ci — universal) → safe to import over a LIVE database
+ *      that already has the tables (no more "table already exists" aborts).
  *   3. INSERT ... ON DUPLICATE KEY UPDATE for every row → re-running the file
  *      is safe AND updates existing rows (update semantics, not insert-ignore).
  *   4. Post-migrations (idempotent): /blog→/guias link rewrites, the
  *      "Ciudad de Panamá" city merge, blog author = Antonio C., rebrand
  *      REPLACE safety passes.
+ *
+ * ALSO writes `import-schema-fix.sql` — a tiny conditional-DDL-only file
+ * (CREATE TABLE IF NOT EXISTS + ALTER TABLE ADD COLUMN IF NOT EXISTS for
+ * every column, MariaDB 10.2+ syntax). Run it BEFORE import.sql if the live
+ * schema drifted (import aborts with "Unknown column"); it is a 100% no-op
+ * when the schema is already current.
  *
  * Excluded: admin_activity_log (internal noise), ugc_rate_limits (ephemeral).
  * The Next.js app self-heals any schema drift via SCHEMA GUARD on boot
@@ -91,6 +99,21 @@ function chunks(arr, n) {
   return out;
 }
 
+/** Parse exact column definitions out of a SHOW CREATE TABLE statement
+ *  (one per line, lines starting with a backtick; index/key lines skipped). */
+function parseColumnDefs(createSql) {
+  const m = createSql.match(/\)\s*ENGINE=/);
+  const close = m ? m.index : createSql.lastIndexOf(")");
+  const open = createSql.indexOf("(");
+  if (open < 0 || close <= open) return [];
+  const body = createSql.slice(open + 1, close);
+  return body
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("`") && l.length > 0)
+    .map((l) => l.replace(/,$/, ""));
+}
+
 async function main() {
   const pool = await mysql.createPool({ ...DB, charset: "utf8mb4", timezone: "Z", connectionLimit: 4 });
   const conn = await pool.getConnection();
@@ -103,6 +126,8 @@ async function main() {
 --
 -- WHAT THIS DOES
 --   • Creates any missing tables (link_checks, group_feedback, entity_intros…)
+--     — CONDITIONALLY: every CREATE is CREATE TABLE IF NOT EXISTS, so this
+--     file imports cleanly EVEN IF ALL TABLES ALREADY EXIST on live.
 --   • Inserts/updates ALL content: 104 groups, 22 categories, 20 countries,
 --     40 blog posts (guias), 49 entity intros, uploader, feedback, SEO data
 --   • Runs the post-migrations: /blog→/guias link rewrites, city merge
@@ -113,8 +138,12 @@ async function main() {
 --   2. Select the gruposhoy database → Import → choose this file → UTF-8.
 --   3. Or CLI:  mysql -u USER -p GRUPOSHOY_DB < import.sql
 --
--- SAFE TO RE-RUN: every INSERT uses ON DUPLICATE KEY UPDATE and every
--- migration is idempotent. Rows that exist on live but NOT in this file
+-- SAFE TO RE-RUN / SAFE OVER AN EXISTING DATABASE: every CREATE TABLE uses
+-- IF NOT EXISTS, every INSERT uses ON DUPLICATE KEY UPDATE, and every
+-- migration is idempotent. If the import aborts with "Unknown column"
+-- (older live schema), run import-schema-fix.sql first, then re-run this
+-- file — everything up to the error is already applied and will simply be
+-- updated, never duplicated. Rows that exist on live but NOT in this file
 -- (e.g. groups submitted by users) are left untouched.
 --
 -- AFTER IMPORTING: the /guias section (merged blog + guías) will show all
@@ -127,6 +156,37 @@ async function main() {
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
+SET FOREIGN_KEY_CHECKS = 0;
+`);
+
+const schemaFixParts = [];
+schemaFixParts.push(`-- ============================================================================
+-- Grupos Hoy (gruposhoy.com) — import-schema-fix.sql
+-- ============================================================================
+-- CONDITIONAL SCHEMA PATCH (tiny companion to import.sql).
+--
+-- WHAT THIS DOES
+--   • CREATE TABLE IF NOT EXISTS for every business table (structure only).
+--   • ALTER TABLE ... ADD COLUMN IF NOT EXISTS for EVERY column — patches
+--     older live tables that were created before a column existed.
+--   • No data. No drops. No overwrites. Rows are never touched.
+--
+-- WHEN TO RUN
+--   • Run this FIRST if import.sql aborted with "Unknown column 'x' in
+--     'field list'" — it adds the missing column, then re-run import.sql.
+--   • Or run it before the first import as cheap insurance.
+--   • 100% NO-OP when the schema is already current (every statement is
+--     guarded by IF NOT EXISTS) — safe to run any number of times.
+--
+-- ENGINE NOTE: ADD COLUMN IF NOT EXISTS requires MariaDB 10.2+ (Hostinger
+-- shared hosting is MariaDB). On plain MySQL 8, skip this file — deploy the
+-- app once instead: its SCHEMA GUARD (src/lib/db.ts) self-heals the schema
+-- on boot, then run import.sql.
+--
+-- Generated: ${new Date().toISOString()}
+-- ============================================================================
+
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 `);
 
@@ -148,8 +208,21 @@ SET FOREIGN_KEY_CHECKS = 0;
     let createSql = createRow[0]["Create Table"];
     // Normalize MariaDB-only collations to universal utf8mb4_unicode_ci.
     createSql = createSql.replace(/utf8mb4_uca1400_\w+/g, "utf8mb4_unicode_ci");
+    // THE FIX: make the DDL conditional so importing over a live database
+    // that already has these tables doesn't abort with "table already exists".
+    createSql = createSql.replace(/^CREATE TABLE `/i, "CREATE TABLE IF NOT EXISTS `");
 
     parts.push(`\n-- ---------------------------------------------------------------------------\n-- Table: ${table}\n-- ---------------------------------------------------------------------------\n\n${createSql};\n`);
+
+    // Companion schema-fix file: exact per-column defs parsed from the same
+    // SHOW CREATE TABLE output (guaranteed identical to the real schema).
+    const colDefs = parseColumnDefs(createSql);
+    schemaFixParts.push(
+      `\n-- ---------------------------------------------------------------------------\n-- Table: ${table}\n-- ---------------------------------------------------------------------------\n\n${createSql};\n`
+    );
+    for (const def of colDefs) {
+      schemaFixParts.push(`ALTER TABLE \`${table}\` ADD COLUMN IF NOT EXISTS ${def};\n`);
+    }
 
     const [rows] = await conn.query(`SELECT * FROM \`${table}\``);
     if (!rows || rows.length === 0) {
@@ -218,6 +291,12 @@ SET FOREIGN_KEY_CHECKS = 1;
   fs.writeFileSync(out, parts.join(""), "utf8");
   const size = (fs.statSync(out).size / 1024 / 1024).toFixed(2);
   console.log(`\nWrote ${out} (${size} MB)`);
+
+  const outFix = path.join(process.cwd(), "import-schema-fix.sql");
+  schemaFixParts.push(`\nSET FOREIGN_KEY_CHECKS = 1;\n`);
+  fs.writeFileSync(outFix, schemaFixParts.join(""), "utf8");
+  const sizeFix = (fs.statSync(outFix).size / 1024).toFixed(1);
+  console.log(`Wrote ${outFix} (${sizeFix} KB)`);
 }
 
 main().catch((err) => {

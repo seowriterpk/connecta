@@ -5,6 +5,8 @@
 --
 -- WHAT THIS DOES
 --   • Creates any missing tables (link_checks, group_feedback, entity_intros…)
+--     — CONDITIONALLY: every CREATE is CREATE TABLE IF NOT EXISTS, so this
+--     file imports cleanly EVEN IF ALL TABLES ALREADY EXIST on live.
 --   • Inserts/updates ALL content: 104 groups, 22 categories, 20 countries,
 --     40 blog posts (guias), 49 entity intros, uploader, feedback, SEO data
 --   • Runs the post-migrations: /blog→/guias link rewrites, city merge
@@ -15,15 +17,19 @@
 --   2. Select the gruposhoy database → Import → choose this file → UTF-8.
 --   3. Or CLI:  mysql -u USER -p GRUPOSHOY_DB < import.sql
 --
--- SAFE TO RE-RUN: every INSERT uses ON DUPLICATE KEY UPDATE and every
--- migration is idempotent. Rows that exist on live but NOT in this file
+-- SAFE TO RE-RUN / SAFE OVER AN EXISTING DATABASE: every CREATE TABLE uses
+-- IF NOT EXISTS, every INSERT uses ON DUPLICATE KEY UPDATE, and every
+-- migration is idempotent. If the import aborts with "Unknown column"
+-- (older live schema), run import-schema-fix.sql first, then re-run this
+-- file — everything up to the error is already applied and will simply be
+-- updated, never duplicated. Rows that exist on live but NOT in this file
 -- (e.g. groups submitted by users) are left untouched.
 --
 -- AFTER IMPORTING: the /guias section (merged blog + guías) will show all
 -- 40 posts at https://gruposhoy.com/guias. Then regenerate sitemaps:
 --   node scripts/crons/sitemap-generator.mjs   (BASE_URL=gruposhoy.com)
 --
--- Generated: 2026-10-13T22:46:18.486Z
+-- Generated: 2026-10-14T00:11:53.934Z
 -- ============================================================================
 
 SET NAMES utf8mb4;
@@ -35,7 +41,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Table: categories
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `categories` (
+CREATE TABLE IF NOT EXISTS `categories` (
   `id` varchar(191) NOT NULL,
   `name` varchar(255) NOT NULL,
   `slug` varchar(191) NOT NULL,
@@ -80,7 +86,7 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `slug` = VALUES(`slug`), `descr
 -- Table: countries
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `countries` (
+CREATE TABLE IF NOT EXISTS `countries` (
   `id` varchar(191) NOT NULL,
   `name` varchar(255) NOT NULL,
   `nameEs` varchar(255) DEFAULT NULL,
@@ -123,7 +129,7 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `nameEs` = VALUES(`nameEs`), `s
 -- Table: uploaders
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `uploaders` (
+CREATE TABLE IF NOT EXISTS `uploaders` (
   `id` varchar(191) NOT NULL,
   `name` varchar(255) NOT NULL,
   `slug` varchar(191) NOT NULL,
@@ -147,7 +153,7 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `slug` = VALUES(`slug`), `jobTi
 -- Table: groups
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `groups` (
+CREATE TABLE IF NOT EXISTS `groups` (
   `id` varchar(191) NOT NULL,
   `groupName` varchar(255) NOT NULL,
   `slug` varchar(191) NOT NULL,
@@ -200,7 +206,7 @@ INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `cat
 ('cg-0002', 'Café y charla: amistades en Madrid', 'cafe-y-charla-amistades-en-madrid', 'https://chat.whatsapp.com/QRUeDNFn7UvbhffDA6YE3h', 'Comunidad madrileña para tomar café y conversar de todo un poco: libros, series, barrios y vida en la ciudad. Quedamos un sábado al mes en el centro. Ideal para recién llegados a Madrid que buscan su gente.', 'Amistad', 'cat-amistad', 'España', 'co-es', 'Madrid', '["cafe", "charla", "amistades", "madrid"]', '["amistad", "espana", "madrid", "cafe"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 840, 115, 0, 0, 5741, 33, 'up-equipo', NULL, NULL, '2026-10-08 21:32:27', NULL, '2026-10-13 16:32:27', NULL, NULL, '2026-09-17 21:32:27', '2026-10-13 21:32:27')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
-('cg-0003', 'Mate y conversación porteños', 'mate-y-conversacion-portenos', 'https://chat.whatsapp.com/EX6qkrEWJY8DF2Hv6UNS5x', 'Porteños tomando mate y charlando de lo que salga: fútbol, política con respeto, música y planes en Palermo o San Telmo. El grupo tiene más de 400 miembros activos y cero tolerancia al spam. Se agradece humor.', 'Amistad', 'cat-amistad', 'Argentina', 'co-ar', 'Buenos Aires', '["mate", "conversacion", "porteños", "buenos", "aires"]', '["amistad", "argentina", "buenos-aires", "mate"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 1520, 205, 4.67, 6, 7003, 48, 'up-equipo', NULL, NULL, '2026-10-07 21:32:27', NULL, '2026-10-13 22:44:44', 'featured', NULL, '2026-10-08 21:32:27', '2026-10-13 22:44:44')
+('cg-0003', 'Mate y conversación porteños', 'mate-y-conversacion-portenos', 'https://chat.whatsapp.com/EX6qkrEWJY8DF2Hv6UNS5x', 'Porteños tomando mate y charlando de lo que salga: fútbol, política con respeto, música y planes en Palermo o San Telmo. El grupo tiene más de 400 miembros activos y cero tolerancia al spam. Se agradece humor.', 'Amistad', 'cat-amistad', 'Argentina', 'co-ar', 'Buenos Aires', '["mate", "conversacion", "porteños", "buenos", "aires"]', '["amistad", "argentina", "buenos-aires", "mate"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 1520, 205, 4.67, 6, 7006, 48, 'up-equipo', NULL, NULL, '2026-10-07 21:32:27', NULL, '2026-10-13 22:47:43', 'featured', NULL, '2026-10-08 21:32:27', '2026-10-13 22:47:43')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
 ('cg-0004', 'Parchecitos Medellín 25+', 'parchecitos-medellin-25', 'https://chat.whatsapp.com/LFT6AN4GBkd6BEk94xFd6G', 'Parche paisa para mayores de 25: planes de rumba sana, senderismo en las montañas de Medellín, after de café y películas. El admin organiza mínimo dos parches al mes. Ambiente tranquilo y respetuoso.', 'Amistad', 'cat-amistad', 'Colombia', 'co-co', 'Medellín', '["parchecitos", "medellin", "25", "planes"]', '["amistad", "colombia", "medellin"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 660, 78, 0, 0, 4182, 32, 'up-equipo', NULL, NULL, '2026-10-04 21:32:27', NULL, '2026-10-12 09:32:27', NULL, NULL, '2026-09-03 21:32:27', '2026-10-13 21:32:27')
@@ -239,7 +245,7 @@ INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `cat
 ('cg-0015', 'Reggaetón clásico 2000s', 'reggaeton-clasico-2000s', 'https://chat.whatsapp.com/SVb5tWrwmmTxnuzXWhzstp', 'Solo reggaetón viejo: Daddy Yankee, Tego, Héctor y Tempo. Nada de trap nuevo: puro perreo clásico de los 2000s. Compartimos rarezas, remixes olvidados y recuerdos de la época dorada del género.', 'Música', 'cat-musica', 'Puerto Rico', 'co-pr', 'San Juan', '["reggaeton", "clasico", "2000s", "perreo"]', '["musica", "puerto-rico", "san-juan", "clasicos"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 890, 91, 0, 0, 5911, 32, 'up-equipo', NULL, NULL, '2026-10-04 21:32:27', NULL, '2026-10-10 21:32:27', NULL, NULL, '2026-08-12 21:32:27', '2026-10-13 21:32:27')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
-('cg-0016', 'Fútbol argentino: la mesa de debate', 'futbol-argentino-la-mesa-de-debate', 'https://chat.whatsapp.com/cbHWddWdjCnCPzTYVTtPzk', 'La mesa de debate del fútbol argentino: Boca, River, el ascenso y la Selección. Resultados en vivo, hipótesis locas y cargo de humor después de cada derrota. Se puede pelear, siempre con respeto y sin insultos.', 'Deportes', 'cat-deportes', 'Argentina', 'co-ar', 'Buenos Aires', '["futbol", "argentino", "mesa", "debate"]', '["deportes", "argentina", "buenos-aires", "futbol", "liga", "debate"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 2890, 345, 4.38, 8, 19128, 95, 'up-equipo', NULL, NULL, '2026-10-13 22:42:47', NULL, '2026-10-13 22:24:29', 'featured', NULL, '2026-10-09 21:32:27', '2026-10-13 22:42:47')
+('cg-0016', 'Fútbol argentino: la mesa de debate', 'futbol-argentino-la-mesa-de-debate', 'https://chat.whatsapp.com/cbHWddWdjCnCPzTYVTtPzk', 'La mesa de debate del fútbol argentino: Boca, River, el ascenso y la Selección. Resultados en vivo, hipótesis locas y cargo de humor después de cada derrota. Se puede pelear, siempre con respeto y sin insultos.', 'Deportes', 'cat-deportes', 'Argentina', 'co-ar', 'Buenos Aires', '["futbol", "argentino", "mesa", "debate"]', '["deportes", "argentina", "buenos-aires", "futbol", "liga", "debate"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 2890, 345, 4.38, 8, 19128, 95, 'up-equipo', NULL, NULL, '2026-10-13 22:48:12', NULL, '2026-10-13 22:24:29', 'featured', NULL, '2026-10-09 21:32:27', '2026-10-13 22:48:12')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
 ('cg-0017', 'La Liga MX: resultados y memes', 'la-liga-mx-resultados-y-memes', 'https://chat.whatsapp.com/sANL53bLBhKPMHarfzWG5C', 'Todo el fútbol mexicano en un solo grupo: jornadas de Liga MX, el Tri, y los mejores memes de la derrota ajena. Aviso de partidos en vivo y debate post-partido garantizado. Prohibido el spam de pronósticos.', 'Deportes', 'cat-deportes', 'México', 'co-mx', 'Ciudad de México', '["liga", "mx", "resultados", "memes"]', '["deportes", "mexico", "cdmx", "futbol", "liga"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 2480, 333, 0, 0, 12668, 112, 'up-equipo', NULL, NULL, '2026-10-06 21:32:27', NULL, '2026-10-13 20:32:27', NULL, NULL, '2026-10-02 21:32:27', '2026-10-13 21:32:27')
@@ -510,7 +516,7 @@ ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug
 -- Table: groups_queue
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `groups_queue` (
+CREATE TABLE IF NOT EXISTS `groups_queue` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `groupName` varchar(255) NOT NULL,
   `joinLink` varchar(512) NOT NULL,
@@ -534,7 +540,7 @@ CREATE TABLE `groups_queue` (
 -- Table: blog_posts
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `blog_posts` (
+CREATE TABLE IF NOT EXISTS `blog_posts` (
   `id` varchar(191) NOT NULL,
   `slug` varchar(191) NOT NULL,
   `title` varchar(255) NOT NULL,
@@ -680,7 +686,7 @@ ON DUPLICATE KEY UPDATE `slug` = VALUES(`slug`), `title` = VALUES(`title`), `exc
 -- Table: entity_intros
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `entity_intros` (
+CREATE TABLE IF NOT EXISTS `entity_intros` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `entityType` varchar(32) NOT NULL,
   `entityName` varchar(255) NOT NULL,
@@ -843,7 +849,7 @@ ON DUPLICATE KEY UPDATE `entityType` = VALUES(`entityType`), `entityName` = VALU
 -- Table: group_feedback
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `group_feedback` (
+CREATE TABLE IF NOT EXISTS `group_feedback` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `groupId` varchar(191) NOT NULL,
   `visitorHash` char(64) NOT NULL,
@@ -860,7 +866,7 @@ CREATE TABLE `group_feedback` (
 -- Table: group_reviews
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `group_reviews` (
+CREATE TABLE IF NOT EXISTS `group_reviews` (
   `id` varchar(191) NOT NULL,
   `groupId` varchar(191) NOT NULL,
   `rating` int(11) NOT NULL,
@@ -959,7 +965,7 @@ ON DUPLICATE KEY UPDATE `groupId` = VALUES(`groupId`), `rating` = VALUES(`rating
 -- Table: group_reports
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `group_reports` (
+CREATE TABLE IF NOT EXISTS `group_reports` (
   `id` varchar(191) NOT NULL,
   `groupId` varchar(191) NOT NULL,
   `reporterIp` varchar(64) NOT NULL,
@@ -975,7 +981,7 @@ CREATE TABLE `group_reports` (
 -- Table: group_daily_stats
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `group_daily_stats` (
+CREATE TABLE IF NOT EXISTS `group_daily_stats` (
   `groupId` varchar(191) NOT NULL,
   `day` date NOT NULL,
   `views` int(11) NOT NULL DEFAULT 0,
@@ -984,7 +990,7 @@ CREATE TABLE `group_daily_stats` (
   KEY `idx_gds_day` (`day`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `group_daily_stats` (`groupId`, `day`, `views`, `clicks`) VALUES
-('cg-0003', '2026-10-13 00:00:00', 19, 0),
+('cg-0003', '2026-10-13 00:00:00', 22, 0),
 ('cg-0009', '2026-10-13 00:00:00', 2, 0),
 ('cg-0016', '2026-10-13 00:00:00', 2, 0)
 ON DUPLICATE KEY UPDATE `views` = VALUES(`views`), `clicks` = VALUES(`clicks`);
@@ -993,7 +999,7 @@ ON DUPLICATE KEY UPDATE `views` = VALUES(`views`), `clicks` = VALUES(`clicks`);
 -- Table: link_checks
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `link_checks` (
+CREATE TABLE IF NOT EXISTS `link_checks` (
   `id` varchar(191) NOT NULL,
   `groupId` varchar(191) NOT NULL,
   `ok` tinyint(1) NOT NULL DEFAULT 1,
@@ -1006,14 +1012,16 @@ CREATE TABLE `link_checks` (
   KEY `idx_link_checks_created` (`createdAt`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `link_checks` (`id`, `groupId`, `ok`, `inviteCodeLength`, `detail`, `source`, `createdAt`) VALUES
-('cmv79o43a271c4e2a54c53817', 'cg-0016', 1, 22, 'format:ok code:ok listed:ok', 'verify-page', '2026-10-13 22:42:47')
+('cmv79o43a271c4e2a54c53817', 'cg-0016', 1, 22, 'format:ok code:ok listed:ok', 'verify-page', '2026-10-13 22:42:47'),
+('cmv79uzd0c2ee27ae73d75348', 'cg-0016', 1, 22, 'format:ok code:ok listed:ok', 'verify-page', '2026-10-13 22:48:07'),
+('cmv79v2xye7b035000830952f', 'cg-0016', 1, 22, 'format:ok code:ok listed:ok', 'verify-page', '2026-10-13 22:48:12')
 ON DUPLICATE KEY UPDATE `groupId` = VALUES(`groupId`), `ok` = VALUES(`ok`), `inviteCodeLength` = VALUES(`inviteCodeLength`), `detail` = VALUES(`detail`), `source` = VALUES(`source`), `createdAt` = VALUES(`createdAt`);
 
 -- ---------------------------------------------------------------------------
 -- Table: seo_overrides
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `seo_overrides` (
+CREATE TABLE IF NOT EXISTS `seo_overrides` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pageType` varchar(64) NOT NULL,
   `entityId` varchar(191) NOT NULL,
@@ -1030,7 +1038,7 @@ CREATE TABLE `seo_overrides` (
 -- Table: ugc_contributors
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `ugc_contributors` (
+CREATE TABLE IF NOT EXISTS `ugc_contributors` (
   `id` varchar(191) NOT NULL,
   `contributorUid` varchar(191) NOT NULL,
   `displayName` varchar(255) NOT NULL,
@@ -1064,7 +1072,7 @@ CREATE TABLE `ugc_contributors` (
 -- Table: ugc_submissions
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `ugc_submissions` (
+CREATE TABLE IF NOT EXISTS `ugc_submissions` (
   `id` varchar(191) NOT NULL,
   `submissionUid` varchar(191) NOT NULL,
   `inviteUrl` varchar(512) NOT NULL,
@@ -1112,7 +1120,7 @@ CREATE TABLE `ugc_submissions` (
 -- Table: ugc_settings
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `ugc_settings` (
+CREATE TABLE IF NOT EXISTS `ugc_settings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `key` varchar(191) NOT NULL,
   `value` text NOT NULL,
@@ -1126,7 +1134,7 @@ CREATE TABLE `ugc_settings` (
 -- Table: fav_lists
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `fav_lists` (
+CREATE TABLE IF NOT EXISTS `fav_lists` (
   `id` varchar(191) NOT NULL,
   `shareCode` varchar(24) NOT NULL,
   `title` varchar(120) DEFAULT NULL,
@@ -1145,7 +1153,7 @@ CREATE TABLE `fav_lists` (
 -- Table: newsletter
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE `newsletter` (
+CREATE TABLE IF NOT EXISTS `newsletter` (
   `id` varchar(191) NOT NULL,
   `email` varchar(255) NOT NULL,
   `source` varchar(64) NOT NULL DEFAULT 'footer',

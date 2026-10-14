@@ -4748,3 +4748,30 @@ Stage Summary:
 - All 4 reported issues fixed and browser-verified: adult content impossible in server HTML without the cookie (and mixed views noindex), sitemaps list only indexable URLs, verification backed by a real API + DB audit trail (link_checks), mobile taps get instant feedback (progress bar + segment loading + press states + page transitions).
 - L1/L3/L5 resolved: single Panamá city, hreflang es+x-default on all indexable pages, team author page is a real E-E-A-T asset (methodology + guías + stats).
 - Risks/next: (1) user must import import.sql on Hostinger and regenerate sitemaps there; (2) live schema self-heals via SCHEMA GUARD on boot; (3) the old 5s fake timer is gone — if the user wants SLOWER pacing for perceived value, tune STEP_INTERVAL_MS; (4) consider a loading.tsx for /verificar/[slug] (currently only 8 segments have one); (5) OOM risk persists on heavy parallel sessions.
+
+---
+Task ID: 15-CONDITIONAL-IMPORT-2026-10-14
+Agent: main (Z.ai Code)
+Task: User reported many "table already exists" errors when importing import.sql into the live Hostinger DB. Fix: make the import fully conditional (create-if-not-exists etc.) as a quick, safe, re-runnable update.
+
+Work Log:
+- Root cause: scripts/make-import-sql.mjs dumped `SHOW CREATE TABLE` output verbatim → 18 plain `CREATE TABLE` statements (the generator's own header *claimed* IF NOT EXISTS but never emitted it). On the live DB every table already exists → phpMyAdmin/mysql CLI aborts at the first one (ERROR 1050) → user saw "a lot of table exist error".
+- Patched make-import-sql.mjs:
+  1. `createSql.replace(/^CREATE TABLE `/i, "CREATE TABLE IF NOT EXISTS `")` → all 18 CREATEs now conditional (works on MySQL AND MariaDB).
+  2. INSERT ... ON DUPLICATE KEY UPDATE kept (already update-semantics/idempotent); post-migrations already idempotent.
+  3. NEW companion `import-schema-fix.sql` (37KB, DDL only): 18× CREATE TABLE IF NOT EXISTS + 216× `ALTER TABLE … ADD COLUMN IF NOT EXISTS` (exact per-column defs parsed from the same SHOW CREATE TABLE output via new parseColumnDefs() helper) → repairs "Unknown column" schema drift before import (MariaDB 10.2+; on MySQL 8 the app's SCHEMA GUARD self-heals instead — documented in file header).
+  4. Updated both file headers: conditional-CREATE note, re-run/recovery instructions, schema-fix usage.
+- Regenerated: import.sql (0.73MB, 40 posts/104 groups/22 cats/20 countries/49 intros/1 uploader) + import-schema-fix.sql.
+- VALIDATION on local MariaDB 11.8.6 (scratch DB gh_idem_test):
+  1. OLD file re-import over existing tables → reproduced user's error: `ERROR 1050 (42S01) at line 38: Table 'categories' already exists`, exit 1.
+  2. NEW import.sql over the SAME DB (all tables+data present) → exit 0, zero errors.
+  3. NEW import.sql run again (3rd time) → exit 0 (fully idempotent).
+  4. import-schema-fix.sql over current schema → exit 0 (100% no-op).
+  5. Drift drill: dropped groups.lastValidatedAt → import failed with `ERROR 1054 Unknown column` → schema-fix restored the column (datetime NULL) → re-import exit 0.
+  6. Final counts match source: 40/104/22/20/49/1; single Panamá city. Test DB dropped after.
+- No app code touched (generator + generated SQL only); dev server untouched and healthy (dev.log all 200s, port 3000 up).
+
+Stage Summary:
+- import.sql is now SAFE TO IMPORT OVER THE LIVE DATABASE as-is: "table exists" errors are impossible (all CREATEs conditional), rows update via ODKU, migrations idempotent. User action: Hostinger phpMyAdmin → Import → import.sql (UTF-8) → regenerate sitemaps.
+- If import ever aborts with "Unknown column" (old live schema drift): run import-schema-fix.sql first (no-op if current), then re-run import.sql — partial progress is never duplicated.
+- Risks/next: none from this change; remaining next-phase items unchanged (deploy code + import on live, sitemap regen there, /verificar loading.tsx, OOM watch under parallel sessions).
