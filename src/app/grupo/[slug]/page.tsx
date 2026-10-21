@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Users, Eye, BadgeCheck, CalendarDays, MessageCircle, Flag,
-  MapPin, Tag, ChevronRight, Share2, Globe2,
+  MapPin, Tag, ChevronRight, Globe2, MousePointerClick,
   Flame, Clock, Scale, Link2Off,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
@@ -92,6 +92,12 @@ export default async function GroupPage({ params }: PageProps) {
   const group = await getGroupBySlug(slug);
   if (!group) notFound();
 
+  // Honest fallback — some groups never wrote a description.
+  const description =
+    group.description && group.description.trim().length > 0
+      ? group.description
+      : "Este grupo todavía no ha añadido una descripción. Entra, échale un vistazo y decide si te queda.";
+
   incrementViews(group.id).catch(() => {});
   touchGroupActivity(group.id).catch(() => {});
 
@@ -168,8 +174,8 @@ export default async function GroupPage({ params }: PageProps) {
 
       {/* Breadcrumb — single line, truncated on mobile */}
       <nav aria-label="Migas de pan" className="border-b bg-muted/30">
-        <div className="container mx-auto px-4 py-2">
-          <ol className="flex items-center gap-1 text-xs text-muted-foreground overflow-hidden whitespace-nowrap">
+        <div className="container mx-auto px-4 py-1.5 sm:py-2">
+          <ol className="flex items-center gap-1 overflow-hidden whitespace-nowrap text-[11px] text-muted-foreground sm:text-xs">
             <li className="shrink-0"><Link href="/" className="hover:text-primary">Inicio</Link></li>
             <li className="shrink-0"><ChevronRight className="h-3 w-3" /></li>
             {group.category && (
@@ -182,72 +188,101 @@ export default async function GroupPage({ params }: PageProps) {
       </nav>
 
       <main className="flex-1">
-        {/* === GROUP HEADER === */}
+        {/* === GROUP HEADER — title first, clean chip system === */}
         <section className="border-b bg-background">
           <div className="container mx-auto px-4 py-4 sm:py-6">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <GroupImage src={group.imageUrl} alt={group.isAdult ? "" : group.title} title={group.isAdult ? undefined : group.title} size={64} className="rounded-xl" fallbackEmoji={group.category?.icon} />
+            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+              <GroupImage src={group.imageUrl} alt={group.isAdult ? "" : group.title} title={group.isAdult ? undefined : group.title} size={64} className="shrink-0 rounded-2xl" fallbackEmoji={group.category?.icon} />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1">
-                  {group.isAdult && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                      18+
-                    </span>
-                  )}
+                <h1 className="text-lg font-bold leading-snug tracking-tight sm:text-xl">{group.title}</h1>
+
+                {/* Trust/status row — colored pills, right under the title */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {group.isVerified && (
                     <Link
                       href="/sobre-nosotros#verificado"
                       title="Enlace comprobado manualmente por el equipo antes de publicar"
-                      className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/25 dark:text-emerald-300"
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/25 dark:text-emerald-300"
                     >
-                      <BadgeCheck className="h-3 w-3" /> Verificado
+                      <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
                     </Link>
                   )}
                   {group.linkStatus === "revoked" && (
                     <span
                       title="El enlace de invitación parece caducado — verifícalo antes de unirte"
                       aria-label="El enlace de invitación parece caducado — verifícalo antes de unirte"
-                      className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400"
+                      className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400"
                     >
                       <Link2Off className="h-3 w-3" aria-hidden /> Enlace caducado
                     </span>
                   )}
+                  {group.isAdult && (
+                    <span className="inline-flex items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                      18+
+                    </span>
+                  )}
                   {isHot && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">
-                      <Flame className="h-3 w-3" /> Popular
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2 py-0.5 text-[11px] font-semibold text-orange-600 dark:text-orange-400">
+                      <Flame className="h-3 w-3" aria-hidden /> Popular
                     </span>
                   )}
                   {isActiveRecently && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden /> Activo
                     </span>
                   )}
                 </div>
-                <h1 className="mt-1 text-lg font-bold leading-tight sm:text-xl">{group.title}</h1>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {group.country && (<Link href={`/pais/${group.country.code}`} className="hover:text-primary">{group.country.flag} {group.country.name}</Link>)}
-                  {group.city && (<span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" /> {group.city}</span>)}
-                  {group.category && (<span>· <Link href={`/categoria/${group.category.slug}`} className="hover:text-primary">{group.category.name}</Link></span>)}
+
+                {/* Classification chips — country / category / city,
+                    one consistent pill system (the old «· Amistad» plain-text
+                    line wrapped awkwardly and looked accidental). */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {group.country && (
+                    <Link href={`/pais/${group.country.code}`} className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+                      <span aria-hidden className="text-xs leading-none">{group.country.flag}</span>
+                      {group.country.name}
+                    </Link>
+                  )}
+                  {group.category && (
+                    <Link href={`/categoria/${group.category.slug}`} className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+                      {group.category.icon && <span aria-hidden className="text-xs leading-none">{group.category.icon}</span>}
+                      {group.category.name}
+                    </Link>
+                  )}
+                  {group.city && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <MapPin className="h-3 w-3" aria-hidden /> {group.city}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-            {/* Quick stats — compact single row */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-0.5"><Users className="h-3 w-3 text-primary" /> {group.members.toLocaleString("es-ES")}</span>
-              <span className="inline-flex items-center gap-0.5"><Eye className="h-3 w-3 text-primary" /> {group.views.toLocaleString("es-ES")}</span>
-              {group.clicks > 0 && <span className="inline-flex items-center gap-0.5"><Users className="h-3 w-3 text-primary" /> {group.clicks}</span>}
-            </div>
+            {/* Quick stats — honest numbers; zero values stay hidden */}
+            {(group.members > 0 || group.views > 0 || group.clicks > 0) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
+                {group.members > 0 && (
+                  <span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-primary" aria-hidden /> {group.members.toLocaleString("es-ES")} miembros</span>
+                )}
+                {group.views > 0 && (
+                  <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3 text-primary" aria-hidden /> {group.views.toLocaleString("es-ES")} visitas</span>
+                )}
+                {group.clicks > 0 && (
+                  <span className="inline-flex items-center gap-1"><MousePointerClick className="h-3 w-3 text-primary" aria-hidden /> {group.clicks.toLocaleString("es-ES")} clics</span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
-        {/* === JOIN SECTION (sticky, compact) === */}
+        {/* === JOIN SECTION (sticky, compact) — Join leads the row,
+            side actions are 44px icon pills, share opens a dropdown === */}
         <section className="sticky top-16 z-30 border-b bg-background/95 backdrop-blur">
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center gap-2">
-              <div className="flex-1"><JoinButton group={group} /></div>
+              <div className="min-w-0 flex-1"><JoinButton group={group} /></div>
               <FavoritePillButton id={group.id} />
               <ComparePillButton slug={group.slug} title={group.title} />
-              <ShareMenu group={group} />
+              <ShareMenu group={group} iconOnly />
             </div>
           </div>
         </section>
@@ -258,16 +293,16 @@ export default async function GroupPage({ params }: PageProps) {
             <article className="min-w-0">
               {/* Description */}
               <section>
-                <h2 className="mb-1.5 text-sm font-semibold text-muted-foreground">Sobre este grupo</h2>
-                <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-foreground/90 sm:text-base">{group.description}</p>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">Sobre este grupo</h2>
+                <p className="mt-2 whitespace-pre-line text-pretty text-[15px] leading-relaxed text-foreground/90 sm:text-base">{description}</p>
               </section>
 
               {/* Tags */}
               {group.tags.length > 0 && (
                 <section className="mt-5">
-                  <h2 className="mb-1.5 text-sm font-semibold text-muted-foreground">Etiquetas</h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {group.tags.map((t) => (<span key={t} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-0.5 text-xs"><Tag className="h-3 w-3" /> {t}</span>))}
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">Etiquetas</h2>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {group.tags.map((t) => (<span key={t} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground"><Tag className="h-3 w-3" aria-hidden /> {t}</span>))}
                   </div>
                 </section>
               )}
@@ -285,27 +320,27 @@ export default async function GroupPage({ params }: PageProps) {
               {/* Report group */}
               <section className="mt-5 border-t pt-4">
                 <ReportDialog group={group} trigger={
-                  <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive">
-                    <Flag className="h-3.5 w-3.5" /> Reportar grupo
+                  <button className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive sm:text-xs">
+                    <Flag className="h-3.5 w-3.5" aria-hidden /> Reportar grupo
                   </button>
                 } />
               </section>
 
               {/* === RELATED GROUPS (BELOW join button) === */}
               {related.length > 0 && (
-                <section className="mt-10 rounded-3xl border bg-gradient-to-b from-muted/40 to-transparent p-4 sm:p-6">
+                <section className="mt-8 rounded-2xl border bg-gradient-to-b from-muted/40 to-transparent p-4 sm:mt-10 sm:p-6">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h2 className="flex items-center gap-2 text-lg font-bold">
-                        <Users className="h-5 w-5 text-primary" aria-hidden /> Grupos similares
+                    <div className="min-w-0">
+                      <h2 className="flex items-center gap-2 text-base font-bold sm:text-lg">
+                        <Users className="h-4 w-4 shrink-0 text-primary sm:h-5 sm:w-5" aria-hidden /> Grupos similares
                       </h2>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
+                      <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                         Otras comunidades que podrían interesarte ({related.length} {related.length === 1 ? "grupo" : "grupos"})
                       </p>
                     </div>
                     <Link
                       href="/comparar"
-                      className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-sm transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary sm:px-3.5 sm:py-2 sm:text-xs"
                     >
                       <Scale className="h-3.5 w-3.5" aria-hidden /> Comparar grupos
                     </Link>
@@ -335,8 +370,8 @@ export default async function GroupPage({ params }: PageProps) {
 
               {/* Uploader / Author snippet (E-E-A-T) */}
               {uploader && (
-                <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold">Publicado por</h3>
+                <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+                  <h3 className="mb-3 text-[13px] font-semibold sm:text-sm">Publicado por</h3>
                   <Link href={`/autor/${uploader.slug}`} className="flex items-center gap-3">
                     {uploader.imageUrl && <img src={uploader.imageUrl} alt={uploader.name} className="h-12 w-12 rounded-full object-cover" loading="lazy" />}
                     <div className="min-w-0">
@@ -350,30 +385,32 @@ export default async function GroupPage({ params }: PageProps) {
               )}
 
               {/* Info card */}
-              <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold">Información</h3>
-                <dl className="space-y-2.5 text-sm">
+              <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+                <h3 className="mb-3 text-[13px] font-semibold sm:text-sm">Información</h3>
+                <dl className="space-y-2 text-[13px] sm:space-y-2.5 sm:text-sm">
                   <div className="flex items-center justify-between">
-                    <dt className="flex items-center gap-1.5 text-muted-foreground"><CalendarDays className="h-4 w-4" /> Publicado</dt>
+                    <dt className="flex items-center gap-1.5 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Publicado</dt>
                     <dd className="font-medium">{new Date(group.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</dd>
                   </div>
                   {group.city && (
                     <div className="flex items-center justify-between">
-                      <dt className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="h-4 w-4" /> Ciudad</dt>
+                      <dt className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Ciudad</dt>
                       <dd className="font-medium">{group.city}</dd>
                     </div>
                   )}
+                  {group.members > 0 && (
+                    <div className="flex items-center justify-between">
+                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Miembros</dt>
+                      <dd className="font-medium">{group.members.toLocaleString("es-ES")}</dd>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
-                    <dt className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-4 w-4" /> Miembros</dt>
-                    <dd className="font-medium">{group.members.toLocaleString("es-ES")}</dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-4 w-4" /> Visitas</dt>
+                    <dt className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Visitas</dt>
                     <dd className="font-medium">{group.views.toLocaleString("es-ES")}</dd>
                   </div>
                   {group.linkStatus === "revoked" && (
                     <div className="flex items-center justify-between">
-                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Link2Off className="h-4 w-4" /> Enlace</dt>
+                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Link2Off className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Enlace</dt>
                       <dd className="flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" aria-hidden />
                         caducado (pendiente de verificación)
@@ -382,7 +419,7 @@ export default async function GroupPage({ params }: PageProps) {
                   )}
                   {group.lastActiveAt && (
                     <div className="flex items-center justify-between">
-                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-4 w-4" /> Última actividad</dt>
+                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Última actividad</dt>
                       <dd className="font-medium">{new Date(group.lastActiveAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</dd>
                     </div>
                   )}
@@ -391,30 +428,30 @@ export default async function GroupPage({ params }: PageProps) {
 
               {/* Internal linking — SILOED: adult groups only cross-link to
                   adult content (category); country/city links are clean-only. */}
-              <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold">Explora más</h3>
+              <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+                <h3 className="mb-3 text-[13px] font-semibold sm:text-sm">Explora más</h3>
                 <div className="space-y-2">
                   {group.category && (
-                    <Link href={`/categoria/${group.category.slug}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
-                      <span className="flex items-center gap-2"><span className="text-lg">{group.category.icon}</span><span>{group.category.name}</span></span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <Link href={`/categoria/${group.category.slug}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-[13px] transition hover:bg-accent sm:text-sm">
+                      <span className="flex items-center gap-2"><span className="text-base sm:text-lg">{group.category.icon}</span><span>{group.category.name}</span></span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                     </Link>
                   )}
                   {!group.isAdult && group.country && (
-                    <Link href={`/pais/${group.country.code}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
-                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" /><span>{group.country.flag} {group.country.name}</span></span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <Link href={`/pais/${group.country.code}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-[13px] transition hover:bg-accent sm:text-sm">
+                      <span className="flex items-center gap-2"><Globe2 className="h-4 w-4 shrink-0" aria-hidden /><span>{group.country.flag} {group.country.name}</span></span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                     </Link>
                   )}
                   {!group.isAdult && group.city && (
-                    <Link href={`/ciudad/${citySlug(group.city)}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-sm transition hover:bg-accent">
-                      <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /><span>{group.city}</span></span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <Link href={`/ciudad/${citySlug(group.city)}`} className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 text-[13px] transition hover:bg-accent sm:text-sm">
+                      <span className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0" aria-hidden /><span>{group.city}</span></span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                     </Link>
                   )}
-                  <Link href="/agregar-grupo" className="flex items-center justify-between rounded-lg border bg-primary/5 px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary/10">
-                    <span className="flex items-center gap-2"><MessageCircle className="h-4 w-4" /><span>Publica tu grupo</span></span>
-                    <ChevronRight className="h-4 w-4" />
+                  <Link href="/agregar-grupo" className="flex items-center justify-between rounded-lg border bg-primary/5 px-3 py-2 text-[13px] font-medium text-primary transition hover:bg-primary/10 sm:text-sm">
+                    <span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 shrink-0" aria-hidden /><span>Publica tu grupo</span></span>
+                    <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
                   </Link>
                 </div>
               </div>

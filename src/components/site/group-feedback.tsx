@@ -89,13 +89,13 @@ export function GroupFeedback({
   }
 
   return (
-    <section aria-label="Valoración del grupo" className="mt-6 rounded-2xl border bg-card p-5 shadow-sm">
-      <h3 className="text-base font-bold tracking-tight">¿Te resultó útil este grupo?</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <section aria-label="Valoración del grupo" className="mt-5 rounded-2xl border bg-card p-4 shadow-sm sm:mt-6 sm:p-5">
+      <h3 className="text-sm font-bold tracking-tight sm:text-base">¿Te resultó útil este grupo?</h3>
+      <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
         Tu voto ayuda a otros a decidir antes de entrar.
       </p>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:gap-3">
         {/* LIKE */}
         <button
           type="button"
@@ -103,10 +103,10 @@ export function GroupFeedback({
           disabled={submitting}
           aria-pressed={myAction === "like"}
           aria-label="Me gusta"
-          className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1 ${
+          className={`inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[13px] font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1 sm:gap-2 sm:px-4 sm:text-sm ${
             myAction === "like"
               ? "border-emerald-600 bg-emerald-600/15 text-emerald-700 ring-1 ring-emerald-600/40 dark:text-emerald-300"
-              : "border-emerald-300/60 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+              : "border-emerald-600/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
           }`}
         >
           {submitting && myAction === "like" ? (
@@ -117,7 +117,6 @@ export function GroupFeedback({
           <span>Me gusta</span>
           <span className="tabular-nums opacity-80">({likes})</span>
         </button>
-
         {/* DISLIKE — red */}
         <button
           type="button"
@@ -125,10 +124,10 @@ export function GroupFeedback({
           disabled={submitting}
           aria-pressed={myAction === "dislike"}
           aria-label="No me gusta"
-          className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1 ${
+          className={`inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[13px] font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1 sm:gap-2 sm:px-4 sm:text-sm ${
             myAction === "dislike"
               ? "border-red-600 bg-red-600 text-white shadow-sm"
-              : "border-red-600/50 bg-red-600/10 text-red-600 hover:bg-red-600/20 dark:text-red-400"
+              : "border-red-600/40 bg-red-600/5 text-red-700 hover:bg-red-600/10 dark:text-red-400"
           }`}
         >
           {submitting && myAction === "dislike" ? (

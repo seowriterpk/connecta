@@ -38,9 +38,9 @@ export function GroupActivityCard({
       : null;
 
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+        <h3 className="flex items-center gap-1.5 text-[13px] font-semibold sm:text-sm">
           <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
           Actividad reciente
         </h3>
@@ -49,7 +49,7 @@ export function GroupActivityCard({
         </span>
       </div>
 
-      <Sparkline data={data.series} uid={`detail-${slug}`} width={228} height={44} />
+      <Sparkline data={data.series} uid={`detail-${slug}`} width={228} height={44} className="w-full text-emerald-600 dark:text-emerald-400" />
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-xl bg-muted/50 px-2 py-2">

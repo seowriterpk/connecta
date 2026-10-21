@@ -18,6 +18,16 @@ import path from "node:path";
 
 const MEDIA_ROOT = path.join(process.cwd(), "media", "group_images");
 
+/** 404 responses must NEVER be cached: Cloudflare default-caches negative
+ *  responses on image-extension URLs for several minutes, which would pin a
+ *  "default icon" (img onError fallback) in visitors' browsers even AFTER
+ *  the file later appears on disk (e.g. a re-run of the bulk image tool). */
+const NOT_FOUND = () =>
+  NextResponse.json(
+    { error: "Not found" },
+    { status: 404, headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
+
 const CONTENT_TYPE_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
@@ -37,12 +47,12 @@ export async function GET(
 
   // Only /media/group_images/... is a valid media path here.
   if (segments.length < 2 || segments[0] !== "group_images") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NOT_FOUND();
   }
 
   const fileName = segments[segments.length - 1];
   if (!SAFE_FILE_RE.test(fileName)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NOT_FOUND();
   }
 
   // Defense in depth: even though the regex blocks traversal, verify the
@@ -51,7 +61,7 @@ export async function GET(
   const resolvedRoot = path.resolve(MEDIA_ROOT);
   const resolvedFile = path.resolve(filePath);
   if (!resolvedFile.startsWith(resolvedRoot + path.sep)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NOT_FOUND();
   }
 
   try {
@@ -72,6 +82,6 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NOT_FOUND();
   }
 }
