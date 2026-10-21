@@ -1140,6 +1140,31 @@ CREATE TABLE IF NOT EXISTS `ugc_settings` (
 -- (no rows)
 
 -- ---------------------------------------------------------------------------
+-- Table: admin_settings (Task 22 — dashboard policies, key-value store)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `admin_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `key` varchar(191) NOT NULL,
+  `value` text NOT NULL,
+  `updatedAt` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `key` (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Defaults — INSERT IGNORE keeps existing values on re-import (idempotent)
+INSERT IGNORE INTO `admin_settings` (`key`, `value`) VALUES
+  ('autoPublishEnabled', '1'),
+  ('autoPublishScoreMin', '70'),
+  ('reviewScoreMin', '40'),
+  ('maxSubmissionsPerDeviceDay', '10'),
+  ('maxSubmissionsPerIpDay', '30'),
+  ('linkCheckBatchSize', '20'),
+  ('imageBatchSize', '20'),
+  ('linkCheckCronBatch', '150'),
+  ('dripFeedPerRun', '5');
+
+-- ---------------------------------------------------------------------------
 -- Table: fav_lists
 -- ---------------------------------------------------------------------------
 

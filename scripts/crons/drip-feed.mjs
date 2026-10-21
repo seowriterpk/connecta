@@ -36,10 +36,27 @@ async function main() {
   }
 
   try {
-    // Round-robin: take 1 from each unique category+country combination
+    // Publish count configurable from the dashboard (admin_settings.dripFeedPerRun);
+    // falls back to 5 if the table/row is missing (e.g. pre-Task-22 DB).
+    const PER_RUN = await (async () => {
+      try {
+        const row = await q1(
+          pool,
+          "SELECT `value` FROM `admin_settings` WHERE `key` = 'dripFeedPerRun' LIMIT 1"
+        );
+        const n = Number(row?.value);
+        return Number.isFinite(n) && n >= 1 && n <= 100 ? Math.floor(n) : 5;
+      } catch {
+        return 5;
+      }
+    })();
+
+    // Round-robin: take 1 from each unique category+country combination.
+    // Pull enough rows to find PER_RUN diverse combos (cheap indexed scan).
+    const PULL = Math.min(Math.max(PER_RUN * 5, 50), 500);
     const queueItems = await q(
       pool,
-      "SELECT * FROM `groups_queue` ORDER BY `addedAt` ASC LIMIT 50"
+      `SELECT * FROM \`groups_queue\` ORDER BY \`addedAt\` ASC LIMIT ${PULL}`
     );
 
     if (queueItems.length === 0) {
@@ -54,7 +71,7 @@ async function main() {
       if (!seen.has(key)) {
         seen.add(key);
         selected.push(item);
-        if (selected.length >= 5) break;
+        if (selected.length >= PER_RUN) break;
       }
     }
 

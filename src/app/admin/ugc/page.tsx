@@ -4,11 +4,12 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { checkAdmin } from "@/lib/admin-guard";
 import { query, queryOne, type Row } from "@/lib/db";
+import { getAdminSettings } from "@/lib/admin-settings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Inbox, ArrowLeft } from "lucide-react";
 import { AdminUgcTable } from "./admin-ugc-table";
+import { UgcPolicyPanel } from "./ugc-policy-panel";
 import { AdminPagination } from "@/components/admin/admin-pagination";
 
 export const dynamic = "force-dynamic";
@@ -45,23 +46,33 @@ export default async function AdminUgcPage({
 
   const SUBMISSION_SELECT = `
     \`id\`, \`submissionUid\`, \`fetchedGroupName\`, \`editedGroupName\`,
-    \`contributorDisplayNameSnap\`, \`categoryNameSnapshot\`, \`country\`, \`city\`,
-    \`status\`, \`score\`, \`createdAt\`, \`submittedAt\`, \`isAdult\`
+    \`contributorDisplayNameSnap\`, \`categoryNameSnapshot\`, \`categoryId\`,
+    \`country\`, \`city\`, \`status\`, \`score\`, \`createdAt\`, \`submittedAt\`,
+    \`isAdult\`, \`selectedTagsJson\`, \`keywordsJson\`, \`adminNotes\`,
+    \`inviteUrl\`, \`finalImageUrl\`, \`detectedLanguage\`
   `;
 
-  const [totalRow, submissionRows, countRows] = await Promise.all([
-    queryOne<Row>(
-      `SELECT COUNT(*) AS \`c\` FROM \`ugc_submissions\`${whereClause}`,
-      whereParams
-    ),
-    query<Row>(
-      `SELECT ${SUBMISSION_SELECT} FROM \`ugc_submissions\`${whereClause} ORDER BY \`createdAt\` DESC LIMIT ? OFFSET ?`,
-      [...whereParams, PER_PAGE, (page - 1) * PER_PAGE]
-    ),
-    query<Row>(
-      "SELECT `status`, COUNT(*) AS `c` FROM `ugc_submissions` GROUP BY `status`"
-    ),
-  ]);
+  const [totalRow, submissionRows, countRows, categoryRows, countryRows, settings] =
+    await Promise.all([
+      queryOne<Row>(
+        `SELECT COUNT(*) AS \`c\` FROM \`ugc_submissions\`${whereClause}`,
+        whereParams
+      ),
+      query<Row>(
+        `SELECT ${SUBMISSION_SELECT} FROM \`ugc_submissions\`${whereClause} ORDER BY \`createdAt\` DESC LIMIT ? OFFSET ?`,
+        [...whereParams, PER_PAGE, (page - 1) * PER_PAGE]
+      ),
+      query<Row>(
+        "SELECT `status`, COUNT(*) AS `c` FROM `ugc_submissions` GROUP BY `status`"
+      ),
+      query<Row & Record<string, unknown>>(
+        "SELECT `id`, `name`, `isAdult` FROM `categories` WHERE `isActive` = 1 ORDER BY `sortOrder` ASC, `name` ASC"
+      ),
+      query<Row & Record<string, unknown>>(
+        "SELECT `id`, `name` FROM `countries` WHERE `isActive` = 1 ORDER BY `name` ASC"
+      ),
+      getAdminSettings(),
+    ]);
 
   const total = Number((totalRow as { c?: number } | null)?.c ?? 0);
   const submissions = submissionRows.map((r) => {
@@ -73,6 +84,7 @@ export default async function AdminUgcPage({
       editedGroupName: String(s.editedGroupName ?? ""),
       contributorDisplayNameSnap: String(s.contributorDisplayNameSnap ?? ""),
       categoryNameSnapshot: String(s.categoryNameSnapshot ?? ""),
+      categoryId: s.categoryId ? String(s.categoryId) : "",
       country: String(s.country ?? ""),
       city: String(s.city ?? ""),
       status: String(s.status ?? ""),
@@ -80,8 +92,24 @@ export default async function AdminUgcPage({
       createdAt: (s.createdAt as Date) ?? new Date(0),
       submittedAt: (s.submittedAt as Date | null) ?? null,
       isAdult: !!s.isAdult,
+      selectedTagsJson: String(s.selectedTagsJson ?? "[]"),
+      keywordsJson: String(s.keywordsJson ?? "[]"),
+      adminNotes: String(s.adminNotes ?? ""),
+      inviteUrl: String(s.inviteUrl ?? ""),
+      finalImageUrl: String(s.finalImageUrl ?? ""),
+      detectedLanguage: String(s.detectedLanguage ?? ""),
     };
   });
+  const categories = categoryRows.map((c) => ({
+    id: String(c.id),
+    name: String(c.name ?? ""),
+    isAdult: !!c.isAdult,
+  }));
+  const countries = countryRows.map((c) => ({
+    id: String(c.id),
+    name: String(c.name ?? ""),
+  }));
+
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const countByStatus = (s: string) =>
     Number(
@@ -97,22 +125,26 @@ export default async function AdminUgcPage({
       <SiteHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6 sm:py-8">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-              <Link href="/admin">
-                <ArrowLeft className="h-4 w-4" />
-                Volver
-              </Link>
-            </Button>
-            <div>
-              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
-                <Inbox className="h-5 w-5 text-emerald-600" />
-                Cola de envíos UGC
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Revisa grupos enviados por la comunidad.
-              </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+                <Link href="/admin">
+                  <ArrowLeft className="h-4 w-4" />
+                  Volver
+                </Link>
+              </Button>
+              <div>
+                <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+                  <Inbox className="h-5 w-5 text-emerald-600" />
+                  Cola de envíos UGC
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Selección múltiple, edición rápida sin recargar y políticas de
+                  auto-publicación.
+                </p>
+              </div>
             </div>
+            <UgcPolicyPanel csrfToken={csrfToken} settings={settings} />
           </div>
 
           {/* Status tabs */}
@@ -151,13 +183,17 @@ export default async function AdminUgcPage({
                 Envíos — estado: {tab === "all" ? "todos" : tab}
               </CardTitle>
               <CardDescription>
-                {total.toLocaleString("es-ES")} envíos en esta vista.
+                {total.toLocaleString("es-ES")} envíos en esta vista. Marca
+                casillas para acciones en masa o pulsa «Editar» para cambios rápidos.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <AdminUgcTable
                 submissions={submissions}
                 csrfToken={csrfToken}
+                categories={categories}
+                countries={countries}
+                settings={settings}
               />
               {submissions.length === 0 && (
                 <div className="border-t px-6 py-16 text-center">

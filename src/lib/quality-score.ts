@@ -67,7 +67,16 @@ export interface ScoreResult {
   duplicateGroupId: string | null;
 }
 
-export function calculateScore(input: ScoreInput): ScoreResult {
+/** Optional policy overrides (from admin_settings, Task 22). */
+export interface ScorePolicyOptions {
+  autoPublishScoreMin?: number;
+  reviewScoreMin?: number;
+}
+
+export function calculateScore(
+  input: ScoreInput,
+  opts?: ScorePolicyOptions
+): ScoreResult {
   const b: ScoreBreakdown = {
     validInvite: 0, groupName: 0, category: 0, country: 0, city: 0,
     tags: 0, keywords: 0, image: 0, language: 0, contributor: 0,
@@ -125,13 +134,16 @@ export function calculateScore(input: ScoreInput): ScoreResult {
   else if (score >= 1) label = "Likely Spam";
   else label = "Bot/Spam";
 
-  // Decision
+  // Decision — thresholds come from dashboard settings (admin_settings)
+  // when provided by the caller; the constants are safe fallbacks.
+  const autoMin = opts?.autoPublishScoreMin ?? 70;
+  const reviewMin = opts?.reviewScoreMin ?? 40;
   let decision: ScoreResult["decision"];
   if (flags.includes("speed_bot") && score < 40) {
     decision = "drop_silently";
-  } else if (score >= 70 && input.hunterResult.severeHits === 0 && !input.isDuplicate) {
+  } else if (score >= autoMin && input.hunterResult.severeHits === 0 && !input.isDuplicate) {
     decision = "auto_publish";
-  } else if (score >= 40 && input.hunterResult.severeHits < 3) {
+  } else if (score >= reviewMin && input.hunterResult.severeHits < 3) {
     decision = "review";
   } else {
     decision = "auto_reject";

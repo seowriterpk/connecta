@@ -36,6 +36,7 @@ import {
   ListChecks,
   ExternalLink,
   Newspaper,
+  ImageDown,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -118,9 +119,21 @@ const QUICK_ACTIONS = [
     icon: UploadCloud,
   },
   {
+    href: "/admin/checker-enlaces",
+    title: "Comprobador de enlaces",
+    desc: "Verifica en masa qué invitaciones siguen activas.",
+    icon: Link2,
+  },
+  {
+    href: "/admin/imagenes",
+    title: "Imágenes en masa",
+    desc: "Descarga o refresca imágenes de grupos por lotes.",
+    icon: ImageDown,
+  },
+  {
     href: "/admin/ugc",
     title: "Cola UGC",
-    desc: "Revisa envíos de usuarios y apruébalos.",
+    desc: "Selección múltiple, edición rápida y aprobación en masa.",
     icon: Inbox,
   },
   {

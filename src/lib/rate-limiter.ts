@@ -98,9 +98,22 @@ export async function hitRateLimit(
   );
 }
 
-export async function checkUgcRateLimits(ip: string, deviceToken: string): Promise<{ allowed: boolean; reason?: string }> {
+/** Optional daily-cap overrides (from admin_settings, Task 22). */
+export interface UgcRateLimitOptions {
+  maxPerDeviceDay?: number;
+  maxPerIpDay?: number;
+}
+
+export async function checkUgcRateLimits(
+  ip: string,
+  deviceToken: string,
+  opts?: UgcRateLimitOptions
+): Promise<{ allowed: boolean; reason?: string }> {
   const ipHash = hashValue(ip);
   const deviceHash = hashValue(deviceToken);
+
+  const deviceMax = Math.min(Math.max(opts?.maxPerDeviceDay ?? 10, 1), 200);
+  const ipMax = Math.min(Math.max(opts?.maxPerIpDay ?? 30, 1), 1000);
 
   // Burst limit: 3 per 10 minutes per device — stops rapid-fire spam
   // long before the daily caps are relevant.
@@ -109,16 +122,16 @@ export async function checkUgcRateLimits(ip: string, deviceToken: string): Promi
     return { allowed: false, reason: "Demasiados envíos seguidos. Espera unos minutos antes de volver a intentarlo." };
   }
 
-  // Device limit: 10/day
-  const deviceCheck = await checkRateLimit(`submit_device:${deviceHash}`, "ugc_submit", 10, 86400);
+  // Device limit: configurable daily cap (default 10/day)
+  const deviceCheck = await checkRateLimit(`submit_device:${deviceHash}`, "ugc_submit", deviceMax, 86400);
   if (!deviceCheck.allowed) {
-    return { allowed: false, reason: "Límite de envíos por dispositivo alcanzado (10/día)." };
+    return { allowed: false, reason: `Límite de envíos por dispositivo alcanzado (${deviceMax}/día).` };
   }
 
-  // IP limit: 30/day
-  const ipCheck = await checkRateLimit(`submit_ip:${ipHash}`, "ugc_submit", 30, 86400);
+  // IP limit: configurable daily cap (default 30/day)
+  const ipCheck = await checkRateLimit(`submit_ip:${ipHash}`, "ugc_submit", ipMax, 86400);
   if (!ipCheck.allowed) {
-    return { allowed: false, reason: "Límite de envíos por IP alcanzado (30/día)." };
+    return { allowed: false, reason: `Límite de envíos por IP alcanzado (${ipMax}/día).` };
   }
 
   return { allowed: true };

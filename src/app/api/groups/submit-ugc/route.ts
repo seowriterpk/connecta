@@ -36,6 +36,7 @@ import { checkUgcRateLimits, hitUgcRateLimits, getClientIp, hashValue } from "@/
 import { detectDuplicate } from "@/lib/duplicate-detector";
 import { hunterScan } from "@/lib/content-hunter";
 import { calculateScore } from "@/lib/quality-score";
+import { getAdminSettings } from "@/lib/admin-settings";
 import { downloadGroupImage } from "@/lib/image-downloader";
 import { clearDataCache } from "@/lib/cache";
 
@@ -276,7 +277,13 @@ export async function POST(req: NextRequest) {
       headers: Object.fromEntries(req.headers.entries()),
     });
     const deviceToken = String(body.deviceToken ?? "anon").trim() || "anon";
-    const rateCheck = await checkUgcRateLimits(ip, deviceToken);
+    // Dashboard-configurable policies (admin_settings, Task 22) — cached
+    // 30s so this adds ~zero cost to the hot submit path.
+    const policySettings = await getAdminSettings();
+    const rateCheck = await checkUgcRateLimits(ip, deviceToken, {
+      maxPerDeviceDay: policySettings.maxSubmissionsPerDeviceDay,
+      maxPerIpDay: policySettings.maxSubmissionsPerIpDay,
+    });
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { ok: false, error: rateCheck.reason ?? "Has alcanzado el límite de envíos diarios." },
@@ -307,7 +314,17 @@ export async function POST(req: NextRequest) {
       hunterResult,
       isAdultDeclared,
       submissionTimeSec: elapsedSec,
+    }, {
+      autoPublishScoreMin: policySettings.autoPublishScoreMin,
+      reviewScoreMin: policySettings.reviewScoreMin,
     });
+
+    // Dashboard master switch: with auto-publish disabled, qualified
+    // submissions degrade to the human review queue (Task 22).
+    const decision =
+      !policySettings.autoPublishEnabled && score.decision === "auto_publish"
+        ? "review"
+        : score.decision;
 
     // --- Step 14 (early): handle contributor profile (if requested) ---
     let contributorId: string | null = null;
@@ -415,7 +432,7 @@ export async function POST(req: NextRequest) {
     // group that already has a local image, we reuse that file instead of
     // paying for a second proxy download.
     let storedImageUrl = meta.imageUrl || "";
-    if (storedImageUrl && (score.decision === "auto_publish" || score.decision === "review")) {
+    if (storedImageUrl && (decision === "auto_publish" || decision === "review")) {
       let reusedExisting = false;
       if (dup.isDuplicate && dup.duplicateGroupId) {
         try {
@@ -492,7 +509,7 @@ export async function POST(req: NextRequest) {
       );
     };
 
-    if (score.decision === "auto_publish") {
+    if (decision === "auto_publish") {
       // === AUTO-PUBLISH: insert directly into Group with status=live ===
       const baseSlug = generateSlug(groupName);
       const existingSlugRows = await query<Row & { slug: string }>(
@@ -563,7 +580,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (score.decision === "review") {
+    if (decision === "review") {
       // === REVIEW: insert into UgcSubmission, status=submitted ===
       await insertSubmission(newId(), "submitted", null, null);
 

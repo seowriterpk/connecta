@@ -332,6 +332,18 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   },
   {
+    // Task 22: dashboard-configurable policies (auto-publish thresholds,
+    // daily submission limits, manual bulk-tool defaults). Key-value store;
+    // values read through src/lib/admin-settings.ts with a small TTL cache.
+    name: "admin_settings",
+    sql: `CREATE TABLE IF NOT EXISTS \`admin_settings\` (
+      \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      \`key\` VARCHAR(191) NOT NULL UNIQUE,
+      \`value\` TEXT NOT NULL,
+      \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  },
+  {
     name: "seo_overrides",
     sql: `CREATE TABLE IF NOT EXISTS \`seo_overrides\` (
       \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

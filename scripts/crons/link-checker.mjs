@@ -40,10 +40,25 @@ async function main() {
   }
 
   try {
-    // Pull 150 groups, oldest validated first
+    // Batch size configurable from the dashboard (admin_settings.linkCheckCronBatch);
+    // falls back to 150 if the table/row is missing (e.g. pre-Task-22 DB).
+    const LIMIT = await (async () => {
+      try {
+        const row = await q1(
+          pool,
+          "SELECT `value` FROM `admin_settings` WHERE `key` = 'linkCheckCronBatch' LIMIT 1"
+        );
+        const n = Number(row?.value);
+        return Number.isFinite(n) && n >= 20 && n <= 2000 ? Math.floor(n) : 150;
+      } catch {
+        return 150;
+      }
+    })();
+
+    // Pull LIMIT groups, oldest validated first
     const groups = await q(
       pool,
-      "SELECT `id`, `joinLink` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' ORDER BY `lastValidatedAt` ASC LIMIT 150"
+      `SELECT \`id\`, \`joinLink\` FROM \`groups\` WHERE \`status\` = 'live' AND \`linkStatus\` = 'active' ORDER BY \`lastValidatedAt\` ASC LIMIT ${LIMIT}`
     );
 
     log(`Checking ${groups.length} groups in parallel...`);
