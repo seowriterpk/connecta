@@ -9,7 +9,7 @@ import { HelpCircle } from "lucide-react";
 const FAQS = [
   {
     q: "¿Qué es Grupos Hoy y para qué sirve?",
-    a: "Grupos Hoy es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades activas según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre quienes buscan comunidades como la tuya.",
+    a: "Grupos Hoy es un directorio en español que reúne enlaces de invitación a grupos de WhatsApp, organizizados por categoría y país. La idea es simple: que encuentres rápidamente comunidades según tus intereses —ya sea para estudiar, practicar un idioma, hacer amigos o seguir a tu equipo— sin tener que navegar foros desordenados. También puedes publicar tu propio grupo y darle visibilidad entre quienes buscan comunidades como la tuya.",
   },
   {
     q: "¿Unirse a un grupo de WhatsApp es gratis?",
@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: "¿Cómo publico mi propio grupo de WhatsApp?",
-    a: "Pulsa el botón «Enviar un grupo», rellena el formulario con el nombre, una descripción clara, el enlace de invitación (chat.whatsapp.com o wa.me), la categoría y el país, y envíalo. Tu propuesta queda en estado pendiente mientras la revisamos para confirmar que cumple nuestras normas básicas de convivencia. Si todo encaja, se publica en cuestión de horas.",
+    a: "Pulsa el botón «Enviar un grupo», rellena el formulario con el nombre, una descripción clara, el enlace de invitación (chat.whatsapp.com o wa.me), la categoría y el país, y envíalo. Tu propuesta queda en estado pendiente mientras la revisamos para confirmar que cumple nuestras normas básicas de convivencia. Si todo encaja, se publica en cuanto pasa la revisión.",
   },
   {
     q: "¿Por qué mi grupo aparece como «pendiente»?",

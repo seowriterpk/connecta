@@ -6,7 +6,6 @@ import {
   TrendingUp,
   MousePointerClick,
   Eye,
-  Users,
   Trophy,
   Medal,
   Award,
@@ -83,7 +82,7 @@ export async function generateMetadata({
     ? `Grupos de WhatsApp más populares ${contextLabel.includes(" · ") ? "— " : "en "}${contextLabel} | Grupos Hoy`
     : "Grupos de WhatsApp Más Populares | Grupos Hoy";
   const description = contextLabel
-    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking actualizado con cada visita según vistas y clics reales.`
+    ? `Los grupos de WhatsApp más populares de ${contextLabel}: ranking actualizado con cada visita según las vistas y los clics del directorio.`
     : "Descubre los grupos de WhatsApp en español más populares: los más vistos, los con más clics de unión y lo último publicado en el directorio.";
   return {
     title: { absolute: title },
@@ -153,9 +152,6 @@ export default async function PopularesPage({
     pais || cat ? Promise.resolve([]) : getTrendingMovers(6),
   ]);
 
-  const totalViews = groups.reduce((a, g) => a + (g.views || 0), 0);
-  const totalClicks = groups.reduce((a, g) => a + (g.clicks || 0), 0);
-  const totalMembers = groups.reduce((a, g) => a + (g.members || 0), 0);
   const active = ORDENES.find((o) => o.value === orden)!;
 
   const jsonLd = {
@@ -211,24 +207,14 @@ export default async function PopularesPage({
                 Los grupos de WhatsApp más populares
               </h1>
               <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
-                {active.desc} El ranking se recalcula en cada visita con las métricas reales
-                del directorio: vistas y clics de la comunidad.
+                {active.desc} El ranking se recalcula en cada visita con las vistas y
+                los clics que registra el directorio.
               </p>
 
-              {/* Stats chips */}
+              {/* Stats chips — honest counts only (owner honesty directive
+                  2026-10-21): aggregate views/clicks/members removed because
+                  seeded demo engagement made them look fabricated. */}
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
-                  <Eye className="h-3.5 w-3.5 text-primary" />
-                  <span className="tabular-nums">{totalViews.toLocaleString("es-ES")}</span> vistas
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
-                  <MousePointerClick className="h-3.5 w-3.5 text-primary" />
-                  <span className="tabular-nums">{totalClicks.toLocaleString("es-ES")}</span> clics
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
-                  <Users className="h-3.5 w-3.5 text-primary" />
-                  <span className="tabular-nums">{totalMembers.toLocaleString("es-ES")}</span> miembros estimados
-                </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-medium shadow-sm">
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
                   {stats.groups} {stats.groups === 1 ? "grupo publicado" : "grupos publicados"}
@@ -367,8 +353,7 @@ export default async function PopularesPage({
                   En {SITE.name} la popularidad no se inventa: se mide. Cada vez que alguien
                   abre la ficha de un grupo contamos una <strong className="font-semibold text-foreground">vista</strong>,
                   y cuando pulsa el botón para unirse, un <strong className="font-semibold text-foreground">clic</strong>.
-                  Con esas dos señales — reales y medibles, sin notas inventadas — construimos
-                  los rankings de esta página.
+                  Con esas dos señales construimos los rankings de esta página.
                 </p>
                 <p>
                   El ranking <em>Más vistos</em> refleja la curiosidad: grupos que mucha gente
@@ -387,7 +372,7 @@ export default async function PopularesPage({
                 <p>
                   ¿Dudas entre varios? Ponlos frente a frente en el{" "}
                   <Link href="/comparar" className="font-medium text-primary hover:underline">comparador de grupos</Link>{" "}
-                  para ver miembros, vistas y clics lado a lado. También puedes afinar con el{" "}
+                  para ponerlos frente a frente. También puedes afinar con el{" "}
                   <Link href="/buscar" className="font-medium text-primary hover:underline">buscador</Link>, las{" "}
                   <Link href="/categorias" className="font-medium text-primary hover:underline">categorías</Link> y
                   los <Link href="/paises" className="font-medium text-primary hover:underline">países</Link> para

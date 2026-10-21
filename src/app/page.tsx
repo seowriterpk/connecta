@@ -10,7 +10,6 @@ import { CitiesSection } from "@/components/site/cities-section";
 import { GuidesSection } from "@/components/site/guides-section";
 import { AboutSection } from "@/components/site/about-section";
 import { MetricsSection } from "@/components/site/metrics-section";
-import { TestimonialsSection } from "@/components/site/testimonials-section";
 import { CtaBanner } from "@/components/site/cta-banner";
 import { LongFormSection } from "@/components/site/long-form-section";
 import { FaqSection } from "@/components/site/faq-section";
@@ -108,7 +107,6 @@ export default async function HomePage() {
 
         <AboutSection stats={stats} />
         <MetricsSection metrics={metrics} />
-        <TestimonialsSection />
         <CtaBanner />
         <LongFormSection />
         <FaqSection />

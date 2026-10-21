@@ -326,7 +326,7 @@ export default async function CategoryPage({
                 )}
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Grupos verificados
+                    <ShieldCheck className="h-3.5 w-3.5" /> Enlaces comprobados
                   </span>
                 )}
               </div>
@@ -429,8 +429,10 @@ export default async function CategoryPage({
                   {category.groupCount === 1 ? "comunidad" : "comunidades"} bajo esta categoría para
                   que encuentres en segundos un espacio donde participar: debates serios, planes
                   casuales, recomendaciones o simplemente gente con la que charlar al final del día.
-                  Cada enlace pasa por una revisión humana antes de publicarse, así que te llevas
-                  comunidades reales y no listas abandonadas llenas de spam.
+                  Cada ficha muestra el estado real de su enlace (comprobado
+                  automáticamente) para que no pierdas el tiempo con invitaciones
+                  caducadas, y los envíos de la comunidad pasan por revisión antes
+                  de publicarse.
                 </p>
 
                 <p>
@@ -492,7 +494,7 @@ export default async function CategoryPage({
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
                 Publica tu grupo de {category.name.toLowerCase()} gratis y llega a quienes están
-                buscando justo lo que tú ofreces. Lo revisamos en menos de 24 horas.
+                buscando justo lo que tú ofreces. Lo revisamos antes de publicarlo.
               </p>
               <Link
                 href="/agregar-grupo"

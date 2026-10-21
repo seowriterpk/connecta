@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Equipo Editorial",
   description:
-    "Quién publica los grupos de Grupos Hoy: el Equipo Grupos Hoy, el equipo editorial que revisa, verifica y publica todos los grupos del directorio en español.",
+    "Quién publica y mantiene Grupos Hoy: el Equipo Grupos Hoy, el equipo editorial del directorio de grupos de WhatsApp en español.",
   alternates: { canonical: `${SITE.url}/autores` },
   robots: { index: true, follow: true },
   openGraph: {
@@ -189,10 +189,10 @@ export default async function AutoresPage() {
                 <span className="cg-gradient-text">grupos del directorio</span>
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-                Todos los grupos de {SITE.name} los revisa y publica el Equipo
-                Grupos Hoy: un equipo editorial que abre cada enlace, comprueba que
-                funciona y lo publica donde toca. Conoce aquí al equipo y al propietario
-                del proyecto.
+                Todos los grupos de {SITE.name} los publica y mantiene el Equipo
+                Grupos Hoy: el equipo editorial que revisa los envíos de la comunidad y
+                comprueba los enlaces con el verificador automático antes de publicarlos.
+                Conoce aquí al equipo y al propietario del proyecto.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
                 <span className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/70 px-3.5 py-2.5 shadow-sm backdrop-blur">
@@ -232,8 +232,8 @@ export default async function AutoresPage() {
                   </span>
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                  El equipo que publica todos los grupos: cada enlace pasa por sus manos
-                  antes de aparecer en el directorio.
+                  El equipo que publica y mantiene todos los grupos: revisa los envíos
+                  de la comunidad y comprueba los enlaces con el verificador automático.
                 </p>
               </div>
             </div>
@@ -361,10 +361,10 @@ export default async function AutoresPage() {
                   <strong className="font-semibold text-foreground">
                     Equipo Grupos Hoy
                   </strong>
-                  , el equipo editorial del directorio. Su trabajo siempre es el mismo:
-                  abrir el enlace de invitación antes de publicarlo, comprobar que la
-                  descripción se corresponde con el grupo, asignar la categoría correcta y
-                  revisar de vez en cuando que los enlaces siguen vivos.
+                  , el equipo editorial del directorio. Su trabajo: revisar los envíos
+                  de la comunidad (nombre, descripción, categoría), asignar cada grupo a
+                  su sitio en el directorio y mantener los enlaces al día con el
+                  comprobador automático.
                 </p>
                 <p>
                   Las comunidades las aportan personas reales. Si tú envías un grupo y pasa

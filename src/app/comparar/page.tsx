@@ -13,7 +13,7 @@ import { jsonLdScript } from "@/lib/jsonld";
 export const dynamic = "force-dynamic";
 
 const description =
-  "Compara hasta 3 grupos de WhatsApp lado a lado: miembros, vistas, clics y estado del enlace, con el mejor de cada métrica destacado.";
+  "Compara hasta 3 grupos de WhatsApp lado a lado: vistas, clics y estado del enlace, con el mejor de cada métrica destacado.";
 
 export const metadata: Metadata = {
   // Non-absolute: the layout template appends "| Grupos Hoy".
@@ -95,7 +95,7 @@ export default async function CompararPage() {
               </h1>
               <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
                 ¿Dudando entre dos o tres comunidades? Elige hasta 3 grupos y verás sus
-                miembros, vistas y clics en una sola tabla, junto al estado del enlace, con
+                vistas y clics en una sola tabla, junto al estado del enlace, con
                 el mejor de cada métrica destacado para que decidas más rápido.
               </p>
             </div>
@@ -130,19 +130,18 @@ export default async function CompararPage() {
                 <p>
                   No todos los grupos de WhatsApp son iguales: hay comunidades enormes y
                   ruidosas, y otras pequeñas y muy activas. Con este comparador puedes poner
-                  hasta 3 grupos frente a frente y observar tres señales clave: los{" "}
-                  <strong className="font-semibold text-foreground">miembros estimados</strong> (tamaño de la
-                  comunidad), las <strong className="font-semibold text-foreground">vistas</strong> (cuánta gente los
+                  hasta 3 grupos frente a frente y observar señales reales del directorio: las{" "}
+                  <strong className="font-semibold text-foreground">vistas</strong> (cuánta gente los
                   descubre) y los <strong className="font-semibold text-foreground">clics de unión</strong> (intención
-                  real de entrar), además del estado verificado del enlace. El «mejor» de cada
+                  de entrar), además del estado del enlace comprobado. El «mejor» de cada
                   fila se recalcula en vivo con los datos actuales del directorio.
                 </p>
                 <p>
-                  Un consejo práctico: no elijas solo por tamaño. Un grupo con menos miembros
-                  pero más clics de unión suele ser una comunidad más activa y con menos
-                  spam. Si buscas volumen (por ejemplo, para comprar-vender), prioriza clics y
-                  miembros; si buscas comunidad (idiomas, fe, hobbies), prioriza la
-                  antigüedad y el estado del enlace.
+                  Un consejo práctico: no elijas solo por volumen de visitas. Un grupo con
+                  más clics de unión suele ser una comunidad con más intención real de
+                  participar. Si buscas comunidad (idiomas, fe, hobbies), prioriza la
+                  antigüedad y el estado del enlace; y dentro de WhatsApp fíjate siempre
+                  en su número de miembros y en su ritmo de conversación.
                 </p>
                 <p>
                   Cuando tengas tus finalistas, entra en la ficha de cada uno para leer la

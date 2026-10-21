@@ -18,7 +18,7 @@ export default function NotFound() {
       href: "/populares",
       icon: Flame,
       label: "Grupos populares",
-      hint: "Lo más activo ahora",
+      hint: "Ranking por vistas y clics",
     },
     {
       href: "/categorias",

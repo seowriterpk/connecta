@@ -134,7 +134,6 @@ export default async function AutorPage({ params }: PageProps) {
   const isTeam = uploader.slug === "equipo-gruposhoy";
   const teamGuides = isTeam ? await getPublishedPostCards(3) : [];
   const socials = buildSocialLinks(uploader);
-  const totalMembers = groups.reduce((acc, g) => acc + (g.members || 0), 0);
 
   // JSON-LD: Person schema with sameAs array of social URLs
   const personJsonLd = {
@@ -302,12 +301,12 @@ export default async function AutorPage({ params }: PageProps) {
                   En Grupos Hoy desde {fmtDate(uploader.createdAt)}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm">
-                  <MessageCircle className="h-3.5 w-3.5 text-primary" />
-                  {totalMembers.toLocaleString("es-ES")} miembros estimados en sus grupos
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  {groups.length} {groups.length === 1 ? "grupo publicado" : "grupos publicados"}
                 </span>
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Grupos verificados
+                    <ShieldCheck className="h-3.5 w-3.5" /> Enlaces comprobados
                   </span>
                 )}
               </div>

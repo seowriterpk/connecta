@@ -68,7 +68,7 @@ export default async function CiudadesPage() {
               Grupos de WhatsApp por ciudad
             </h1>
             <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-              Encuentra comunidades activas en tu ciudad. {cities.length} ciudades hispanohablantes disponibles.
+              Encuentra comunidades en tu ciudad. {cities.length} ciudades hispanohablantes disponibles.
             </p>
           </Reveal>
 

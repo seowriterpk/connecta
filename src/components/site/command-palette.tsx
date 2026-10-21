@@ -175,7 +175,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{g.title}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {g.country && (<><CountryFlag code={g.country.code} name={g.country.name} /> {g.country.name}</>)} · {g.members.toLocaleString("es-ES")} miembros
+                        {g.country && (<><CountryFlag code={g.country.code} name={g.country.name} /> {g.country.name}</>)}{g.category ? ` · ${g.category.name}` : ""}
                       </span>
                     </span>
                   </CommandItem>

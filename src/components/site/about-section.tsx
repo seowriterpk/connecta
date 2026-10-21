@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import { useInView } from "framer-motion";
-import { ShieldCheck, Globe2, Zap, Heart, Users, Sparkles, MessageCircle } from "lucide-react";
+import { ShieldCheck, Globe2, Zap, Heart, Users, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { TRUST_POINTS } from "@/lib/constants";
-import { formatMembersEs } from "@/lib/members";
 import type { StatsDTO } from "@/lib/types";
 
 function useCountUp(target: number, inView: boolean, duration = 1400) {
@@ -92,16 +91,10 @@ export function AboutSection({ stats }: { stats: StatsDTO }) {
 
         {/* Animated stats band */}
         <Reveal delay={0.1}>
-          <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-6 rounded-2xl border bg-gradient-to-br from-primary/5 to-background p-6 sm:grid-cols-4">
-            <AnimatedStat value={stats.groups} label="Grupos activos" icon={Users} />
+          <div className="mx-auto mt-9 grid max-w-3xl grid-cols-3 gap-4 rounded-2xl border bg-gradient-to-br from-primary/5 to-background p-6 sm:gap-6">
+            <AnimatedStat value={stats.groups} label="Grupos publicados" icon={Users} />
             <AnimatedStat value={stats.categories} label="Categorías" icon={Sparkles} />
             <AnimatedStat value={stats.countries} label="Países hispanos" icon={Globe2} />
-            <AnimatedStat
-              value={stats.members}
-              format={formatMembersEs}
-              label="Miembros estimados"
-              icon={MessageCircle}
-            />
           </div>
         </Reveal>
 

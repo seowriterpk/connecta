@@ -77,7 +77,11 @@ function toGroupDTO(g: GroupRow): GroupDTO {
     countryId: g.countryId,
     members: computeDisplayedMembers(g.clicks ?? 0, g.joinCount ?? 0, g.id),
     isFeatured: g.popularityBadge === "featured",
-    isVerified: g.linkStatus === "active",
+    // Honest badge (owner directive 2026-10-21: no fake "Verificado"):
+    // only groups whose link PASSED an actual automated check count as
+    // verified — `linkStatus` alone defaults to 'active' on insert, so
+    // never-checked groups must not display the badge.
+    isVerified: g.linkStatus === "active" && g.lastValidatedAt != null,
     status: (g.status as GroupStatus) ?? "ACTIVE",
     tags: parseTags(g.tags),
     keywords: parseTags(g.keywords),
@@ -201,24 +205,19 @@ export async function getStats(): Promise<StatsDTO> {
 }
 
 async function getStatsImpl(): Promise<StatsDTO> {
-  // WHOLE-DIRECTORY totals (owner directive 2026-10-21 — "counts accurate
-  // everywhere"): every global figure counts ALL published (status='live')
-  // groups — clean + adult (18+) — and ALL categories. The 18+ silo is part
-  // of the public directory (opt-in toggle), so excluding it made the meta
-  // title undercount the real total ("100 enlaces" while the directory held
-  // 104 live groups).
+  // Clean-only counts: global stats describe the clean, indexable directory.
   // "members" = sum of the per-group derived estimates (computeDisplayedMembers:
   // ≈0.2 members per real click, capped under WhatsApp's 1,024 limit) — never raw
   // click sums, which would inflate the figure ~5×.
   const row = await queryOne<Row>(
     `SELECT
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`groups\`,
-       (SELECT COUNT(*) FROM \`categories\`)                     AS \`categories\`,
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
+       (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)                    AS \`categories\`,
        (SELECT COUNT(*) FROM \`countries\`)                     AS \`countries\`,
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`popularityBadge\` = 'featured') AS \`featured\``
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
   );
   const memberRows = await query<Row>(
-    "SELECT `id`, `clicks`, `joinCount` FROM `groups` WHERE `status` = 'live'"
+    "SELECT `id`, `clicks`, `joinCount` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0"
   );
   const members = (memberRows as any[]).reduce(
     (acc, g) =>
@@ -437,21 +436,19 @@ export async function submitGroup(payload: {
 }
 
 export async function getMetrics() {
-  // WHOLE-DIRECTORY totals (owner directive 2026-10-21 — "counts accurate
-  // everywhere"): matches getStats() so the homepage hero and the "en cifras"
-  // grid render the same honest numbers. Adult (18+) groups are part of the
-  // public directory (opt-in toggle), so they count toward every figure — the
-  // aggregation bars below sum to the same totals. No adult titles/links are
-  // rendered, only aggregate counts by region/country.
+  // CLEAN-ONLY (matches getStats): public "en cifras" describes the clean,
+  // indexable directory — the adult silo is opt-in and never counted here,
+  // so the homepage figures stay consistent (hero vs metrics grid) and
+  // don't advertise adult content.
   const row = await queryOne<Row>(
     `SELECT
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`groups\`,
-       (SELECT COUNT(*) FROM \`categories\`)                     AS \`categories\`,
-       (SELECT COUNT(*) FROM \`countries\`)                      AS \`countries\`,
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
+       (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)  AS \`categories\`,
+       (SELECT COUNT(*) FROM \`countries\`)                          AS \`countries\`,
        (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'pending') AS \`pending\`,
        (SELECT COUNT(*) FROM \`group_reports\` WHERE \`status\` = 'OPEN') AS \`reports\`,
        (SELECT COUNT(*) FROM \`newsletter\` WHERE \`status\` = 'SUBSCRIBED') AS \`newsletter\`,
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`popularityBadge\` = 'featured') AS \`featured\``
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
   );
   const r: any = row ?? {};
 
@@ -461,7 +458,7 @@ export async function getMetrics() {
   const activeGroups = await query<Row>(
     `SELECT g.\`id\`, g.\`clicks\`, g.\`joinCount\`, co.\`name\`, co.\`code\`, co.\`flag\`, co.\`region\`
      FROM \`groups\` g JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
-     WHERE g.\`status\` = 'live'`
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0`
   );
   let members = 0;
   const regionMap = new Map<string, number>();

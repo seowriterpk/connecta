@@ -31,7 +31,7 @@ export function CitiesSection({ cities }: { cities: CityDTO[] }) {
                   Grupos por ciudad
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Encuentra comunidades activas en tu ciudad. {cities.length} ciudades disponibles.
+                  Encuentra comunidades en tu ciudad. {cities.length} ciudades disponibles.
                 </p>
               </div>
             </div>

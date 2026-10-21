@@ -50,7 +50,6 @@ export default async function SharedListPage({ params }: Props) {
   const groups = ids.length > 0 ? await getGroupsByIds(ids) : [];
   await bumpFavListView(code);
 
-  const totalMembers = groups.reduce((acc, g) => acc + (g.members || 0), 0);
   const createdLabel = new Date(list.createdAt).toLocaleDateString("es-ES", {
     day: "numeric",
     month: "long",
@@ -86,13 +85,6 @@ export default async function SharedListPage({ params }: Props) {
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium">
                   <Users className="h-3.5 w-3.5 text-primary/70" />
                   <span className="tabular-nums">{groups.length}</span> grupos
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium">
-                  <Users className="h-3.5 w-3.5 text-primary/70" />
-                  <span className="tabular-nums">
-                    {totalMembers.toLocaleString("es-ES")}
-                  </span>{" "}
-                  miembros
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium text-muted-foreground">
                   <CalendarDays className="h-3.5 w-3.5" />

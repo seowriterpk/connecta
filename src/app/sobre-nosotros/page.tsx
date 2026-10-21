@@ -45,8 +45,8 @@ export default function AboutPage() {
                   Nuestra misión
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                  Conectar a las personas hispanohablantes con comunidades activas y
-                  verificadas en WhatsApp. Creemos que un buen directorio no es solo una
+                  Conectar a las personas hispanohablantes con comunidades de WhatsApp
+                  organizadas y honestas. Creemos que un buen directorio no es solo una
                   lista de enlaces: es una puerta a conversaciones reales, a gente que
                   comparte tus intereses y a comunidades que de verdad funcionan.
                 </p>
@@ -98,8 +98,9 @@ export default function AboutPage() {
                   <div className="rounded-xl border bg-card p-5">
                     <h3 className="font-semibold">4. Sin datos falsos</h3>
                     <p className="mt-1.5 text-sm text-muted-foreground">
-                      No inflamos números: las valoraciones salen de usuarios reales y los
-                      miembros que mostramos son estimaciones señaladas como tales.
+                      No inflamos números: las valoraciones salen de usuarios reales y no
+                      publicamos cifras que no podamos respaldar. Si una estimación
+                      aparece, va siempre marcada como tal.
                     </p>
                   </div>
                 </div>
@@ -204,19 +205,18 @@ export default function AboutPage() {
                 <div className="mt-4 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
                   <p className="text-base leading-relaxed text-muted-foreground">
                     Cuando un grupo lleva el sello «Verificado», significa exactamente esto:
-                    antes de publicarlo, un editor del Equipo Grupos Hoy abrió el enlace
-                    de invitación a mano y comprobó tres cosas — que el enlace funcionaba,
-                    que la descripción se correspondía con el grupo real y que la categoría
-                    asignada era la correcta.
+                    su enlace de invitación pasó nuestra comprobación automática más
+                    reciente y estaba activo. La comprobación se repite de forma
+                    periódica con el verificador de enlaces del directorio.
                   </p>
                   <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                    Después, los enlaces se vuelven a comprobar de vez en cuando. Si una
-                    invitación caduca, el grupo se marca como «Enlace caducado» y se queda
-                    así hasta que alguien lo vuelve a verificar.
+                    Si una invitación caduca en una revisión posterior, el grupo se marca
+                    como «Enlace caducado» y el sello desaparece hasta que el enlace
+                    vuelve a pasar una comprobación.
                   </p>
                   <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                    Y no prometemos nada más allá de eso. El sello habla de nuestro trabajo
-                    editorial, no del contenido que comparte la comunidad dentro del grupo
+                    Y no prometemos nada más allá de eso. El sello habla del estado del
+                    enlace, no del contenido que comparte la comunidad dentro del grupo
                     ni del criterio de sus administradores: eso ya depende de cada
                     comunidad.
                   </p>

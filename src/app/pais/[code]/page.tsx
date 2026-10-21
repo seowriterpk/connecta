@@ -279,7 +279,7 @@ export default async function CountryPage({
                   ) : (
                     <>
                       <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                        Directorio de comunidades hispanohablantes activas en {country.name}. Elige
+                        Directorio de comunidades hispanohablantes en {country.name}. Elige
                         una categoría, abre el enlace y únete en un toque: sin registros, sin
                         comisiones y desde cualquier dispositivo.
                       </p>
@@ -315,7 +315,7 @@ export default async function CountryPage({
                 </span>
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Grupos verificados
+                    <ShieldCheck className="h-3.5 w-3.5" /> Enlaces comprobados
                   </span>
                 )}
               </div>
@@ -513,11 +513,11 @@ export default async function CountryPage({
                   {country.region} hasta grupos temáticos donde se habla de deportes, estudios,
                   trabajo, tecnología o simplemente se charla al final del día. En Grupos Hoy
                   hemos recopilado <strong>{country.groupCount}</strong>{" "}
-                  {country.groupCount === 1 ? "comunidad activa" : "comunidades activas"} con
-                  enlaces revisados, descripciones claras y el número aproximado de miembros, para
-                  que encontres en segundos el espacio que mejor encaje contigo. Cada enlace pasa
-                  por una revisión humana antes de publicarse, así que te llevas grupos reales y no
-                  listas abandonadas llenas de spam.
+                  {country.groupCount === 1 ? "comunidad publicada" : "comunidades publicadas"} con
+                  descripciones claras y el estado de cada enlace visible, para
+                  que encuentres en segundos el espacio que mejor encaje contigo. Cada ficha
+                  se actualiza con el comprobador automático de enlaces, así que sabes de
+                  antemano si una invitación sigue viva.
                 </p>
 
                 <p>
@@ -551,7 +551,7 @@ export default async function CountryPage({
                   ¿Quieres afinar aún más tu búsqueda? Combina el país con una categoría —por
                   ejemplo tecnología, fútbol, música o estudios— para encontrar grupos de WhatsApp
                   en {country.name} que hablen exactamente de lo que te interesa. También puedes
-                  ordenar los resultados por número de miembros o por popularidad si buscas
+                  ordenar los resultados por popularidad o por fecha si buscas
                   comunidades más grandes. Y si estás fuera de {country.name} pero quieres
                   seguir conectado con tu gente, este directorio te sirve igual: los enlaces de
                   invitación de WhatsApp funcionan desde cualquier país, así que llevas tu
@@ -601,7 +601,7 @@ export default async function CountryPage({
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
                 Publica tu grupo de {country.name} gratis y llega a quienes están buscando justo
-                lo que tú ofreces. Lo revisamos en menos de 24 horas y lo
+                lo que tú ofreces. Lo revisamos antes de publicarlo y lo
                 publicamos en este directorio.
               </p>
               <Link

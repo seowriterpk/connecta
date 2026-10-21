@@ -68,7 +68,7 @@ export async function generateMetadata({
   const title = `${countSegment}Grupos de ${tag.name} en WhatsApp | Grupos Hoy`;
   const description =
     `Descubre ${tag.count} ${tag.count === 1 ? "grupo de WhatsApp" : "grupos de WhatsApp"} etiquetados con «${tag.name}» en español. ` +
-    `Comunidades activas listas para unirte hoy, filtradas por esta etiqueta en Grupos Hoy.`;
+    `Comunidades publicadas organizadas bajo esta etiqueta, filtradas por tema en Grupos Hoy.`;
 
   return {
     title: { absolute: title },
@@ -222,7 +222,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                   <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
                     {result.total === 0
                       ? "Todavía no hay grupos con esta etiqueta. Si administras una comunidad que encaje, puedes publicarla y la etiquetaremos por ti."
-                      : `${result.total} ${result.total === 1 ? "grupo de WhatsApp etiquetado" : "grupos de WhatsApp etiquetados"} con «${tag.name}». Comunidades hispanohablantes activas a las que puedes unirte hoy.`}
+                      : `${result.total} ${result.total === 1 ? "grupo de WhatsApp etiquetado" : "grupos de WhatsApp etiquetados"} con «${tag.name}». Comunidades hispanohablantes que puedes explorar hoy.`}
                   </p>
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
                 </span>
                 {groups.some((g) => g.isVerified) && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Grupos verificados
+                    <ShieldCheck className="h-3.5 w-3.5" /> Enlaces comprobados
                   </span>
                 )}
                 {!indexable && result.total > 0 && (
@@ -421,7 +421,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
               </h2>
               <p className="max-w-2xl text-pretty text-sm text-primary-foreground/90 sm:text-base">
                 Publica tu grupo sobre «{tag.name}» gratis y llega a quienes están buscando
-                justo lo que tú ofreces. Lo revisamos en menos de 24 horas y
+                justo lo que tú ofreces. Lo revisamos antes de publicarlo y
                 lo etiquetamos para que aparezca en esta página.
               </p>
               <Link

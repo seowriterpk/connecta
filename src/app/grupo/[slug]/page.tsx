@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Users, Eye, BadgeCheck, CalendarDays, MessageCircle, Flag,
   MapPin, Tag, ChevronRight, Globe2, MousePointerClick,
-  Flame, Clock, Scale, Link2Off,
+  Scale, Link2Off,
 } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { queryOne, getGroupFeedbackCounts, type Row } from "@/lib/db";
@@ -119,10 +119,11 @@ export default async function GroupPage({ params }: PageProps) {
       )
     : null;
 
-  const isHot = group.clicks >= 50;
-  const isActiveRecently = group.lastActiveAt
-    ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
-    : false;
+  // Honesty directive (owner, 2026-10-21): no fabricated status chips —
+  // "Popular" (seeded clicks) and "Activo" (seeded lastActiveAt) read as
+  // fake claims while demo data sits in the directory. Only proven states
+  // render: Verificado (real link check), Enlace caducado (real checker
+  // verdict) and 18+.
 
   // JSON-LD @graph (like competitor)
   // ADULT DIRECTIVE: adult groups emit NO structured data of any type.
@@ -201,7 +202,7 @@ export default async function GroupPage({ params }: PageProps) {
                   {group.isVerified && (
                     <Link
                       href="/sobre-nosotros#verificado"
-                      title="Enlace comprobado manualmente por el equipo antes de publicar"
+                      title="Enlace comprobado automáticamente y activo en la última revisión"
                       className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/25 dark:text-emerald-300"
                     >
                       <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
@@ -219,16 +220,6 @@ export default async function GroupPage({ params }: PageProps) {
                   {group.isAdult && (
                     <span className="inline-flex items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                       18+
-                    </span>
-                  )}
-                  {isHot && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2 py-0.5 text-[11px] font-semibold text-orange-600 dark:text-orange-400">
-                      <Flame className="h-3 w-3" aria-hidden /> Popular
-                    </span>
-                  )}
-                  {isActiveRecently && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden /> Activo
                     </span>
                   )}
                 </div>
@@ -257,12 +248,11 @@ export default async function GroupPage({ params }: PageProps) {
                 </div>
               </div>
             </div>
-            {/* Quick stats — honest numbers; zero values stay hidden */}
-            {(group.members > 0 || group.views > 0 || group.clicks > 0) && (
+            {/* Quick stats — honest counters; zero values stay hidden.
+                "Miembros" removed (owner directive): it was an estimate built
+                from clicks and demo seeds made it look fabricated. */}
+            {(group.views > 0 || group.clicks > 0) && (
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:text-xs">
-                {group.members > 0 && (
-                  <span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-primary" aria-hidden /> {group.members.toLocaleString("es-ES")} miembros</span>
-                )}
                 {group.views > 0 && (
                   <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3 text-primary" aria-hidden /> {group.views.toLocaleString("es-ES")} visitas</span>
                 )}
@@ -398,12 +388,6 @@ export default async function GroupPage({ params }: PageProps) {
                       <dd className="font-medium">{group.city}</dd>
                     </div>
                   )}
-                  {group.members > 0 && (
-                    <div className="flex items-center justify-between">
-                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Miembros</dt>
-                      <dd className="font-medium">{group.members.toLocaleString("es-ES")}</dd>
-                    </div>
-                  )}
                   <div className="flex items-center justify-between">
                     <dt className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Visitas</dt>
                     <dd className="font-medium">{group.views.toLocaleString("es-ES")}</dd>
@@ -415,12 +399,6 @@ export default async function GroupPage({ params }: PageProps) {
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" aria-hidden />
                         caducado (pendiente de verificación)
                       </dd>
-                    </div>
-                  )}
-                  {group.lastActiveAt && (
-                    <div className="flex items-center justify-between">
-                      <dt className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden /> Última actividad</dt>
-                      <dd className="font-medium">{new Date(group.lastActiveAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</dd>
                     </div>
                   )}
                 </dl>

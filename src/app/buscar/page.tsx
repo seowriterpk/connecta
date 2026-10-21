@@ -270,7 +270,7 @@ async function BuscarLanding() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />
                   </div>
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    {countries.length} países hispanohablantes con comunidades activas.
+                    {countries.length} países hispanohablantes con comunidades publicadas.
                   </p>
                 </Link>
               </div>

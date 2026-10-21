@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown, Link2Off } from "lucide-react";
+import { BadgeCheck, Star, MapPin, ArrowRight, ChevronDown, Link2Off } from "lucide-react";
 import type { GroupCardDTO } from "@/lib/lite-dto";
 import { Badge } from "@/components/ui/badge";
 import { CompareToggleAction } from "@/components/site/compare-button";
@@ -13,13 +13,12 @@ import { useGroupsFilter } from "@/lib/store";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-function fmt(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
-  return `${n}`;
-}
-
-// Capacidad estimada para barra de "popularidad" (miembros)
-const MEMBER_CAP = 2000;
+// Honesty directive (owner, 2026-10-21): no fabricated engagement signals on
+// cards — member counts, popularity bars, "Hot"/"Tendencia" badges and the
+// pulsing "active" dot were driven by seeded demo clicks/views and read as
+// fake claims. Real counters stay on the group detail page; badges only show
+// what the system can prove (verificado = enlace comprobado, destacado =
+// curation flag set by the admin).
 
 const AVATAR_GRADIENTS: Record<string, string> = {
   emerald: "from-emerald-500 to-teal-600",
@@ -77,21 +76,11 @@ export function GroupCard({
 }) {
   const searchQuery = useGroupsFilter((s) => s.search);
   const gradient = AVATAR_GRADIENTS[group.category?.color ?? "emerald"] ?? AVATAR_GRADIENTS.emerald;
-  const memberPct = Math.min(100, Math.round((group.members / MEMBER_CAP) * 100));
-  const isTrending = group.views >= 50 || group.members >= 700;
-  const isHot = group.members >= 1000;
   // Adult directive: blank image title/alt on adult groups (SEO safety);
   // with imageAlt=false (adult category grids) both attributes are omitted
   // entirely — the <img> renders with no alt and no title.
   const imgAlt = imageAlt === false ? undefined : group.isAdult ? "" : group.title;
   const imgTitle = imageAlt === false || group.isAdult ? undefined : group.title;
-
-  // "Active recently" = lastActiveAt within 7 days
-  const isActiveRecently = (() => {
-    if (!group.lastActiveAt) return false;
-    const diff = Date.now() - new Date(group.lastActiveAt).getTime();
-    return diff < 7 * 86400000;
-  })();
 
   // Link-checker verdict. Only used to (a) suppress the green "active"
   // signals on this card (no dishonest "Activo" badge over a dead link) and
@@ -144,11 +133,6 @@ export function GroupCard({
             className="rounded-xl transition duration-300 group-hover:scale-105 max-sm:h-11! max-sm:w-11!"
             fallbackEmoji={group.category?.icon}
           />
-          {isActiveRecently && !isExpired && (
-            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
-            </span>
-          )}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-[15px]">
@@ -156,7 +140,7 @@ export function GroupCard({
             {group.isVerified && (
               <BadgeCheck
                 className="ml-1 inline h-4 w-4 shrink-0 align-[-2px] text-emerald-500"
-                aria-label="Grupo verificado"
+                aria-label="Enlace comprobado"
               />
             )}
             {expiredHint && isExpired && (
@@ -174,15 +158,8 @@ export function GroupCard({
         </div>
       </div>
 
-      {/* === ALWAYS VISIBLE: members (one compact line) === */}
-      <div className="flex min-h-[1.1rem] items-center gap-2 text-[11px] text-muted-foreground sm:min-h-[1.25rem] sm:text-xs">
-        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-          <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)} miembros
-        </span>
-      </div>
-
       {/* === COLLAPSIBLE META (native <details>): país · ciudad · categoría ·
-          descripción + estadísticas + quick actions (me gusta / comparar).
+          descripción + quick actions (me gusta / comparar).
           Content stays in the server-rendered HTML — Googlebot sees it
           exactly as before; we only minimize it visually until the user
           clicks the dropdown. No JS needed to toggle. === */}
@@ -222,41 +199,12 @@ export function GroupCard({
                 <Star className="h-3 w-3 fill-current" /> Destacado
               </span>
             )}
-            {isHot && (
-              <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
-                <Flame className="h-3 w-3 fill-current" /> Hot
-              </span>
-            )}
-            {isTrending && (
-              <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
-                <TrendingUp className="h-3 w-3" /> Tendencia
-              </span>
-            )}
           </div>
 
           {/* Description (full text — visible to Googlebot in the HTML) */}
           <p className="whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground/90 sm:text-[13px]">
             <Highlight text={group.description} query={searchQuery} />
           </p>
-
-          {/* Member popularity bar + views */}
-          <div className="space-y-1.5 pt-0.5">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground sm:text-xs">
-              <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-                <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)} miembros
-              </span>
-              <span className="inline-flex items-center gap-1 tabular-nums">
-                <Eye className="h-3 w-3" /> {fmt(group.views)}
-                <span className="font-medium text-primary/80">{memberPct}%</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full bg-gradient-to-r ${gradient} shadow-sm transition-all duration-500 group-hover:brightness-110`}
-                style={{ width: `${memberPct}%` }}
-              />
-            </div>
-          </div>
 
           {/* Quick actions: me gusta + comparar (owner directive: these live
               INSIDE the dropdown so the card surface stays clean and group
@@ -277,14 +225,9 @@ export function GroupCard({
             <Badge
               variant="secondary"
               className="gap-1 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-300 sm:px-2.5 sm:text-xs"
-              title="Enlace comprobado manualmente por el equipo antes de publicar"
+              title="Enlace comprobado automáticamente y activo en la última revisión"
             >
               <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
-            </Badge>
-          )}
-          {isActiveRecently && !isExpired && (
-            <Badge variant="outline" className="gap-1 border-emerald-300/50 px-1.5 text-[10px] font-normal text-emerald-600 dark:border-emerald-800/50 dark:text-emerald-400 sm:px-2.5 sm:text-xs">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
             </Badge>
           )}
         </div>

@@ -4979,3 +4979,31 @@ Stage Summary:
 - /media/ 404s are no-store → CF can never pin a phantom default icon again.
 - No DB/schema/API changes — pure presentation + one route-header hardening. USER ACTIONS on Hostinger: git pull → npm install → npm run build → restart (same as always).
 - Risks/next: favicon swap still pending owner's logo; 3k-CSV dry run pending owner data; next-phase candidates: checker stats auto-refresh, CSV export of checker results.
+
+---
+Task ID: 24
+Agent: orchestrator (main)
+Task: Honesty sweep — remove every fake/misleading claim site-wide (owner: "we don't want to get in trouble"; flagged "99 Active groups / 24.7k members / all active, all verified" while only ~3 real active groups exist on live; rest are demo seeds with revoked links).
+
+Work Log:
+- Reverted Task-24-count experiment (commit eb8f311, unpushed): owner confirmed counts were correct all along ("it was exactly 100"); restored clean-only getStats/getMetrics semantics via git checkout of src/lib/data.ts.
+- Forensics on sandbox DB: all 104 live groups have linkStatus='revoked' (checker ran); avg seeded clicks≈1,296 / views≈7,309 per group; lastActiveAt seeded = import date → the "24.7k miembros estimados" aggregate, "Popular"/"Hot"/"Tendencia"/"Activo" badges and pulsing dots were ALL fabricated by seed data.
+- isVerified derivation FIXED (data.ts + related-groups.ts): was `linkStatus === "active"` (default-on for never-checked inserts!) → now `linkStatus === "active" && lastValidatedAt != null` (only groups that actually PASSED an automated check show the badge).
+- Tooltips/claims rewritten: "comprobado manualmente por el equipo" → "comprobado automáticamente y activo en la última revisión" (group card + detail). Sidebar chips "Grupos verificados" → "Enlaces comprobados" (categoria/pais/ciudad/etiqueta/autor).
+- REMOVED fabricated member figures everywhere: hero Stat, AboutSection AnimatedStat, MetricsSection Metric + methodology note, populares chips (totalViews/totalClicks/totalMembers), favorites totalMembers chip + "Más miembros" sort + sort dropdown (single option removed), shared-list "N miembros" chip, author "miembros estimados" stat, command-palette member fragments, compare tool "Miembros (est.)" row + winner, detail page members quick-stat + dl row.
+- REMOVED fabricated status badges: "Popular" + "Activo" chips (detail), "Hot"/"Tendencia" badges + pulsing green dot + member popularity bar + "X miembros" line (GroupCard), dot/Flame/Tendencia/members row (homepage directory rows), "Última actividad" dl row (seeded lastActiveAt).
+- Removed "Más miembros" sort option (homepage directory Select + pais:554 copy updated).
+- DELETED TestimonialsSection entirely (13 fabricated quotes with fake names/timestamps + fake "4.3/5 · 13 opiniones" aggregate presented as "Historias reales") — component file removed + homepage usage.
+- Labels: "Grupos activos" → "Grupos publicados" (hero, About, Metrics grid) — the flagged lie: demos/revoked are published but not "active".
+- Copy lies fixed: "revisión humana antes de publicarse" → honest automated-checker description (categoria/pais/ciudad); "Lo revisamos en menos de 24 horas" → "antes de publicarlo" (x4 pages); autores page manual-review claims rewritten (meta + hero + team card + methodology); sobre-nosotros mission ("comunidades activas y verificadas" → honest) + "Sin datos falsos" card + full "Qué significa «Verificado»" section rewritten to describe the REAL automated system; FAQ ("comunidades activas"→"comunidades", "cuestión de horas"→"en cuanto pasa la revisión"); hero subtitle, directory header ("Explora N+ comunidades activas"→"Explora las comunidades publicadas"), paises/ciudades/buscar/cities-section "comunidades activas" → neutral; agregar-grupo meta "revisión humana"→"revisión antes de publicarlo"; populares copy "métricas reales"/"reales y medibles, sin notas inventadas" softened; comparar meta/intro/long-form (members removed, "estado verificado del enlace"→"estado del enlace comprobado"); footer hint "Lo más activo ahora"→"Ranking por vistas y clics"; typo "organizizadas"→"organizadas" (categories-section).
+- Kept (honest): views/clicks counters on detail page + directory row dropdown + comparar (real per-group counters), Destacado badge (admin curation flag), "Enlace caducado" verdicts (real checker), add-group instant link verification (real proxy check), guías "N lecturas" (organic), long-form generic WhatsApp advice, reportar "revisamos" (real reports queue), terminos "reportes se revisan manualmente" (true).
+- QA: lint clean; all 17 routes 200; agent-browser verified: hero 3 stats (no members), sort = Destacados/Populares/Recientes, metrics grid 4 provable metrics, testimonials gone, detail page chips = Enlace caducado + country/category/city only, dl = Publicado/Ciudad/Visitas/Enlace, favoritos no members/no sort, comparar empty-state updated, category page honest copy; dev.log zero errors (dev server restarted once after HMR crash).
+- data.ts reverted file + all component/page changes committed; worklog + push.
+
+Stage Summary:
+- The site no longer CLAIMS anything it cannot prove: "Verificado" = link passed a real automated check; "publicados" replaces "activos"; all member estimates and seed-driven badges/bars/totals removed from public UI; fabricated testimonials deleted; every "human review" claim now describes the actual automated pipeline.
+- Live data note (owner decision): demo groups still carry SEEDED clicks/views in the DB (fake baselines). The code no longer amplifies them, but visible counters (detail-page visitas/clics) still include seed values until zeroed. Optional SQL for live (run in phpMyAdmin when ready):
+    UPDATE `groups` SET clicks=0, joinCount=0, views=0, shares=0, lastActiveAt=NULL WHERE `status`='live';
+  (Run ONLY when the real 3k CSV groups are in and demo rows are being retired; ratings were already purged in 9ce4a43.)
+- Deploy: same as always (pull → build → restart). No DB/schema changes.
+- Next-phase candidates: favicon (waiting on logo), 3k-CSV dry run (waiting on data), optional admin "reset engagement seeds" button instead of raw SQL.

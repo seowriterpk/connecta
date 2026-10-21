@@ -5,7 +5,6 @@ import { useInView } from "framer-motion";
 import { Users, Star, Globe2, CheckCircle2, BarChart3, MapPin } from "lucide-react";
 import { Reveal } from "@/components/site/reveal";
 import { CountryFlag } from "@/components/site/country-flag";
-import { formatMembersEs } from "@/lib/members";
 
 interface Metrics {
   groups: number;
@@ -104,33 +103,29 @@ export function MetricsSection({ metrics }: { metrics: Metrics }) {
 
         {/* Top metrics grid — "Suscritos" hidden while 0 (empty newsletter):
             showing a dead 0 reads as broken, hiding it is the honest option
-            until there is a real number to show. */}
+            until there is a real number to show. "Miembros" removed for good
+            (owner directive 2026-10-21): member counts cannot be verified
+            publicly and seeded demo data made the aggregate look fabricated. */}
         <div
-          className={`mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 ${
-            metrics.newsletter > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5"
+          className={`mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4 ${
+            metrics.newsletter > 0 ? "lg:grid-cols-5" : "lg:grid-cols-4"
           }`}
         >
-          <Metric value={metrics.groups} label="Grupos activos" icon={Users} color="bg-primary/10 text-primary" />
+          <Metric value={metrics.groups} label="Grupos publicados" icon={Users} color="bg-primary/10 text-primary" />
           <Metric value={metrics.categories} label="Categorías" icon={Star} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" />
           <Metric value={metrics.countries} label="Países hispanos" icon={Globe2} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" />
           <Metric value={metrics.featured} label="Destacados" icon={Star} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" />
-          <Metric
-            value={metrics.members}
-            format={formatMembersEs}
-            label="Miembros estimados"
-            icon={Users}
-            color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          />
           {metrics.newsletter > 0 && (
             <Metric value={metrics.newsletter} label="Suscritos" icon={CheckCircle2} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" />
           )}
         </div>
 
-        {/* Metodología: qué se mide y qué se estima */}
+        {/* Metodología: qué se mide */}
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          * Miembros estimados a partir de los clics reales de cada enlace (≈1
-          de cada 5 clics se convierte en unión; WhatsApp limita los grupos a
-          1.024 miembros). Las demás cifras son mediciones del directorio.
+          * Cifras leídas directamente de la base de datos con cada visita. El
+          estado de cada enlace (activo o caducado) proviene del comprobador
+          automático de enlaces; las cuentas de grupos reflejan lo publicado,
+          no lo "activo" — un enlace caducado se marca como tal en su página.
         </p>
 
         {/* Breakdowns */}

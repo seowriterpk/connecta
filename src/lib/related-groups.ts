@@ -41,7 +41,7 @@ function toDTO(g: GroupRow): GroupDTO {
     countryId: g.countryId,
     members: computeDisplayedMembers(g.clicks ?? 0, g.joinCount ?? 0, g.id),
     isFeatured: g.popularityBadge === "featured",
-    isVerified: g.linkStatus === "active",
+    isVerified: g.linkStatus === "active" && g.lastValidatedAt != null,
     status: g.status as any,
     tags: JSON.parse(g.tags || "[]"),
     keywords: JSON.parse(g.keywords || "[]"),

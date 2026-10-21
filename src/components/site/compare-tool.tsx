@@ -14,7 +14,6 @@ import {
   Search,
   Scale,
   Trophy,
-  Users,
   X,
 } from "lucide-react";
 import type { GroupDTO } from "@/lib/types";
@@ -178,7 +177,6 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
 
   const winners = useMemo(
     () => ({
-      members: winner((g) => g.members || 0),
       views: winner((g) => g.views || 0),
       clicks: winner((g) => g.clicks || 0),
     }),
@@ -375,14 +373,6 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
           {(
             [
               {
-                label: "Miembros (est.)",
-                icon: Users,
-                value: (g: GroupDTO) => (
-                  <span className="tabular-nums font-semibold">{formatNum(g.members || 0)}</span>
-                ),
-                winnerId: winners.members,
-              },
-              {
                 label: "Vistas",
                 icon: Eye,
                 value: (g: GroupDTO) => (
@@ -494,7 +484,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
           <h2 className="text-lg font-bold">Elige dos o tres grupos para comparar</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Añade grupos con el buscador o toca una de las sugerencias populares. Verás
-            miembros, vistas y clics lado a lado, con el mejor de cada métrica destacado.
+            vistas, clics y estado del enlace lado a lado, con el mejor de cada métrica destacado.
           </p>
           <p className="mx-auto mt-4 inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/5 px-3.5 py-1.5 text-xs font-medium text-teal-700 dark:text-teal-300">
             <Scale className="h-3.5 w-3.5" aria-hidden />

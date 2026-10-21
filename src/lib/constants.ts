@@ -62,8 +62,8 @@ export const REPORT_REASONS = [
 export const TRUST_POINTS = [
   {
     icon: "ShieldCheck",
-    title: "Revisamos cada grupo",
-    text: "Ningún enlace se publica sin pasar por moderación. Los que incumplen las normas, fuera.",
+    title: "Publicación con revisión",
+    text: "Los grupos que envía la comunidad pasan por revisión antes de publicarse, y un comprobador automático marca los enlaces caducados para que lo veas.",
   },
   {
     icon: "Globe2",

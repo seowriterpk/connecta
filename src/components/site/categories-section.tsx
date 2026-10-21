@@ -68,7 +68,7 @@ export function CategoriesSection({ categories }: { categories: CategoryLiteDTO[
               Explora por categorías
             </h2>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              {categories.length} temáticas organizizadas para que encuentres justo la comunidad que buscas —
+              {categories.length} temáticas organizadas para que encuentres justo la comunidad que buscas —
               desde amistad y estudios hasta deportes, cocina y tecnología.
             </p>
           </div>

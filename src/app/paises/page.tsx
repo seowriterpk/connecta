@@ -97,7 +97,7 @@ export default async function PaisesPage() {
               Grupos de WhatsApp por país
             </h1>
             <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-              Encuentra comunidades activas en tu país. Desde España hasta toda Hispanoamérica:
+              Encuentra comunidades en tu país. Desde España hasta toda Hispanoamérica:
               {countries.length} países hispanohablantes disponibles.
             </p>
           </Reveal>

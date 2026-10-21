@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Publica tu Grupo de WhatsApp | Grupos Hoy",
     description:
-      "Agrega tu grupo de WhatsApp gratis. Verificación instantánea del enlace y revisión humana.",
+      "Agrega tu grupo de WhatsApp gratis. Verificación instantánea del enlace y revisión antes de publicarlo.",
   },
   keywords: [
     "agregar grupo de WhatsApp",

@@ -7,7 +7,6 @@ import {
   Heart,
   Share2,
   Trash2,
-  Users,
   Sparkles,
   TrendingUp,
   Compass,
@@ -16,7 +15,6 @@ import {
   Upload,
   Loader2,
   ListChecks,
-  ArrowUpDown,
   Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,13 +35,6 @@ import { Reveal } from "@/components/site/reveal";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 import type { GroupDTO } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-
-type SortMode = "recent" | "members";
-
-const SORT_LABELS: Record<SortMode, string> = {
-  recent: "Añadidos recientemente",
-  members: "Más miembros",
-};
 
 interface ExportFile {
   app: string;
@@ -67,7 +58,6 @@ export function FavoritesClient() {
   const [shareState, setShareState] = React.useState<"idle" | "copied">("idle");
   const [linkState, setLinkState] = React.useState<"idle" | "creating" | "copied">("idle");
   const [importing, setImporting] = React.useState(false);
-  const [sortMode, setSortMode] = React.useState<SortMode>("recent");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Favorites order: newest first (store appends at the end).
@@ -121,26 +111,20 @@ export function FavoritesClient() {
     };
   }, [hydrated, groups]);
 
-  const totalMembers = React.useMemo(
-    () => (groups ?? []).reduce((acc, g) => acc + (g.members || 0), 0),
-    [groups]
-  );
+  // Honesty directive (owner, 2026-10-21): member aggregates removed —
+  // seeded demo data made them look fabricated.
 
   // Apply the selected sort to the fetched list (stable copy).
   const sortedGroups = React.useMemo(() => {
     if (!groups) return null;
     const list = [...groups];
     const orderIndex = new Map(orderedIds.map((id, i) => [id, i]));
-    if (sortMode === "members") {
-      list.sort((a, b) => (b.members ?? 0) - (a.members ?? 0));
-    } else {
-      // "recent" = the order the user saved them (newest first).
-      list.sort(
-        (a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0)
-      );
-    }
+    // "recent" = the order the user saved them (newest first).
+    list.sort(
+      (a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0)
+    );
     return list;
-  }, [groups, sortMode, orderedIds]);
+  }, [groups, orderedIds]);
 
   async function shareList() {
     if (!groups || groups.length === 0) return;
@@ -398,10 +382,7 @@ export function FavoritesClient() {
   // ---- List state ----
   const displayGroups = sortedGroups ?? groups;
   return (
-    <FavoritesShell
-      count={groups.length}
-      totalMembers={totalMembers}
-    >
+    <FavoritesShell count={groups.length}>
       {/* Sticky action toolbar — stays visible while scrolling the list */}
       <div className="sticky top-16 z-30 -mx-4 mb-8 border-b border-border/60 bg-background/85 px-4 py-2.5 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2">
@@ -411,27 +392,9 @@ export function FavoritesClient() {
             <span className="hidden sm:inline">guardados</span>
           </span>
           <span className="hidden min-w-0 items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground md:inline-flex">
-            <Users className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-            <span className="tabular-nums">{totalMembers.toLocaleString("es-ES")}</span> miembros
+            <ListChecks className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <span className="tabular-nums">{groups.length}</span> en tu lista
           </span>
-
-          {/* Sort control */}
-          <label className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 pl-2.5 pr-1 text-xs text-muted-foreground">
-            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden />
-            <span className="sr-only">Ordenar favoritos</span>
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="h-7 cursor-pointer appearance-none truncate bg-transparent pr-1.5 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              aria-label="Ordenar favoritos"
-            >
-              {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-                <option key={m} value={m}>
-                  {SORT_LABELS[m]}
-                </option>
-              ))}
-            </select>
-          </label>
 
           <div className="ml-auto flex items-center gap-1.5">
             <Button
@@ -575,11 +538,9 @@ export function FavoritesClient() {
 
 function FavoritesShell({
   count,
-  totalMembers,
   children,
 }: {
   count?: number;
-  totalMembers?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -598,7 +559,7 @@ function FavoritesShell({
                 ? "Cargando tu lista…"
                 : count === 1
                   ? "Un grupo guardado, listo para unirte cuando quieras."
-                  : `${count} grupos guardados${totalMembers ? ` · ${totalMembers.toLocaleString("es-ES")} miembros en total` : ""}.`}
+                  : `${count} grupos guardados.`}
             </p>
             <p className="max-w-xl text-xs text-muted-foreground/80">
               Usa la barra de acciones para compartir tu lista, exportar una copia de

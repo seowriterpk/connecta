@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown } from "lucide-react";
+import { Search, Eye, BadgeCheck, MapPin, ArrowRight, Filter, X, Loader2, Heart, Star, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
@@ -225,7 +225,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
               </span>
             ) : (
               <span>
-                Explora {groups.length}+ comunidades activas en español.{" "}
+                Explora las comunidades publicadas en español.{" "}
                 Contenido 100% apto para todos.
               </span>
             )}
@@ -303,7 +303,6 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                 <SelectContent>
                   <SelectItem value="destacados">Destacados</SelectItem>
                   <SelectItem value="populares">Más populares</SelectItem>
-                  <SelectItem value="miembros">Más miembros</SelectItem>
                   <SelectItem value="recientes">Más recientes</SelectItem>
                 </SelectContent>
               </Select>
@@ -450,17 +449,13 @@ const ROW_GRADIENTS: Record<string, string> = {
 };
 
 function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: string }) {
-  const isActiveRecently = group.lastActiveAt
-    ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
-    : false;
-  const isHot = group.members >= 1000;
-  const isTrending = group.views >= 50 || group.members >= 700;
   const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
   // Link-checker verdict (premium-vibe directive): the homepage directory
-  // stays CLEAN — no red "Expirado" chip, icon or dot on rows. The verdict
-  // is only used to suppress the green "recently active" dot so we never
-  // claim a dead link is active. The category page card keeps the one icon.
-  const isExpired = group.linkStatus === "revoked";
+  // stays CLEAN — no red "Expirado" chip, icon or dot on rows. The category
+  // page card keeps the one icon. Honesty directive (owner, 2026-10-21):
+  // no fabricated engagement signals on rows either (member counts, Hot/
+  // Tendencia badges, pulsing "active" dot) — seeded demo data made them
+  // read as fake claims.
   // Adult directive: blank image title/alt on adult groups (SEO safety).
   const imgAlt = group.isAdult ? "" : group.title;
   const imgTitle = group.isAdult ? undefined : group.title;
@@ -501,11 +496,6 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 max-sm:h-12! max-sm:w-12!"
           fallbackEmoji={group.category?.icon}
         />
-        {isActiveRecently && !isExpired && (
-          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
-            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
-          </span>
-        )}
       </div>
 
       {/* Content: name + compact stats always visible; país/ciudad/categoría/
@@ -526,17 +516,6 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           )}
           {group.isFeatured && (
             <Star className="mt-0.5 hidden h-4 w-4 shrink-0 fill-amber-500 text-amber-500 sm:inline-block" aria-label="Destacado" />
-          )}
-          {isHot && <Flame className="mt-0.5 hidden h-4 w-4 shrink-0 text-orange-500 sm:inline-block" aria-label="Popular" />}
-        </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground sm:text-xs">
-          <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground/75">
-            <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)}
-          </span>
-          {isTrending && !isExpired && (
-            <span className="inline-flex shrink-0 items-center gap-0.5 text-orange-600 dark:text-orange-400">
-              <TrendingUp className="h-3 w-3" /> Tendencia
-            </span>
           )}
         </div>
 

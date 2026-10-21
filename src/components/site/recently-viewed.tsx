@@ -3,15 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ChevronLeft, ChevronRight, Users, ArrowUpRight, Trash2 } from "lucide-react";
+import { History, ChevronLeft, ChevronRight, ArrowUpRight, Trash2 } from "lucide-react";
 import { useRecent } from "@/lib/recent";
 import { GroupImage } from "@/components/site/group-image";
 import { CountryFlag } from "@/components/site/country-flag";
-
-function fmt(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
-  return `${n}`;
-}
 
 /**
  * RecentlyViewed — homepage strip of the last groups the visitor opened.
@@ -159,10 +154,6 @@ export function RecentlyViewed() {
                           {g.country?.name && (
                             <span className="truncate">{g.country.name}</span>
                           )}
-                          <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
-                            <Users className="h-3 w-3" />
-                            {fmt(g.members)}
-                          </span>
                         </div>
                       </div>
                     </div>
