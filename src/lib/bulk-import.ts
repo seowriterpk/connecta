@@ -510,16 +510,25 @@ export async function importGroups(
     };
   }
 
+  // --- DB-side dedup lookup BEFORE the image pass (DOWNLOAD-ONCE policy) ---
+  // Rows whose invite link already exists in the DB are skipped at insert
+  // time (below) — fetching their images first would waste residential-proxy
+  // bandwidth on groups we already have (and whose image we already store).
+  // One chunked lookup, reused later by the insert path.
+  const existingLinks = await fetchExistingLinks(rows.map((r) => r.joinLink));
+
   // --- Persist WhatsApp images on OUR server (user directive) ---
-  // Every row whose profile_image points at the WhatsApp CDN is downloaded
-  // to media/group_images through the residential proxy BEFORE inserting, so
-  // the DB stores a local /media/group_images URL. Failures silently fall
-  // back to the CDN URL — an image problem must never block an import.
-  // Concurrency 6 keeps the proxy busy without hammering it; the soft
-  // deadline guarantees the HTTP request finishes — leftover rows keep the
-  // CDN URL and the image-refresh cron localizes them later (it processes
+  // Every NEW row whose profile_image points at the WhatsApp CDN is
+  // downloaded to media/group_images through the residential proxy BEFORE
+  // inserting, so the DB stores a local /media/group_images URL. Failures
+  // silently fall back to the CDN URL — an image problem must never block
+  // an import. Concurrency 6 keeps the proxy busy without hammering it; the
+  // soft deadline guarantees the HTTP request finishes — leftover rows keep
+  // the CDN URL and the image-refresh cron localizes them later (it processes
   // every live group whose profileImage is not a /media/... URL yet).
-  const rowsWithCdn = rows.filter((r) => isWhatsappCdnUrl(r.profileImage));
+  const rowsWithCdn = rows.filter(
+    (r) => isWhatsappCdnUrl(r.profileImage) && !existingLinks.has(r.joinLink)
+  );
   if (rowsWithCdn.length > 0) {
     let cursor = 0;
     let processed = 0;
@@ -555,8 +564,7 @@ export async function importGroups(
   const countryIdByName = new Map(countries.map((c) => [c.name.toLowerCase(), c.id]));
 
   // Final DB-side dedup (defensive — also checked during validation):
-  // TWO chunked lookups total instead of 1–2 queries per row.
-  const existingLinks = await fetchExistingLinks(rows.map((r) => r.joinLink));
+  // existingLinks was prefetched BEFORE the image pass (see above).
   const existingSlugs = await fetchAllSlugs();
 
   // Track slugs we've already used in this run

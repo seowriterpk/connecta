@@ -3,7 +3,13 @@
  *
  * Verifies a WhatsApp invite link by re-fetching og:title + og:image from
  * chat.whatsapp.com. Never trusts frontend claims — uses the shared
- * fetchWhatsAppMeta server-side helper (iPhone UA, 8KB preview, 3-state).
+ * fetchWhatsAppMeta server-side helper (iPhone UA, 64KB preview, 3-state).
+ *
+ * HARD-BLOCK POLICY (user directive 2026-10-21): ONLY an "active" verdict
+ * (og:title = real group name fetched from WhatsApp) lets the user
+ * continue. "revoked" (expired / random / dead link) and "unknown"
+ * (network hiccup) are BOTH rejected — the user can never proceed to
+ * write the group name by hand.
  *
  * Body: { url: string }
  * Response: { ok: true, data: { status, groupName, imageUrl, inviteCode } }
@@ -17,9 +23,9 @@ const SPANISH_ERRORS: Record<string, string> = {
   invalid_format:
     "El enlace no es válido. Debe ser de WhatsApp (https://chat.whatsapp.com/…).",
   unknown_state:
-    "No hemos podido comprobar el enlace. Inténtalo de nuevo en unos segundos.",
+    "No pudimos verificar el enlace con WhatsApp. Revisa que sea correcto e inténtalo de nuevo.",
   revoked:
-    "El enlace parece estar revocado o caducado. Genera uno nuevo en WhatsApp e inténtalo otra vez.",
+    "Este enlace ha caducado (expirado) o no es válido. Copia un enlace de invitación activo y vuelve a intentarlo.",
   fetch_failed:
     "No se pudo contactar con WhatsApp para verificar el enlace. Inténtalo de nuevo.",
 };
@@ -52,19 +58,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (meta.status === "unknown") {
-      // Network error — can't reach WhatsApp. Allow user to proceed with
-      // what they typed. They'll enter group name manually.
-      return NextResponse.json({
-        ok: true,
-        data: {
-          status: "unknown",
-          groupName: "",
-          imageUrl: "",
-          inviteCode: meta.inviteCode,
-          description: "",
-          warning: "No se pudo verificar el enlace automáticamente. Puedes continuar, pero introduce el nombre del grupo manualmente en el siguiente paso.",
-        },
-      });
+      // Network error — can't reach WhatsApp, so we can't fetch the group
+      // name either. HARD BLOCK (user directive: the name is always fetched
+      // from WhatsApp and stored, never typed by the user).
+      return NextResponse.json(
+        { ok: false, error: SPANISH_ERRORS.unknown_state, status: "unknown" },
+        { status: 422 }
+      );
     }
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown } from "lucide-react";
+import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown, Link2Off } from "lucide-react";
 import type { GroupCardDTO } from "@/lib/lite-dto";
 import { Badge } from "@/components/ui/badge";
 import { useFavorites } from "@/lib/favorites";
@@ -99,6 +99,11 @@ export function GroupCard({
     return diff < 7 * 86400000;
   })();
 
+  // Link-checker verdict: revoked invite link → red "Expirado" icon/badge
+  // (user directive 2026-10-21: everything else on the card stays as-is —
+  // the self-hosted image is kept because we only download once).
+  const isExpired = group.linkStatus === "revoked";
+
   return (
     <motion.article
       whileHover={{ y: -6 }}
@@ -145,9 +150,18 @@ export function GroupCard({
             className="rounded-xl transition duration-300 group-hover:scale-105"
             fallbackEmoji={group.category?.icon}
           />
-          {isActiveRecently && (
+          {isActiveRecently && !isExpired && (
             <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
               <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
+            </span>
+          )}
+          {isExpired && (
+            <span
+              title="Enlace de invitación caducado (expirado)"
+              aria-label="Enlace de invitación caducado (expirado)"
+              className="absolute -right-1 -top-1 grid h-4.5 w-4.5 place-items-center rounded-full border-2 border-card bg-rose-500 text-rose-50"
+            >
+              <Link2Off className="h-2.5 w-2.5" aria-hidden />
             </span>
           )}
         </span>
@@ -158,6 +172,12 @@ export function GroupCard({
               <BadgeCheck
                 className="ml-1 inline h-4 w-4 shrink-0 align-[-2px] text-emerald-500"
                 aria-label="Grupo verificado"
+              />
+            )}
+            {isExpired && (
+              <Link2Off
+                className="ml-1 inline h-4 w-4 shrink-0 align-[-2px] text-rose-500"
+                aria-label="Enlace caducado (expirado)"
               />
             )}
           </h3>
@@ -260,6 +280,15 @@ export function GroupCard({
         {/* z-[2] keeps these informational badges above the stretched link
             so their title tooltip is actually reachable on hover. */}
         <div className="relative z-[2] flex min-w-0 items-center gap-1.5">
+          {isExpired && (
+            <Badge
+              variant="outline"
+              className="gap-1 border-rose-300/70 font-semibold text-rose-600 dark:border-rose-800/60 dark:text-rose-400"
+              title="El verificador de enlaces marcó este enlace como caducado (expirado)"
+            >
+              <Link2Off className="h-3 w-3" aria-hidden /> Expirado
+            </Badge>
+          )}
           {group.isVerified && (
             <Badge
               variant="secondary"
@@ -269,7 +298,7 @@ export function GroupCard({
               <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
             </Badge>
           )}
-          {isActiveRecently && (
+          {isActiveRecently && !isExpired && (
             <Badge variant="outline" className="gap-1 border-emerald-300/50 font-normal text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
             </Badge>

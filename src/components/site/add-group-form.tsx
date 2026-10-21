@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle, Send, Link2, Tag, User, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Send, Link2, Tag, User, ShieldCheck, ShieldAlert, Lock } from "lucide-react";
 import type { CategoryDTO, CountryDTO } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,11 +103,6 @@ export function AddGroupForm({ categories, countries }: Props) {
       .catch(() => {});
   }, []);
 
-  // Prefill group name when fetched
-  React.useEffect(() => {
-    if (fetchedName && !groupName) setGroupName(fetchedName);
-  }, [fetchedName, groupName]);
-
   // Filtered lists
   const filteredCountries = countries.filter((c) =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
@@ -147,12 +142,18 @@ export function AddGroupForm({ categories, countries }: Props) {
         body: JSON.stringify({ url }),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "No se pudo verificar el enlace.");
-      if (json.data.status === "revoked") {
-        throw new Error("Este enlace está revocado o ha expirado. Usa un enlace activo.");
+      if (!json.ok) {
+        // Server rejected the link — expired/random (revoked) or unverifiable
+        // (unknown). HARD BLOCK: the preview stays hidden and the "Continuar"
+        // button never appears, so the user can't move forward with a dead
+        // link and can never type the group name by hand.
+        throw new Error(json.error || "No se pudo verificar el enlace.");
       }
-      // Both "active" and "unknown" allow proceeding
-      setFetchedName(json.data.groupName || "");
+      // Only "active" links reach this point — the name and image come from
+      // WhatsApp; the name is read-only (fetched & stored, not editable).
+      const name = json.data.groupName || "";
+      setFetchedName(name);
+      setGroupName(name);
       setFetchedImage(json.data.imageUrl || "");
       setInviteCode(json.data.inviteCode || "");
       setFetched(true);
@@ -327,9 +328,9 @@ export function AddGroupForm({ categories, countries }: Props) {
             <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
               <GroupImage src={fetchedImage} alt={fetchedName || "Grupo de WhatsApp"} size={56} className="rounded-xl" fallbackEmoji="💬" />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold">{fetchedName || "Grupo de WhatsApp (nombre no disponible)"}</div>
+                <div className="truncate font-semibold">{fetchedName || "Grupo de WhatsApp"}</div>
                 <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-3 w-3" /> {fetchedImage ? "Imagen y nombre verificados" : "Enlace aceptado"}
+                  <CheckCircle2 className="h-3 w-3" /> {fetchedImage ? "Imagen y nombre verificados" : "Enlace activo verificado"}
                 </div>
               </div>
             </div>
@@ -339,6 +340,12 @@ export function AddGroupForm({ categories, countries }: Props) {
             <Button onClick={() => setStep(2)} className="w-full">
               Continuar
             </Button>
+          )}
+          {!fetched && (
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+              Solo se aceptan enlaces activos: si el enlace está caducado o no es válido, no podrás continuar.
+            </p>
           )}
         </div>
       )}
@@ -500,28 +507,24 @@ export function AddGroupForm({ categories, countries }: Props) {
         <div className="space-y-4">
           <h2 className="text-lg font-bold">Describe tu grupo</h2>
 
-          {/* Fetched group card — show image + name, editable */}
+          {/* Fetched group card — image + name fetched from WhatsApp (READ-ONLY:
+              user cannot edit the group name; it is fetched and stored) */}
           <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
             <GroupImage src={fetchedImage} alt={groupName} size={56} className="rounded-xl" fallbackEmoji="💬" />
             <div className="min-w-0 flex-1">
               <Input
                 value={groupName}
-                onChange={(e) => {
-                  // Code-point clamp: styled glyphs (𝐀 = 2 UTF-16 units)
-                  // must not hit the limit twice as fast as plain text.
-                  const v = e.target.value;
-                  if (cpLen(v) <= NAME_MAX_CP) setGroupName(v);
-                }}
-                className="border-0 bg-transparent px-0 text-base font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
-                placeholder="Nombre del grupo (se admite cualquier estilo: 𝐀𝐃𝐈𝐋, emojis, símbolos…)"
-                maxLength={200}
+                readOnly
+                aria-readonly="true"
+                aria-label="Nombre del grupo (obtenido automáticamente de WhatsApp, no editable)"
+                className="cursor-default border-0 bg-transparent px-0 text-base font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <div className="flex items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-1 text-xs">
                 <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3 w-3" /> Verificado desde WhatsApp
                 </span>
-                <span className={`tabular-nums ${cpLen(groupName) > NAME_MAX_CP ? "text-destructive" : "text-muted-foreground"}`}>
-                  {cpLen(groupName)}/{NAME_MAX_CP}
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Lock className="h-3 w-3" aria-hidden /> el nombre se obtiene automáticamente y no se puede editar
                 </span>
               </div>
             </div>

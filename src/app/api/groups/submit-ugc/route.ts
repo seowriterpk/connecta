@@ -187,23 +187,39 @@ export async function POST(req: NextRequest) {
     // --- Step 5: Re-fetch WhatsApp meta on backend (never trust frontend) ---
     const meta = await fetchWhatsAppMeta(inviteUrl);
 
-    // --- Step 6: Confirm link is still active ---
+    // --- Step 6: Confirm link is still active (HARD BLOCK) ---
+    // User directive 2026-10-21: an expired/random link must NEVER be
+    // published, and the group name must ALWAYS come from WhatsApp.
     if (meta.status === "revoked") {
       return NextResponse.json(
-        { ok: false, error: "El enlace parece estar revocado o caducado. Genera uno nuevo." },
+        {
+          ok: false,
+          error:
+            "Este enlace ha caducado (expirado) o no es válido. Copia un enlace de invitación activo y vuelve a intentarlo.",
+        },
+        { status: 422 }
+      );
+    }
+    if (meta.status !== "active") {
+      // "unknown" — WhatsApp unreachable: without the fetch we have no group
+      // name (users can't type it anymore), so the submission is blocked.
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "No pudimos verificar el enlace con WhatsApp. Revisa que sea correcto e inténtalo de nuevo.",
+        },
         { status: 422 }
       );
     }
 
-    // --- Parse the rest of the payload ---
-    // Clean the fetched name first: entity-decoded styled names may still
-    // carry invisible characters, and the 5–120 limit counts CODE POINTS so
-    // SMP glyphs (𝐀𝐃𝐈𝐋 = math bold) aren't double-counted.
-    const fetchedGroupName = cleanName(meta.groupName || String(body.fetchedGroupName ?? ""));
-    const editedGroupName = cleanName(String(body.groupName ?? ""));
-    const groupName = editedGroupName || fetchedGroupName;
+    // --- Group name: ALWAYS the one fetched from WhatsApp (user directive) ---
+    // The client no longer sends an editable name; even if it does, it is
+    // ignored. Clean invisible characters, then validate length.
+    const fetchedGroupName = cleanName(meta.groupName);
+    const groupName = fetchedGroupName;
 
-    if (cpLength(groupName) < TITLE_MIN || cpLength(groupName) > TITLE_MAX) {
+    if (!groupName || cpLength(groupName) < TITLE_MIN || cpLength(groupName) > TITLE_MAX) {
       return NextResponse.json(
         { ok: false, error: `El nombre del grupo debe tener entre ${TITLE_MIN} y ${TITLE_MAX} caracteres.` },
         { status: 400 }
@@ -389,19 +405,39 @@ export async function POST(req: NextRequest) {
     const deviceTokenHash = hashValue(deviceToken);
     const referrer = req.headers.get("referer") ?? "";
 
-    // --- Step 13.5: persist the group image on OUR server ---
+    // --- Step 13.5: persist the group image on OUR server (download ONCE) ---
     // Policy: images live at /media/group_images (robots-blocked), never
     // hotlinked from the WhatsApp CDN. Only for rows we actually store
     // (auto_publish / review) — rejected rows keep the CDN URL for audit.
     // Download failures fall back to the CDN URL (never block a submission
     // on an image problem).
+    // DOWNLOAD-ONCE: when this invite link is a duplicate of an existing
+    // group that already has a local image, we reuse that file instead of
+    // paying for a second proxy download.
     let storedImageUrl = meta.imageUrl || "";
     if (storedImageUrl && (score.decision === "auto_publish" || score.decision === "review")) {
-      const download = await downloadGroupImage(storedImageUrl, groupName);
-      if (download.localUrl) {
-        storedImageUrl = download.localUrl;
-      } else {
-        console.warn("[submit-ugc] image download failed:", download.error ?? "unknown");
+      let reusedExisting = false;
+      if (dup.isDuplicate && dup.duplicateGroupId) {
+        try {
+          const existingImg = await queryOne<Row & { profileImage: string | null }>(
+            "SELECT `profileImage` FROM `groups` WHERE `id` = ? LIMIT 1",
+            [dup.duplicateGroupId]
+          );
+          if (existingImg?.profileImage && existingImg.profileImage.startsWith("/media/group_images")) {
+            storedImageUrl = existingImg.profileImage;
+            reusedExisting = true;
+          }
+        } catch {
+          /* lookup failed — fall through to a fresh download */
+        }
+      }
+      if (!reusedExisting) {
+        const download = await downloadGroupImage(storedImageUrl, groupName);
+        if (download.localUrl) {
+          storedImageUrl = download.localUrl;
+        } else {
+          console.warn("[submit-ugc] image download failed:", download.error ?? "unknown");
+        }
       }
     }
 

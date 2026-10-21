@@ -61,9 +61,13 @@ async function main() {
           await x(pool, "UPDATE `groups` SET `linkStatus` = 'active', `lastValidatedAt` = NOW() WHERE `id` = ?", [groupId]);
           active++;
         } else if (status === "revoked") {
+          // DOWNLOAD-ONCE policy (user directive 2026-10-21): the self-hosted
+          // image at /media/group_images is KEPT when the link dies — the
+          // public card keeps showing it with the red "Expirado" icon.
+          // We only flip linkStatus; no data is destroyed.
           await x(
             pool,
-            "UPDATE `groups` SET `linkStatus` = 'revoked', `profileImage` = NULL, `lastValidatedAt` = NOW() WHERE `id` = ?",
+            "UPDATE `groups` SET `linkStatus` = 'revoked', `lastValidatedAt` = NOW() WHERE `id` = ?",
             [groupId]
           );
           revoked++;

@@ -37,9 +37,18 @@ SESSION_SECRET=<any random 32+ char string>
 ADMIN_USER=admin
 ADMIN_PASS=<your admin panel password>
 
+PROXY_URL=http://<dataimpulse-user>__cr.us:<dataimpulse-password>@gw.dataimpulse.com:823
+
 BASE_URL=https://yourdomain.com
 NODE_ENV=production
 ```
+
+> ⚠️ **`PROXY_URL` is REQUIRED in production.** WhatsApp blocks datacenter
+> IPs — every invite-link verification and group-image download must exit
+> through the DataImpulse residential proxy. Without it the link checker
+> reports "unknown" for everything and images can't be saved locally.
+> Format: `http://USER__cr.us:PASSWORD@gw.dataimpulse.com:823` (the
+> `__cr.us` suffix routes through US residential IPs).
 
 > ⚠️ **`DB_HOST=localhost` is the critical fix.** Your MySQL server
 > (`srv939.hstgr.io`) runs on the same hosting node as the Node app.
@@ -47,7 +56,20 @@ NODE_ENV=production
 > every query through external network — slow, rate-limited, and the cause of
 > the lag and 503s. `localhost` connects through the internal socket — fast.
 
-> Do NOT upload a `.env` file to production. It's dev-only.
+> Do NOT put secrets in `.env` — it is **tracked by git**, so `git pull`
+> will conflict with (or overwrite) your edits. Two supported options:
+>
+> **Option A (recommended): hPanel → Node.js → Environment Variables.**
+> Real process env vars always win over files and survive every deploy.
+>
+> **Option B: a `.env.local` file in the repo root.** It is git-ignored,
+> survives `git pull` forever, and `npm run build` now copies it into
+> `.next/standalone/` (the production server only reads env files from its
+> own folder — the repo-root file is invisible to it without that copy).
+> The cron scripts (`node scripts/crons/*.mjs`) read the root
+> `.env.local` directly. If you edited the tracked `.env`, move your values
+> into `.env.local` and run `git restore .env` once so pulls stop failing.
+> If BOTH hPanel vars and `.env.local` exist, hPanel wins.
 
 ---
 

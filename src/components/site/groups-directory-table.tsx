@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown } from "lucide-react";
+import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown, Link2Off } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
@@ -479,6 +479,8 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
   const isHot = group.members >= 1000;
   const isTrending = group.views >= 50 || group.members >= 700;
   const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
+  // Link-checker verdict: revoked invite link → red "Expirado" chip.
+  const isExpired = group.linkStatus === "revoked";
   // Adult directive: blank image title/alt on adult groups (SEO safety).
   const imgAlt = group.isAdult ? "" : group.title;
   const imgTitle = group.isAdult ? undefined : group.title;
@@ -519,9 +521,18 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
           fallbackEmoji={group.category?.icon}
         />
-        {isActiveRecently && (
+        {isActiveRecently && !isExpired && (
           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
             <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
+          </span>
+        )}
+        {isExpired && (
+          <span
+            title="Enlace de invitación caducado (expirado)"
+            aria-label="Enlace de invitación caducado (expirado)"
+            className="absolute -right-1 -top-1 grid h-4.5 w-4.5 place-items-center rounded-full border-2 border-card bg-rose-500 text-rose-50"
+          >
+            <Link2Off className="h-2.5 w-2.5" aria-hidden />
           </span>
         )}
       </div>
@@ -542,6 +553,9 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           {group.isVerified && (
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
           )}
+          {isExpired && (
+            <Link2Off className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-label="Enlace caducado (expirado)" />
+          )}
           {group.isFeatured && (
             <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
           )}
@@ -551,7 +565,12 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
             <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
           </span>
-          {isTrending && (
+          {isExpired && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-600 dark:text-rose-400" title="El enlace de invitación ha caducado — marcado por el verificador">
+              <Link2Off className="h-3 w-3" aria-hidden /> Expirado
+            </span>
+          )}
+          {isTrending && !isExpired && (
             <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
               <TrendingUp className="h-3 w-3" /> Tendencia
             </span>
