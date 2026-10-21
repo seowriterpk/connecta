@@ -36,6 +36,7 @@ import { checkUgcRateLimits, hitUgcRateLimits, getClientIp, hashValue } from "@/
 import { detectDuplicate } from "@/lib/duplicate-detector";
 import { hunterScan } from "@/lib/content-hunter";
 import { calculateScore } from "@/lib/quality-score";
+import { downloadGroupImage } from "@/lib/image-downloader";
 
 export const dynamic = "force-dynamic";
 
@@ -387,6 +388,22 @@ export async function POST(req: NextRequest) {
     const deviceTokenHash = hashValue(deviceToken);
     const referrer = req.headers.get("referer") ?? "";
 
+    // --- Step 13.5: persist the group image on OUR server ---
+    // Policy: images live at /media/group_images (robots-blocked), never
+    // hotlinked from the WhatsApp CDN. Only for rows we actually store
+    // (auto_publish / review) — rejected rows keep the CDN URL for audit.
+    // Download failures fall back to the CDN URL (never block a submission
+    // on an image problem).
+    let storedImageUrl = meta.imageUrl || "";
+    if (storedImageUrl && (score.decision === "auto_publish" || score.decision === "review")) {
+      const download = await downloadGroupImage(storedImageUrl, groupName);
+      if (download.localUrl) {
+        storedImageUrl = download.localUrl;
+      } else {
+        console.warn("[submit-ugc] image download failed:", download.error ?? "unknown");
+      }
+    }
+
     // Shared INSERT for the ugc_submissions audit record (all decision branches).
     const insertSubmission = async (
       rowId: string,
@@ -412,7 +429,7 @@ export async function POST(req: NextRequest) {
           fetchedGroupName,
           groupName,
           meta.imageUrl || "",
-          meta.imageUrl || "",
+          storedImageUrl || "",
           category.id,
           category.name,
           isAdultDeclared ? 1 : 0,
@@ -473,7 +490,7 @@ export async function POST(req: NextRequest) {
           city || null,
           JSON.stringify(keywords),
           JSON.stringify(tags),
-          meta.imageUrl || null,
+          storedImageUrl || null,
           language,
           "live",
           "active",

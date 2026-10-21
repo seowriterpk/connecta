@@ -3,11 +3,13 @@
  * Based on Groupizo VIP Logic SYSTEM 1.
  *
  * - Fake being a mobile phone (iPhone User-Agent)
- * - Route through proxy (fallback)
- * - Only download first 8KB
+ * - Route through the residential proxy FIRST (WhatsApp blocks datacenter IPs);
+ *   direct fetch as fallback; never mark revoked on network error (fail-safe)
+ * - Only download first 64KB (keeps every og: meta tag intact)
  * - 3-state result: active | revoked | unknown
- * - NEVER mark revoked on network error (fail-safe)
  */
+
+import { proxiedFetch } from "@/lib/proxy-fetch";
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) " +
@@ -32,8 +34,11 @@ export function isValidWhatsAppInvite(url: string): boolean {
 }
 
 /**
- * Fetches WhatsApp invite meta. Uses proxy if PROXY_* env vars are set.
- * In dev sandbox without proxy, attempts direct fetch (may be blocked by WhatsApp).
+ * Fetches WhatsApp invite meta.
+ * Attempt 1: through the residential proxy (PROXY_URL in .env.local) — WhatsApp
+ *            blocks datacenter IPs, so the proxy is the reliable path.
+ * Attempt 2: direct fetch (resilience if the proxy hiccups but the network allows).
+ * Any fetch body → parse og: tags. No body at all → "unknown" (fail-safe).
  */
 export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta> {
   const code = extractInviteCode(inviteUrl);
@@ -62,44 +67,39 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
   // "&#x1d431; &#x30fb; &#x1d400;… &#x1". 64KB keeps every meta tag intact.
   const HTML_PREVIEW_BYTES = 65536;
 
-  // Attempt 1: direct (5s timeout)
+  // Attempt 1: through the residential proxy (PROXY_URL). WhatsApp blocks
+  // datacenter IPs — the proxy is the primary, reliable route. 6s budget.
   let html = "";
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(url, {
-      headers,
-      signal: controller.signal,
-      redirect: "follow",
-    });
-    clearTimeout(timeout);
-    if (res.ok) {
-      const text = await res.text();
-      html = text.slice(0, HTML_PREVIEW_BYTES);
-    }
-  } catch {
-    // direct failed, try proxy
-  }
-
-  // Attempt 2: with proxy (if configured and direct failed)
-  if (!html && process.env.PROXY_HOST) {
+  if (process.env.PROXY_URL) {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`;
-      const res = await fetch(url, {
+      const res = await proxiedFetch(url, {
         headers,
-        signal: controller.signal,
-        // @ts-ignore — proxy not in standard fetch types
-        agent: undefined,
+        redirect: "follow",
+        timeoutMs: 6000,
       });
-      clearTimeout(timeout);
       if (res.ok) {
         const text = await res.text();
         html = text.slice(0, HTML_PREVIEW_BYTES);
       }
     } catch {
-      // proxy also failed
+      // proxy failed — fall through to direct attempt
+    }
+  }
+
+  // Attempt 2: direct fetch (resilience when the proxy hiccups).
+  if (!html) {
+    try {
+      const res = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal: AbortSignal.timeout(4000),
+      });
+      if (res.ok) {
+        const text = await res.text();
+        html = text.slice(0, HTML_PREVIEW_BYTES);
+      }
+    } catch {
+      // direct failed too — html stays empty → "unknown" (fail-safe)
     }
   }
 

@@ -14,6 +14,25 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
   },
+  // SEO policy: WhatsApp-sourced group images must NEVER be indexed —
+  // robots.txt blocks /media/ and /uploads/, these headers are defense in
+  // depth for every image response (incl. the media route + legacy uploads).
+  async headers() {
+    return [
+      {
+        source: "/media/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, noimageindex, nosnippet, noarchive" },
+        ],
+      },
+      {
+        source: "/uploads/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, noimageindex, nosnippet, noarchive" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

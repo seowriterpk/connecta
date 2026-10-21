@@ -56,3 +56,6 @@ server.log
 mysql-runtime/
 db/legacy-sqlite.db
 logs/
+
+# Runtime-stored WhatsApp group images (regenerated per environment, robots-blocked)
+/media/

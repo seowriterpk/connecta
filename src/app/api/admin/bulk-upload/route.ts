@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   await logAdminAction(
     `bulk-upload.import (${target})`,
     undefined,
-    `${totalImported} importados / ${totalSkipped} omitidos · ${body.mode || "csv"}`
+    `${totalImported} importados / ${totalSkipped} omitidos · ${insertResult.imagesLocalized} imágenes localizadas · ${body.mode || "csv"}`
   );
 
   return NextResponse.json({
@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
     target,
     imported: totalImported,
     skipped: totalSkipped,
+    imagesLocalized: insertResult.imagesLocalized,
     errors: allErrors,
   });
 }

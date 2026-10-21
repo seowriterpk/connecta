@@ -3,9 +3,10 @@
  * Based on Groupizo VIP Logic SYSTEM 3.
  *
  * - Picks 60 groups where imageRefreshedAt < 2 hours ago (or NULL)
- * - Re-fetches og:image from WhatsApp invite URL
- * - Downloads + compresses with sharp (300x300 JPEG 80%) if available
- * - Saves locally to /public/uploads/group_images/
+ * - Re-fetches og:image from WhatsApp invite URL (through the residential proxy)
+ * - Persists to <project>/media/group_images/<group-name-slug>.jpg
+ *   (name-based, random-digits suffix on collision, sharp 300x300 JPEG 80% when available)
+ * - DB stores the local /media/group_images URL — robots-blocked (never indexed)
  */
 
 import {
@@ -14,6 +15,9 @@ import {
   q,
   x,
   fetchWhatsAppMeta,
+  downloadGroupImageFile,
+  isLocalMediaUrl,
+  isWhatsappCdnUrl,
   makeLogger,
   makeLock,
   ROOT,
@@ -25,35 +29,7 @@ loadEnvFile();
 const pool = createPool();
 const log = makeLogger("image-refresh");
 const lock = makeLock("image-refresh", 10);
-const UPLOAD_DIR = path.join(ROOT, "public", "uploads", "group_images");
-
-async function downloadAndCompress(url, groupId) {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
-    const buffer = Buffer.from(await res.arrayBuffer());
-
-    // Use sharp if available, otherwise just save raw (shared-hosting safe)
-    let sharp = null;
-    try {
-      sharp = (await import("sharp")).default;
-    } catch {
-      sharp = null;
-    }
-    const filename = `group_${groupId}_${Date.now()}.jpg`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-
-    if (sharp) {
-      await sharp(buffer).resize(300, 300, { fit: "cover" }).jpeg({ quality: 80 }).toFile(filepath);
-    } else {
-      fs.writeFileSync(filepath, buffer);
-    }
-
-    return `/uploads/group_images/${filename}`;
-  } catch {
-    return null;
-  }
-}
+const MEDIA_DIR = path.join(ROOT, "media", "group_images");
 
 async function main() {
   log("Starting image refresh cron (mysql2 pool)...");
@@ -63,14 +39,12 @@ async function main() {
     process.exit(0);
   }
 
-  if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  }
+  fs.mkdirSync(MEDIA_DIR, { recursive: true });
 
   try {
     const groups = await q(
       pool,
-      "SELECT `id`, `joinLink` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 60"
+      "SELECT `id`, `groupName`, `joinLink`, `profileImage` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 60"
     );
 
     log(`Processing ${groups.length} groups for image refresh...`);
@@ -80,17 +54,24 @@ async function main() {
 
     for (const group of groups) {
       try {
+        // Already local? Just bump the timestamp (re-download only when the
+        // invite link yields a NEW og:image we don't have yet).
         const meta = await fetchWhatsAppMeta(group.joinLink);
         if (meta.status === "active" && meta.imageUrl) {
-          const localPath = await downloadAndCompress(meta.imageUrl, group.id);
+          const localPath = await downloadGroupImageFile(meta.imageUrl, group.groupName);
           if (localPath) {
             await x(pool, "UPDATE `groups` SET `profileImage` = ?, `imageRefreshedAt` = NOW() WHERE `id` = ?", [localPath, group.id]);
             refreshed++;
           } else {
             failed++;
           }
+        } else if (isLocalMediaUrl(group.profileImage)) {
+          // Link revoked/unknown but we still hold a local copy — keep it,
+          // don't null it out, just move on.
+          await x(pool, "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?", [group.id]);
         } else {
-          // Link revoked or no image — update timestamp to skip next time
+          // Link revoked or no image and nothing local — update timestamp to
+          // skip next time.
           await x(pool, "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?", [group.id]);
         }
       } catch {

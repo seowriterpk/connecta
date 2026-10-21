@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
         "Content-Type": contentType,
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "public, max-age=3600",
+        // SEO policy: proxied WhatsApp images must never be indexed
+        // (defense in depth — /api/ is also robots.txt-disallowed).
+        "X-Robots-Tag": "noindex, noimageindex, nosnippet, noarchive",
       },
     });
   } catch {

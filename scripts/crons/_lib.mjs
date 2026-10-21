@@ -17,18 +17,147 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.join(__dirname, "..", "..");
 
 // --- tiny .env loader (optional; production should use real env vars) -------
+// Loads .env and then .env.local (matching Next.js priority: local overrides,
+// but real process env vars always win). PROXY_URL lives in .env.local so it
+// is never committed to git.
 export function loadEnvFile() {
-  const envPath = path.join(ROOT, ".env");
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-    if (!m) continue;
-    const key = m[1];
-    let val = m[2];
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
+  const fileLoaded = new Set();
+  const loadFile = (envPath) => {
+    if (!fs.existsSync(envPath)) return;
+    for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+      if (!m) continue;
+      const key = m[1];
+      let val = m[2];
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      if (key in process.env && !fileLoaded.has(key)) continue; // real env var wins
+      process.env[key] = val;
+      fileLoaded.add(key);
     }
-    if (!(key in process.env)) process.env[key] = val;
+  };
+  loadFile(path.join(ROOT, ".env"));
+  loadFile(path.join(ROOT, ".env.local"));
+}
+
+// --- proxied fetch (DataImpulse residential proxy) ---------------------------
+// Same runtime strategy as src/lib/proxy-fetch.ts:
+//   Bun  → native `proxy` option on global fetch
+//   Node → npm undici package's OWN fetch + ProxyAgent (version-matched pair;
+//          Node's built-in global fetch is an internal undici that rejects
+//          dispatchers from the npm package)
+// No PROXY_URL → direct fetch.
+let _undiciPair;
+async function getUndiciPair() {
+  if (!process.env.PROXY_URL) return null;
+  if (typeof globalThis.Bun !== "undefined") return null; // bun path handled natively
+  if (_undiciPair !== undefined) return _undiciPair;
+  try {
+    const mod = await import("undici");
+    _undiciPair = { fetch: mod.fetch, agent: new mod.ProxyAgent(process.env.PROXY_URL) };
+  } catch {
+    _undiciPair = null;
+  }
+  return _undiciPair;
+}
+
+export async function proxiedFetch(url, init = {}) {
+  const { timeoutMs = 8000, ...fetchInit } = init;
+  const signal = fetchInit.signal ?? AbortSignal.timeout(timeoutMs);
+
+  if (typeof globalThis.Bun !== "undefined" && process.env.PROXY_URL) {
+    return fetch(url, { ...fetchInit, signal, proxy: process.env.PROXY_URL });
+  }
+  const pair = await getUndiciPair();
+  if (pair) {
+    return pair.fetch(url, { ...fetchInit, signal, dispatcher: pair.agent });
+  }
+  return fetch(url, { ...fetchInit, signal });
+}
+
+// --- group image downloader (aligned with src/lib/image-downloader.ts) --------
+// Policy: WhatsApp group images are persisted on OUR server at
+// <project>/media/group_images/<group-name-slug>[-random].<ext> and served via
+// the /media/group_images route (robots-blocked + X-Robots-Tag — Google must
+// never index these WhatsApp-sourced images).
+export const MEDIA_DIR = path.join(ROOT, "media", "group_images");
+export const MEDIA_URL_PREFIX = "/media/group_images";
+
+const IMG_EXT_BY_TYPE = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/pjpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const MAX_IMG_BYTES = 4 * 1024 * 1024;
+
+export function isWhatsappCdnUrl(url) {
+  return Boolean(
+    url &&
+      (String(url).startsWith("https://pps.whatsapp.net/") ||
+        String(url).startsWith("https://mmg.whatsapp.net/") ||
+        String(url).startsWith("https://static.whatsapp.net/"))
+  );
+}
+
+export function isLocalMediaUrl(url) {
+  return Boolean(url && String(url).startsWith(MEDIA_URL_PREFIX));
+}
+
+/**
+ * Downloads a WhatsApp CDN image into media/group_images with a
+ * group-name-based file name (random digits suffix on collision).
+ * Returns the public URL (/media/group_images/…) or null on failure.
+ * Never throws. compress=true → sharp 300x300 JPEG 80% when available.
+ */
+export async function downloadGroupImageFile(imageUrl, groupName, { compress = true } = {}) {
+  try {
+    if (!isWhatsappCdnUrl(imageUrl)) return null;
+
+    const res = await proxiedFetch(imageUrl, {
+      headers: {
+        Referer: "https://chat.whatsapp.com/",
+        "User-Agent": IPHONE_UA,
+        Accept: "image/avif,image/webp,image/jpeg,image/png,*/*",
+      },
+      timeoutMs: 8000,
+    });
+    if (!res.ok) return null;
+
+    const contentType = (res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    let buffer = Buffer.from(await res.arrayBuffer());
+    if (buffer.length === 0 || buffer.length > MAX_IMG_BYTES) return null;
+
+    let ext = IMG_EXT_BY_TYPE[contentType];
+    if (!ext) return null;
+
+    // Optional server-side compression (shared-hosting safe — falls back to raw).
+    if (compress) {
+      try {
+        const sharp = (await import("sharp")).default;
+        buffer = await sharp(buffer).resize(300, 300, { fit: "cover" }).jpeg({ quality: 80 }).toBuffer();
+        ext = "jpg";
+      } catch {
+        /* sharp unavailable — keep raw buffer */
+      }
+    }
+
+    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+    const baseSlug = generateSlug(groupName || "grupo");
+    let fileName = `${baseSlug}.${ext}`;
+    if (fs.existsSync(path.join(MEDIA_DIR, fileName))) {
+      // Collision → random digits suffix (user directive).
+      fileName = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}.${ext}`;
+      if (fs.existsSync(path.join(MEDIA_DIR, fileName))) {
+        fileName = `${baseSlug}-${Date.now().toString(36)}.${ext}`;
+      }
+    }
+    fs.writeFileSync(path.join(MEDIA_DIR, fileName), buffer, { flag: "wx" });
+    return `${MEDIA_URL_PREFIX}/${fileName}`;
+  } catch {
+    return null;
   }
 }
 
@@ -144,16 +273,33 @@ export async function fetchWhatsAppMeta(inviteUrl) {
     Accept: "text/html,application/xhtml+xml",
     "Accept-Language": "es-MX,es;q=0.9",
   };
+  // 64KB preview (aligned with src/lib/whatsapp-validator.ts): og:title can
+  // sit deep after big inline scripts; 8KB sometimes cut a numeric entity in
+  // half ("&#x1d431;" → "&#x1"), producing broken group names.
+  const HTML_PREVIEW_BYTES = 65536;
   let html = "";
-  try {
-    const res = await fetch(url, {
-      headers,
-      signal: AbortSignal.timeout(5000),
-      redirect: "follow",
-    });
-    if (res.ok) html = (await res.text()).slice(0, 8192);
-  } catch {
-    /* network fail → unknown, never revoked */
+  // Attempt 1: residential proxy (WhatsApp blocks datacenter IPs — this is
+  // the reliable path on Hostinger cron boxes).
+  if (process.env.PROXY_URL) {
+    try {
+      const res = await proxiedFetch(url, { headers, redirect: "follow", timeoutMs: 6000 });
+      if (res.ok) html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
+    } catch {
+      /* proxy failed → direct attempt */
+    }
+  }
+  // Attempt 2: direct (resilience when the proxy hiccups).
+  if (!html) {
+    try {
+      const res = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(4000),
+        redirect: "follow",
+      });
+      if (res.ok) html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
+    } catch {
+      /* network fail → unknown, never revoked */
+    }
   }
   if (!html) {
     return { status: "unknown", groupName: "", imageUrl: "", inviteCode: code, description: "" };

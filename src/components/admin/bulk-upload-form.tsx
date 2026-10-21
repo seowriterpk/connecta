@@ -72,6 +72,8 @@ type ImportResult = {
   ok: boolean;
   imported: number;
   skipped: number;
+  /** WhatsApp CDN images persisted to /media/group_images during import. */
+  imagesLocalized?: number;
   errors: { rowIndex: number; rowName: string; reason: string }[];
   target?: string;
 };
@@ -481,7 +483,9 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
       }
       setResult(data);
       toast.success(
-        `Importación completa: ${data.imported} importados, ${data.skipped} omitidos.`
+        `Importación completa: ${data.imported} importados, ${data.skipped} omitidos` +
+          (data.imagesLocalized ? `, ${data.imagesLocalized} imágenes localizadas` : "") +
+          "."
       );
       router.refresh();
     } catch (e: any) {
@@ -1039,6 +1043,11 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                     <span className="font-medium text-rose-700 dark:text-rose-300">
                       {result.skipped} omitidos
                     </span>
+                    {Boolean(result.imagesLocalized) && (
+                      <span className="font-medium text-teal-700 dark:text-teal-300">
+                        {result.imagesLocalized} imágenes guardadas en el servidor
+                      </span>
+                    )}
                   </div>
                   {result.errors.length > 0 && (
                     <details className="mt-3">

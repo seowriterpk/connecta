@@ -12,6 +12,10 @@
 import { query, queryOne, exec, newId, type Row } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 import { extractInviteCode, isValidWhatsAppInvite } from "@/lib/whatsapp-validator";
+import {
+  downloadGroupImage,
+  isWhatsappCdnUrl,
+} from "@/lib/image-downloader";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +68,8 @@ export interface NormalizedGroup {
 export interface ImportResult {
   imported: number;
   skipped: number;
+  /** WhatsApp CDN images persisted to /media/group_images during import. */
+  imagesLocalized: number;
   errors: { rowIndex: number; rowName: string; reason: string }[];
 }
 
@@ -436,7 +442,7 @@ export async function importGroups(
   rows: NormalizedGroup[],
   options: { target: ImportTarget }
 ): Promise<ImportResult> {
-  const result: ImportResult = { imported: 0, skipped: 0, errors: [] };
+  const result: ImportResult = { imported: 0, skipped: 0, imagesLocalized: 0, errors: [] };
 
   if (rows.length === 0) return result;
   if (rows.length > 500) {
@@ -444,6 +450,7 @@ export async function importGroups(
     return {
       imported: 0,
       skipped: rows.length,
+      imagesLocalized: 0,
       errors: [
         {
           rowIndex: 0,
@@ -452,6 +459,29 @@ export async function importGroups(
         },
       ],
     };
+  }
+
+  // --- Persist WhatsApp images on OUR server (user directive) ---
+  // Every row whose profile_image points at the WhatsApp CDN is downloaded
+  // to media/group_images through the residential proxy BEFORE inserting, so
+  // the DB stores a local /media/group_images URL. Failures silently fall
+  // back to the CDN URL — an image problem must never block an import.
+  // Concurrency 3: fast enough for 500-row batches without hammering
+  // the proxy connection limit.
+  const rowsWithCdn = rows.filter((r) => isWhatsappCdnUrl(r.profileImage));
+  if (rowsWithCdn.length > 0) {
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < rowsWithCdn.length) {
+        const row = rowsWithCdn[cursor++];
+        const dl = await downloadGroupImage(row.profileImage as string, row.groupName);
+        if (dl.localUrl) {
+          row.profileImage = dl.localUrl;
+          result.imagesLocalized++;
+        }
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
   }
 
   // Look up all category + country IDs up-front

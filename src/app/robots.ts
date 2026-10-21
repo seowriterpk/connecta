@@ -7,7 +7,11 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/admin/", "/_next/"],
+        // /media/   — locally stored WhatsApp group images (user directive:
+        //             Google must never index these images).
+        // /uploads/  — legacy image folder (pre-policy local images) — same rule.
+        // /api/img  — image proxy (defense in depth on top of X-Robots-Tag).
+        disallow: ["/api/", "/admin/", "/_next/", "/media/", "/uploads/"],
       },
     ],
     sitemap: `${SITE.url}/sitemap.xml`,
