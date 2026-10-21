@@ -4,7 +4,8 @@
  * Why: WhatsApp (chat.whatsapp.com + pps.whatsapp.net CDN) blocks requests
  * from datacenter IPs (this sandbox, Hostinger shared hosting). All WhatsApp
  * link-validation and group-image traffic must exit via the residential proxy
- * configured in PROXY_URL (.env.local — never committed).
+ * configured in the PROXY_URL environment variable (.env / .env.local /
+ * hPanel env vars — every .env* file is git-ignored since Task 21).
  *
  * Runtime awareness:
  *  - Bun (local dev)      → native `proxy` option on the global fetch()

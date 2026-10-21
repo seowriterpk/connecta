@@ -24,14 +24,20 @@ node_modules
 .DS_Store
 *.pem
 
+# internal QA / agent tool output — never part of the app
+tool-results/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — ALL untracked since Task 21 (the server's .env holds the
+# owner's secrets; editing it must never conflict with git pull).
+# Only the .env.example template stays committed.
 .env*
+!.env.example
 
 # vercel
 .vercel

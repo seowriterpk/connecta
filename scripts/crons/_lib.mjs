@@ -18,8 +18,8 @@ export const ROOT = path.join(__dirname, "..", "..");
 
 // --- tiny .env loader (optional; production should use real env vars) -------
 // Loads .env and then .env.local (matching Next.js priority: local overrides,
-// but real process env vars always win). PROXY_URL lives in .env.local so it
-// is never committed to git.
+// but real process env vars always win). PROXY_URL may live in either
+// file; both are git-ignored since Task 21.
 export function loadEnvFile() {
   const fileLoaded = new Set();
   const loadFile = (envPath) => {

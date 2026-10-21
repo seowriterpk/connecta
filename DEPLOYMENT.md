@@ -22,9 +22,36 @@
 
 ---
 
-## 2. Environment variables (hPanel → Node.js → Environment Variables)
+## 2. Environment variables
 
-Set these EXACTLY (the app reads them at runtime via `process.env`):
+The app reads everything from `process.env` at runtime. Any of these three
+sources works (highest priority first — a source never overrides the one
+above it):
+
+1. **Real environment variables** (hPanel → Node.js → Environment Variables)
+2. **`.env.local`** in the app root
+3. **`.env`** in the app root
+
+> ✅ **Since Task 21 every `.env*` file is git-ignored and UNTRACKED.** You can
+> put secrets (including `PROXY_URL`) directly in `.env` on the server —
+> `git pull` can never conflict with or overwrite it again. The committed
+> `.env.example` is the template; the build copies any existing `.env*`
+> file into `.next/standalone/` so the production server sees it, and the
+> cron scripts read the app-root files directly.
+
+> ⚠️ **ONE-TIME migration for the next `git pull` only.** This update removes
+> `.env` from git tracking. If you already created/edited a `.env` on the
+> server, the pull would refuse to touch it. Run this sequence ONCE, then
+> pull normally forever after:
+>
+> ```bash
+> cp .env /tmp/env.keep    # 1. back up your .env (the one with PROXY_URL)
+> git restore .env         # 2. reset it to the tracked version (may error if already clean — ignore)
+> git pull                 # 3. pulls the update; .env disappears from tracking
+> cp /tmp/env.keep .env    # 4. put your .env back — it's yours now, git ignores it
+> ```
+
+Full variable list (copy from `.env.example`):
 
 ```
 DB_HOST=localhost
@@ -55,21 +82,6 @@ NODE_ENV=production
 > Connecting through the public hostname/IP (`31.97.208.160:3306`) routes
 > every query through external network — slow, rate-limited, and the cause of
 > the lag and 503s. `localhost` connects through the internal socket — fast.
-
-> Do NOT put secrets in `.env` — it is **tracked by git**, so `git pull`
-> will conflict with (or overwrite) your edits. Two supported options:
->
-> **Option A (recommended): hPanel → Node.js → Environment Variables.**
-> Real process env vars always win over files and survive every deploy.
->
-> **Option B: a `.env.local` file in the repo root.** It is git-ignored,
-> survives `git pull` forever, and `npm run build` now copies it into
-> `.next/standalone/` (the production server only reads env files from its
-> own folder — the repo-root file is invisible to it without that copy).
-> The cron scripts (`node scripts/crons/*.mjs`) read the root
-> `.env.local` directly. If you edited the tracked `.env`, move your values
-> into `.env.local` and run `git restore .env` once so pulls stop failing.
-> If BOTH hPanel vars and `.env.local` exist, hPanel wins.
 
 ---
 
@@ -150,8 +162,9 @@ file so runs never overlap.)
 `next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `components.json`,
 `eslint.config.mjs`, `db/` (optional).
 
-**Exclude:** `node_modules/` (hPanel runs `npm install`), `.env`,
-`.next/` (rebuilt on server), `mysql-runtime/` (sandbox-only local DB),
+**Exclude:** `node_modules/` (hPanel runs `npm install`), `.env*`
+(create on the server — see §2), `.next/` (rebuilt on server),
+`mysql-runtime/` (sandbox-only local DB),
 `db/legacy-sqlite.db` (already migrated), `logs/`.
 
 ---
@@ -179,10 +192,11 @@ file so runs never overlap.)
 ./start-dev.sh         # next dev on :3000 (webpack mode — Turbopack OOMs on 4GB sandboxes)
 ```
 
-`.env` (dev only) points at the local DB with user `grupos` /
-password `grupos_dev_pw` / database `gruposwhatsapp`. Data was migrated
-from the old SQLite file (`db/legacy-sqlite.db`, 33 groups) via
-`bun scripts/migrate-sqlite-to-mysql.mjs`.
+Local dev needs no `.env` for the DB — `src/lib/db.ts` falls back to the
+sandbox MariaDB defaults (user `grupos`, no password, database
+`gruposwhatsapp` on 127.0.0.1:3306). The sandbox `.env` holds only
+`PROXY_URL`. Data was migrated from the old SQLite file
+(`db/legacy-sqlite.db`, 33 groups) via `bun scripts/migrate-sqlite-to-mysql.mjs`.
 
 ---
 

@@ -67,8 +67,8 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
   // "&#x1d431; &#x30fb; &#x1d400;… &#x1". 64KB keeps every meta tag intact.
   const HTML_PREVIEW_BYTES = 65536;
 
-  // Attempt 1: through the residential proxy (PROXY_URL). WhatsApp blocks
-  // datacenter IPs — the proxy is the primary, reliable route. 6s budget.
+  // Attempt 1: through the residential proxy (PROXY_URL env var). WhatsApp
+  // blocks datacenter IPs — the proxy is the primary, reliable route. 6s budget.
   let html = "";
   if (process.env.PROXY_URL) {
     try {
