@@ -37,6 +37,7 @@ import { detectDuplicate } from "@/lib/duplicate-detector";
 import { hunterScan } from "@/lib/content-hunter";
 import { calculateScore } from "@/lib/quality-score";
 import { downloadGroupImage } from "@/lib/image-downloader";
+import { clearDataCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -514,6 +515,9 @@ export async function POST(req: NextRequest) {
           [contributorId]
         );
       }
+
+      // New public live group — drop the public directory micro-cache.
+      clearDataCache();
 
       return NextResponse.json({
         ok: true,

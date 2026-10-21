@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import { queryOne, exec, newId } from "@/lib/db";
 import { generateSlug } from "@/lib/slug";
 
@@ -70,6 +71,9 @@ export async function POST(req: NextRequest) {
   );
 
   await logAdminAction("categoria.create", id, name);
+
+  // Taxonomy changed — drop the public directory micro-cache.
+  clearDataCache();
 
   return NextResponse.json({ ok: true, id, slug });
 }

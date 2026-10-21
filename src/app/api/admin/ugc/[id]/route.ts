@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import { exec, newId, query, queryOne, type Row } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 
@@ -199,6 +200,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     "UPDATE `ugc_submissions` SET `status` = ?, `reviewedAt` = ?, `publishedAt` = ?, `publishedGroupId` = ? WHERE `id` = ?",
     [newStatus, now, body.action === "approve" ? now : null, publishedGroupId, id]
   );
+
+  // Approving publishes a live group (reject/spam don't, but a full clear
+  // is cheap and always safe) — drop the public directory micro-cache.
+  clearDataCache();
 
   await logAdminAction(
     `ugc.${body.action}`,

@@ -29,7 +29,7 @@
 -- 40 posts at https://gruposhoy.com/guias. Then regenerate sitemaps:
 --   node scripts/crons/sitemap-generator.mjs   (BASE_URL=gruposhoy.com)
 --
--- Generated: 2026-10-14T00:11:53.934Z
+-- Generated: 2026-10-21T04:11:04.805Z
 -- ============================================================================
 
 SET NAMES utf8mb4;
@@ -197,7 +197,13 @@ CREATE TABLE IF NOT EXISTS `groups` (
   KEY `idx_groups_isAdult` (`isAdult`),
   KEY `idx_groups_city` (`city`),
   KEY `idx_groups_clicks` (`clicks`),
-  KEY `idx_groups_createdAt` (`createdAt`)
+  KEY `idx_groups_createdAt` (`createdAt`),
+  KEY `idx_groups_pub_created` (`status`,`isAdult`,`createdAt`),
+  KEY `idx_groups_pub_clicks` (`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_cat_pub` (`categoryId`,`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_country_pub` (`countryId`,`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_city_pub` (`city`(64),`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_joinLink` (`joinLink`(64))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
 ('cg-0001', 'Amistades CDMX 🌮 planes de fin de semana', 'amistades-cdmx-planes-de-fin-de-semana', 'https://chat.whatsapp.com/UCeRKTFyPV5wyPcHp2fBbZ', 'Grupo de amigos chilangos para organizar planes: ciclovía dominical, tacos al pastor, museos y conciertos. Se proponen actividades cada jueves y el que quiere, se apunta. Norma de oro: presentarse al entrar y no solo mirar.', 'Amistad', 'cat-amistad', 'México', 'co-mx', 'Ciudad de México', '["amistades", "cdmx", "planes", "fin", "de", "semana"]', '["amistad", "mexico", "cdmx", "conocer-gente", "planes"]', NULL, 'Espanol', 'live', 'active', 0, 'seed', 1180, 145, 0, 0, 6885, 27, 'up-equipo', NULL, NULL, '2026-10-10 21:32:27', NULL, '2026-10-13 01:32:27', NULL, NULL, '2026-10-01 21:32:27', '2026-10-13 21:32:27')
@@ -485,7 +491,7 @@ INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `cat
 ('cg-0095', 'Solteros Bogotá 18+: planes', 'solteros-bogota-18mas-planes', 'https://chat.whatsapp.com/eSp4yzxvvPU8TYQfzeFwBN', 'Gente soltera en Bogotá mayor de 18: ruedas de conversación, planes de cine y caminatas por la ciclovía en grupo. Reglas claras de respeto y consentimiento. Edad verificada al ingreso: comunidad 100% adulta.', 'Citas y Encuentros 18+', 'cat-citas-18', 'Colombia', 'co-co', 'Bogotá', '["solteros", "bogota", "18", "planes"]', '["citas", "colombia", "bogota", "18", "solteros"]', NULL, 'Espanol', 'live', 'active', 1, 'seed', 1720, 189, 0, 0, 7514, 58, 'up-equipo', NULL, NULL, '2026-10-11 21:32:27', NULL, '2026-10-13 09:32:27', NULL, NULL, '2026-09-28 21:32:27', '2026-10-13 21:32:27')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
-('cg-0096', 'Conocer gente 18+ Argentina', 'conocer-gente-18mas-argentina', 'https://chat.whatsapp.com/agBy3X2sR49zf7DCYbRbCR', 'Grupo 18+ argentino para conocer gente con onda: charla diaria, planes de mates y milongas para valientes. Presentación al entrar con edad y ciudad. Se respeta el ritmo de cada uno: nadie presiona a nadie.', 'Citas y Encuentros 18+', 'cat-citas-18', 'Argentina', 'co-ar', 'Buenos Aires', '["conocer", "gente", "18", "argentina"]', '["citas", "argentina", "buenos-aires", "18", "conocer-gente", "mate"]', NULL, 'Espanol', 'live', 'active', 1, 'seed', 1560, 126, 0, 0, 9224, 49, 'up-equipo', NULL, NULL, '2026-10-04 21:32:27', NULL, '2026-10-12 20:32:27', NULL, NULL, '2026-10-04 21:32:27', '2026-10-13 21:32:27')
+('cg-0096', 'Conocer gente 18+ Argentina', 'conocer-gente-18mas-argentina', 'https://chat.whatsapp.com/agBy3X2sR49zf7DCYbRbCR', 'Grupo 18+ argentino para conocer gente con onda: charla diaria, planes de mates y milongas para valientes. Presentación al entrar con edad y ciudad. Se respeta el ritmo de cada uno: nadie presiona a nadie.', 'Citas y Encuentros 18+', 'cat-citas-18', 'Argentina', 'co-ar', 'Buenos Aires', '["conocer", "gente", "18", "argentina"]', '["citas", "argentina", "buenos-aires", "18", "conocer-gente", "mate"]', NULL, 'Espanol', 'live', 'active', 1, 'seed', 1560, 126, 0, 0, 9229, 49, 'up-equipo', NULL, NULL, '2026-10-04 21:32:27', NULL, '2026-10-21 03:45:03', NULL, NULL, '2026-10-04 21:32:27', '2026-10-21 03:45:03')
 ON DUPLICATE KEY UPDATE `groupName` = VALUES(`groupName`), `slug` = VALUES(`slug`), `joinLink` = VALUES(`joinLink`), `description` = VALUES(`description`), `category` = VALUES(`category`), `categoryId` = VALUES(`categoryId`), `country` = VALUES(`country`), `countryId` = VALUES(`countryId`), `city` = VALUES(`city`), `keywords` = VALUES(`keywords`), `tags` = VALUES(`tags`), `profileImage` = VALUES(`profileImage`), `language` = VALUES(`language`), `status` = VALUES(`status`), `linkStatus` = VALUES(`linkStatus`), `isAdult` = VALUES(`isAdult`), `submitSource` = VALUES(`submitSource`), `clicks` = VALUES(`clicks`), `joinCount` = VALUES(`joinCount`), `avgRating` = VALUES(`avgRating`), `ratingCount` = VALUES(`ratingCount`), `views` = VALUES(`views`), `shares` = VALUES(`shares`), `uploaderId` = VALUES(`uploaderId`), `ugcSubmissionId` = VALUES(`ugcSubmissionId`), `ugcContributorId` = VALUES(`ugcContributorId`), `lastValidatedAt` = VALUES(`lastValidatedAt`), `imageRefreshedAt` = VALUES(`imageRefreshedAt`), `lastActiveAt` = VALUES(`lastActiveAt`), `popularityBadge` = VALUES(`popularityBadge`), `contactName` = VALUES(`contactName`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `clicks`, `joinCount`, `avgRating`, `ratingCount`, `views`, `shares`, `uploaderId`, `ugcSubmissionId`, `ugcContributorId`, `lastValidatedAt`, `imageRefreshedAt`, `lastActiveAt`, `popularityBadge`, `contactName`, `createdAt`, `updatedAt`) VALUES
 ('cg-0097', 'Citas Lima 18+: tomemos un café', 'citas-lima-18mas-tomemos-un-cafe', 'https://chat.whatsapp.com/CyHf2gUw9AQyaH4C79xcqr', 'Singles limeños de 18 en adelante: planes simples de café y conversación, sin expectativas gigantes. Se propone plan y se suma quien quiera. Zona Miraflores, San Borja y alrededores. Respeto y honestidad: base del grupo.', 'Citas y Encuentros 18+', 'cat-citas-18', 'Perú', 'co-pe', 'Lima', '["citas", "lima", "18", "cafe"]', '["citas", "peru", "lima", "18", "cafe"]', NULL, 'Espanol', 'live', 'active', 1, 'seed', 1340, 141, 0, 0, 7399, 61, 'up-equipo', NULL, NULL, '2026-10-04 21:32:27', NULL, '2026-10-11 18:32:27', NULL, NULL, '2026-09-19 21:32:27', '2026-10-13 21:32:27')
@@ -859,8 +865,10 @@ CREATE TABLE IF NOT EXISTS `group_feedback` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_visitor_group` (`groupId`,`visitorHash`),
   KEY `idx_groupId` (`groupId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- (no rows)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `group_feedback` (`id`, `groupId`, `visitorHash`, `action`, `createdAt`, `updatedAt`) VALUES
+(1, 'cg-0096', 'e8bf2f7cc88590403de81da0ee31eaeec9867504538f919b50f42113098ed8c2', 'like', '2026-10-21 03:42:37', '2026-10-21 03:42:37')
+ON DUPLICATE KEY UPDATE `groupId` = VALUES(`groupId`), `visitorHash` = VALUES(`visitorHash`), `action` = VALUES(`action`), `createdAt` = VALUES(`createdAt`), `updatedAt` = VALUES(`updatedAt`);
 
 -- ---------------------------------------------------------------------------
 -- Table: group_reviews
@@ -992,7 +1000,8 @@ CREATE TABLE IF NOT EXISTS `group_daily_stats` (
 INSERT INTO `group_daily_stats` (`groupId`, `day`, `views`, `clicks`) VALUES
 ('cg-0003', '2026-10-13 00:00:00', 22, 0),
 ('cg-0009', '2026-10-13 00:00:00', 2, 0),
-('cg-0016', '2026-10-13 00:00:00', 2, 0)
+('cg-0016', '2026-10-13 00:00:00', 2, 0),
+('cg-0096', '2026-10-21 00:00:00', 5, 0)
 ON DUPLICATE KEY UPDATE `views` = VALUES(`views`), `clicks` = VALUES(`clicks`);
 
 -- ---------------------------------------------------------------------------

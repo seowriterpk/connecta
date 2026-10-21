@@ -2,11 +2,19 @@
  * Image Refresh Cron — runs every 10 minutes (hPanel: node scripts/crons/image-refresh.mjs)
  * Based on Groupizo VIP Logic SYSTEM 3.
  *
- * - Picks 60 groups where imageRefreshedAt < 2 hours ago (or NULL)
+ * - Picks 60 groups that still DON'T hold a local image (new rows, groups
+ *   whose image was nulled by the link-checker, imports from before the
+ *   localization policy) where imageRefreshedAt < 2 hours ago (or NULL)
  * - Re-fetches og:image from WhatsApp invite URL (through the residential proxy)
  * - Persists to <project>/media/group_images/<group-name-slug>.jpg
  *   (name-based, random-digits suffix on collision, sharp 300x300 JPEG 80% when available)
  * - DB stores the local /media/group_images URL — robots-blocked (never indexed)
+ *
+ * COST POLICY (3k+ groups): groups that ALREADY have a local image are never
+ * re-fetched — the og:image rarely changes, and re-downloading every group
+ * every 2h would burn ~7GB/day of paid proxy bandwidth at 3k scale. The cron
+ * is now a localization *safety net* (new/missing images only), so steady-state
+ * proxy cost is ~zero.
  */
 
 import {
@@ -16,8 +24,6 @@ import {
   x,
   fetchWhatsAppMeta,
   downloadGroupImageFile,
-  isLocalMediaUrl,
-  isWhatsappCdnUrl,
   makeLogger,
   makeLock,
   ROOT,
@@ -44,7 +50,7 @@ async function main() {
   try {
     const groups = await q(
       pool,
-      "SELECT `id`, `groupName`, `joinLink`, `profileImage` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 60"
+      "SELECT `id`, `groupName`, `joinLink`, `profileImage` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`profileImage` IS NULL OR `profileImage` NOT LIKE '/media/%') AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 60"
     );
 
     log(`Processing ${groups.length} groups for image refresh...`);
@@ -54,8 +60,8 @@ async function main() {
 
     for (const group of groups) {
       try {
-        // Already local? Just bump the timestamp (re-download only when the
-        // invite link yields a NEW og:image we don't have yet).
+        // Selected rows never hold a local copy — fetch the invite og:image
+        // and persist it under media/group_images.
         const meta = await fetchWhatsAppMeta(group.joinLink);
         if (meta.status === "active" && meta.imageUrl) {
           const localPath = await downloadGroupImageFile(meta.imageUrl, group.groupName);
@@ -63,15 +69,16 @@ async function main() {
             await x(pool, "UPDATE `groups` SET `profileImage` = ?, `imageRefreshedAt` = NOW() WHERE `id` = ?", [localPath, group.id]);
             refreshed++;
           } else {
+            // Download rejected/failed — bump the timestamp so a permanently
+            // broken row doesn't hog a slot in every 10-min run (it retries
+            // once per 2h window instead of every run, keeping the cron
+            // cycling through the rest of the backlog).
+            await x(pool, "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?", [group.id]);
             failed++;
           }
-        } else if (isLocalMediaUrl(group.profileImage)) {
-          // Link revoked/unknown but we still hold a local copy — keep it,
-          // don't null it out, just move on.
-          await x(pool, "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?", [group.id]);
         } else {
-          // Link revoked or no image and nothing local — update timestamp to
-          // skip next time.
+          // Link revoked/unknown or no image — update timestamp to skip
+          // this row until the next window (the link-checker owns revoked rows).
           await x(pool, "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?", [group.id]);
         }
       } catch {

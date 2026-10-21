@@ -21,7 +21,7 @@
 -- app once instead: its SCHEMA GUARD (src/lib/db.ts) self-heals the schema
 -- on boot, then run import.sql.
 --
--- Generated: 2026-10-14T00:11:53.934Z
+-- Generated: 2026-10-21T04:11:04.805Z
 -- ============================================================================
 
 SET NAMES utf8mb4;
@@ -172,7 +172,13 @@ CREATE TABLE IF NOT EXISTS `groups` (
   KEY `idx_groups_isAdult` (`isAdult`),
   KEY `idx_groups_city` (`city`),
   KEY `idx_groups_clicks` (`clicks`),
-  KEY `idx_groups_createdAt` (`createdAt`)
+  KEY `idx_groups_createdAt` (`createdAt`),
+  KEY `idx_groups_pub_created` (`status`,`isAdult`,`createdAt`),
+  KEY `idx_groups_pub_clicks` (`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_cat_pub` (`categoryId`,`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_country_pub` (`countryId`,`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_city_pub` (`city`(64),`status`,`isAdult`,`clicks`),
+  KEY `idx_groups_joinLink` (`joinLink`(64))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ALTER TABLE `groups` ADD COLUMN IF NOT EXISTS `id` varchar(191) NOT NULL;
 ALTER TABLE `groups` ADD COLUMN IF NOT EXISTS `groupName` varchar(255) NOT NULL;
@@ -325,7 +331,7 @@ CREATE TABLE IF NOT EXISTS `group_feedback` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_visitor_group` (`groupId`,`visitorHash`),
   KEY `idx_groupId` (`groupId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ALTER TABLE `group_feedback` ADD COLUMN IF NOT EXISTS `id` int(10) unsigned NOT NULL AUTO_INCREMENT;
 ALTER TABLE `group_feedback` ADD COLUMN IF NOT EXISTS `groupId` varchar(191) NOT NULL;
 ALTER TABLE `group_feedback` ADD COLUMN IF NOT EXISTS `visitorHash` char(64) NOT NULL;

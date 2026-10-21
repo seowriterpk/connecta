@@ -3,6 +3,7 @@
 // page/component needs to change — only the engine underneath did.
 
 import { query, queryOne, exec, newId, type Row } from "@/lib/db";
+import { cached, TTL } from "@/lib/cache";
 import { SITE } from "@/lib/constants";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 import { computeDisplayedMembers } from "@/lib/members";
@@ -133,6 +134,16 @@ function like(value: string): string {
 export async function getCategories(
   opts: { adult?: "exclude" | "only" } = {}
 ): Promise<CategoryDTO[]> {
+  // Taxonomy + per-category live counts — rendered in headers/navs on every
+  // page. Micro-cached; cleared by every write path (see lib/cache.ts).
+  return cached(`cats:${opts.adult === "only" ? "adult" : "clean"}`, TTL.med, () =>
+    getCategoriesImpl(opts)
+  );
+}
+
+async function getCategoriesImpl(
+  opts: { adult?: "exclude" | "only" } = {}
+): Promise<CategoryDTO[]> {
   // Clean by default — adult categories never render on indexing pages.
   const only = (opts.adult ?? "exclude") === "only";
   const rows = await query<Row>(
@@ -156,6 +167,11 @@ export async function getCategories(
 }
 
 export async function getCountries(): Promise<CountryDTO[]> {
+  // Fixed curated bank (20 países) + live counts — long TTL is safe.
+  return cached("countries", TTL.long, getCountriesImpl);
+}
+
+async function getCountriesImpl(): Promise<CountryDTO[]> {
   // Sin filtro isActive: el banco de países es CURADO y fijo (20 países
   // hispanohablantes). Filtrar aquí escondía países enteros de /paises, del
   // header, del buscador, etc. cuando el flag derivaba en la BD — exactamente
@@ -179,6 +195,12 @@ export async function getCountries(): Promise<CountryDTO[]> {
 }
 
 export async function getStats(): Promise<StatsDTO> {
+  // Home hero stats — COUNT-heavy query plus a full live-rows scan for the
+  // members estimate. Cached.
+  return cached("stats", TTL.med, getStatsImpl);
+}
+
+async function getStatsImpl(): Promise<StatsDTO> {
   // Clean-only counts: global stats describe the clean, indexable directory.
   // "members" = sum of the per-group derived estimates (computeDisplayedMembers:
   // ≈0.2 members per real click, capped under WhatsApp's 1,024 limit) — never raw
@@ -290,7 +312,32 @@ function sortToOrderBy(sort?: string): string {
   }
 }
 
+/** Bounded key for every list/filter combination (search excluded). */
+function groupsListKey(prefix: string, q: Partial<GroupsQuery>): string {
+  return [
+    prefix,
+    q.sort ?? "",
+    q.limit ?? "",
+    q.offset ?? "",
+    q.categoryId ?? "",
+    q.countryId ?? "",
+    q.region ?? "",
+    q.tag ?? "",
+    q.featured ? "1" : "0",
+    q.adult ?? "",
+    q.status ?? "",
+  ].join("|");
+}
+
 export async function getGroups(query_: GroupsQuery = {}): Promise<GroupDTO[]> {
+  // Personal search = unbounded key space → never cached.
+  if (query_.search && query_.search.trim()) return getGroupsImpl(query_);
+  return cached(groupsListKey("groups:list", query_), TTL.list, () =>
+    getGroupsImpl(query_)
+  );
+}
+
+async function getGroupsImpl(query_: GroupsQuery = {}): Promise<GroupDTO[]> {
   const { sort = "recientes", limit = 30, offset = 0 } = query_;
   const { where, params } = buildGroupWhere(query_);
   const take = Math.min(Math.max(limit, 1), 60);
@@ -446,6 +493,11 @@ export async function getMetrics() {
 }
 
 export async function getGroupOfTheDay(): Promise<GroupDTO | null> {
+  // Deterministic daily pick over the featured set — long TTL.
+  return cached("gotd", TTL.xl, getGroupOfTheDayImpl);
+}
+
+async function getGroupOfTheDayImpl(): Promise<GroupDTO | null> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live' AND g.\`popularityBadge\` = 'featured'
@@ -483,6 +535,10 @@ export async function getRelatedGroups(
 }
 
 export async function getTrending(limit = 6): Promise<GroupDTO[]> {
+  return cached(`trending:${limit}`, TTL.med, () => getTrendingImpl(limit));
+}
+
+async function getTrendingImpl(limit = 6): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live'
@@ -494,6 +550,19 @@ export async function getTrending(limit = 6): Promise<GroupDTO[]> {
 }
 
 export async function getPopularTags(
+  limit = 14,
+  opts: { adult?: "exclude" | "only" } = {}
+): Promise<{ tag: string; count: number }[]> {
+  // Full scan of live tags + JS aggregation — the most expensive hot query
+  // on the home page. Long TTL; invalidated on writes.
+  return cached(
+    `tags:${opts.adult === "only" ? "adult" : "clean"}:${limit}`,
+    TTL.long,
+    () => getPopularTagsImpl(limit, opts)
+  );
+}
+
+async function getPopularTagsImpl(
   limit = 14,
   opts: { adult?: "exclude" | "only" } = {}
 ): Promise<{ tag: string; count: number }[]> {
@@ -559,6 +628,15 @@ export async function subscribeNewsletter(
 export async function getGroupsCount(
   query_: Omit<GroupsQuery, "sort" | "limit" | "offset"> = {}
 ): Promise<number> {
+  if (query_.search && query_.search.trim()) return getGroupsCountImpl(query_);
+  return cached(groupsListKey("groups:count", query_), TTL.list, () =>
+    getGroupsCountImpl(query_)
+  );
+}
+
+async function getGroupsCountImpl(
+  query_: Omit<GroupsQuery, "sort" | "limit" | "offset"> = {}
+): Promise<number> {
   const { where, params } = buildGroupWhere(query_);
   const row = await queryOne<Row>(
     `SELECT COUNT(*) AS \`c\` ${GROUP_FROM} WHERE ${where}`,
@@ -584,6 +662,10 @@ export async function getRandomGroup(): Promise<GroupDTO | null> {
 }
 
 export async function getRecentGroups(limit = 6): Promise<GroupDTO[]> {
+  return cached(`recent:${limit}`, TTL.med, () => getRecentGroupsImpl(limit));
+}
+
+async function getRecentGroupsImpl(limit = 6): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live'
@@ -630,6 +712,10 @@ export async function submitRating(
 }
 
 export async function getTopRatedGroups(limit = 6): Promise<GroupDTO[]> {
+  return cached(`rated:${limit}`, TTL.med, () => getTopRatedGroupsImpl(limit));
+}
+
+async function getTopRatedGroupsImpl(limit = 6): Promise<GroupDTO[]> {
   const rated = await query<Row>(
     `SELECT \`groupId\`, AVG(\`rating\`) AS \`avg\`, COUNT(*) AS \`count\`
      FROM \`group_reviews\` GROUP BY \`groupId\`
@@ -730,6 +816,10 @@ export async function incrementClicks(id: string): Promise<void> {
 }
 
 export async function getMostSharedGroups(limit = 6): Promise<GroupDTO[]> {
+  return cached(`shared:${limit}`, TTL.med, () => getMostSharedGroupsImpl(limit));
+}
+
+async function getMostSharedGroupsImpl(limit = 6): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live' AND g.\`shares\` > 0
@@ -763,6 +853,11 @@ export interface TrendingMover {
  * group_daily_stats). Ordered by absolute delta, tie-broken by weekly volume.
  */
 export async function getTrendingMovers(limit = 6): Promise<TrendingMover[]> {
+  // Heaviest widget query (14-day stats join) — cached.
+  return cached(`movers:${limit}`, TTL.med, () => getTrendingMoversImpl(limit));
+}
+
+async function getTrendingMoversImpl(limit = 6): Promise<TrendingMover[]> {
   try {
     const rows = await query<GroupRow>(
       `SELECT ${GROUP_SELECT}, st.\`weekViews\`, st.\`prevViews\`, st.\`seriesJson\`
@@ -881,6 +976,13 @@ export function citySlug(city: string): string {
  * can see, and mixed cities show only their clean count.
  */
 export async function getAllCities(): Promise<
+  { city: string; slug: string; groupCount: number; countryCode: string; countryFlag: string }[]
+> {
+  // Full live-rows scan + JS aggregation — cached.
+  return cached("cities", TTL.long, getAllCitiesImpl);
+}
+
+async function getAllCitiesImpl(): Promise<
   { city: string; slug: string; groupCount: number; countryCode: string; countryFlag: string }[]
 > {
   const rows = await query<Row>(
@@ -1024,6 +1126,15 @@ export async function getGroupsByCategorySlugPaginated(
   slug: string,
   page: number
 ): Promise<{ category: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
+  return cached(`pg:cat:${slug}:${page}`, TTL.list, () =>
+    getGroupsByCategorySlugPaginatedImpl(slug, page)
+  );
+}
+
+async function getGroupsByCategorySlugPaginatedImpl(
+  slug: string,
+  page: number
+): Promise<{ category: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
   const cat = await queryOne<Row>("SELECT * FROM `categories` WHERE `slug` = ? LIMIT 1", [slug]);
   if (!cat) return null;
   const result = await buildPaginated(
@@ -1035,6 +1146,15 @@ export async function getGroupsByCategorySlugPaginated(
 }
 
 export async function getGroupsByCountryCodePaginated(
+  code: string,
+  page: number
+): Promise<{ country: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
+  return cached(`pg:country:${code}:${page}`, TTL.list, () =>
+    getGroupsByCountryCodePaginatedImpl(code, page)
+  );
+}
+
+async function getGroupsByCountryCodePaginatedImpl(
   code: string,
   page: number
 ): Promise<{ country: Row; groups: GroupDTO[]; total: number; page: number; totalPages: number; hasPrev: boolean; hasNext: boolean } | null> {
@@ -1052,6 +1172,16 @@ export async function getGroupsByCountryCodePaginated(
 }
 
 export async function getGroupsByCityPaginated(
+  city: string,
+  page: number,
+  opts?: { adult?: "exclude" | "include" }
+): Promise<PaginatedGroups | null> {
+  return cached(`pg:city:${city}:${opts?.adult === "include" ? "in" : "ex"}:${page}`, TTL.list, () =>
+    getGroupsByCityPaginatedImpl(city, page, opts)
+  );
+}
+
+async function getGroupsByCityPaginatedImpl(
   city: string,
   page: number,
   opts?: { adult?: "exclude" | "include" }
@@ -1076,6 +1206,14 @@ export async function getGroupsByCityPaginated(
  * Priority: same city → same country → same category → any popular.
  */
 export async function getRelatedGroupsExtended(group: GroupDTO, limit = 30): Promise<GroupDTO[]> {
+  // Up to 5 sequential queries per group-page render — cached for the short
+  // list TTL; counters change but the related SET rarely does.
+  return cached(`related:${group.id}:${limit}`, TTL.list, () =>
+    getRelatedGroupsExtendedImpl(group, limit)
+  );
+}
+
+async function getRelatedGroupsExtendedImpl(group: GroupDTO, limit = 30): Promise<GroupDTO[]> {
   const excludeId = group.id;
 
   const fetch = (whereExtra: string, params: unknown[], lim: number) =>
@@ -1198,6 +1336,13 @@ export async function searchGroups(q: string, limit = 48): Promise<SearchGroupsR
 export async function getTagBySlug(
   slug: string
 ): Promise<{ name: string; slug: string; count: number } | null> {
+  // Full live-rows scan — cached.
+  return cached(`tag:${slug}`, TTL.long, () => getTagBySlugImpl(slug));
+}
+
+async function getTagBySlugImpl(
+  slug: string
+): Promise<{ name: string; slug: string; count: number } | null> {
   const rows = await query<Row>(
     "SELECT `tags` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0"
   );
@@ -1218,6 +1363,15 @@ export async function getGroupsByTagPaginated(
   tagName: string,
   page: number
 ): Promise<PaginatedGroups | null> {
+  return cached(`pg:tag:${tagName}:${page}`, TTL.list, () =>
+    getGroupsByTagPaginatedImpl(tagName, page)
+  );
+}
+
+async function getGroupsByTagPaginatedImpl(
+  tagName: string,
+  page: number
+): Promise<PaginatedGroups | null> {
   return buildPaginated(
     {
       where: "g.`status` = 'live' AND g.`isAdult` = 0 AND g.`tags` LIKE ?",
@@ -1229,6 +1383,15 @@ export async function getGroupsByTagPaginated(
 }
 
 export async function getRelatedTags(
+  tagName: string,
+  limit = 16
+): Promise<{ tag: string; count: number }[]> {
+  return cached(`rtags:${tagName}:${limit}`, TTL.long, () =>
+    getRelatedTagsImpl(tagName, limit)
+  );
+}
+
+async function getRelatedTagsImpl(
   tagName: string,
   limit = 16
 ): Promise<{ tag: string; count: number }[]> {
@@ -1324,6 +1487,11 @@ export interface AuthorIndexDTO {
  * column, so we aggregate in JS from a lightweight per-group owner query.
  */
 export async function getAllAuthors(): Promise<AuthorIndexDTO[]> {
+  // Uploaders + full live-groups aggregation for /autores — cached.
+  return cached("authors", TTL.long, getAllAuthorsImpl);
+}
+
+async function getAllAuthorsImpl(): Promise<AuthorIndexDTO[]> {
   const [staff, groupStats] = await Promise.all([
     query<Row>(
       `SELECT u.\`id\`, u.\`name\`, u.\`slug\`, u.\`jobTitle\`, u.\`description\`, u.\`imageUrl\`, u.\`createdAt\`
@@ -1401,6 +1569,10 @@ export async function getUploaderCategories(
 // ---------------------------------------------------------------------------
 
 export async function getNewestGroupsForRss(limit = 50): Promise<GroupDTO[]> {
+  return cached(`rss:${limit}`, TTL.long, () => getNewestGroupsForRssImpl(limit));
+}
+
+async function getNewestGroupsForRssImpl(limit = 50): Promise<GroupDTO[]> {
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0

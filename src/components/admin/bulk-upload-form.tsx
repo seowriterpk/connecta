@@ -74,6 +74,8 @@ type ImportResult = {
   skipped: number;
   /** WhatsApp CDN images persisted to /media/group_images during import. */
   imagesLocalized?: number;
+  /** CDN images NOT localized (deadline) — image-refresh cron localizes them. */
+  imagesDeferred?: number;
   errors: { rowIndex: number; rowName: string; reason: string }[];
   target?: string;
 };
@@ -485,6 +487,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
       toast.success(
         `Importación completa: ${data.imported} importados, ${data.skipped} omitidos` +
           (data.imagesLocalized ? `, ${data.imagesLocalized} imágenes localizadas` : "") +
+          (data.imagesDeferred ? `, ${data.imagesDeferred} imágenes diferidas (el cron las guardará)` : "") +
           "."
       );
       router.refresh();
@@ -1046,6 +1049,11 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                     {Boolean(result.imagesLocalized) && (
                       <span className="font-medium text-teal-700 dark:text-teal-300">
                         {result.imagesLocalized} imágenes guardadas en el servidor
+                      </span>
+                    )}
+                    {Boolean(result.imagesDeferred) && (
+                      <span className="font-medium text-amber-700 dark:text-amber-300">
+                        {result.imagesDeferred} imágenes diferidas (el cron las guardará)
                       </span>
                     )}
                   </div>

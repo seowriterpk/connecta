@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import { queryOne, tx, type Row } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -180,6 +181,10 @@ export async function POST(req: NextRequest) {
       updated++;
     }
   });
+
+  // Tags/categories/adult flags/status changed on live groups — drop the
+  // public directory micro-cache.
+  clearDataCache();
 
   // Audit log (one line summarizing the bulk operation)
   const parts: string[] = [];

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import {
   importGroups,
   normalizeRow,
@@ -53,11 +54,11 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  if (groups.length > 500) {
+  if (groups.length > 3000) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Demasiados grupos en un solo lote (máximo 500).",
+        error: "Demasiados grupos en un solo lote (máximo 3000). Divide el archivo en lotes más pequeños.",
       },
       { status: 400 }
     );
@@ -85,6 +86,9 @@ export async function POST(req: NextRequest) {
   // Bulk insert valid groups (with DB-side dedup)
   const insertResult = await importGroups(valid, { target });
 
+  // Directory data changed — drop the public micro-cache immediately.
+  clearDataCache();
+
   // Merge pre-validation errors with insert errors
   const allErrors = [...preErrors, ...insertResult.errors];
   const totalImported = insertResult.imported;
@@ -93,7 +97,7 @@ export async function POST(req: NextRequest) {
   await logAdminAction(
     `bulk-upload.import (${target})`,
     undefined,
-    `${totalImported} importados / ${totalSkipped} omitidos · ${insertResult.imagesLocalized} imágenes localizadas · ${body.mode || "csv"}`
+    `${totalImported} importados / ${totalSkipped} omitidos · ${insertResult.imagesLocalized} imágenes localizadas · ${insertResult.imagesDeferred} diferidas · ${body.mode || "csv"}`
   );
 
   return NextResponse.json({
@@ -102,6 +106,7 @@ export async function POST(req: NextRequest) {
     imported: totalImported,
     skipped: totalSkipped,
     imagesLocalized: insertResult.imagesLocalized,
+    imagesDeferred: insertResult.imagesDeferred,
     errors: allErrors,
   });
 }

@@ -447,6 +447,17 @@ const ALTER_GUARDS: string[] = [
   "ALTER TABLE `groups` ADD COLUMN `lastValidatedAt` DATETIME DEFAULT NULL",
   "ALTER TABLE `groups` ADD COLUMN `imageRefreshedAt` DATETIME DEFAULT NULL",
   "ALTER TABLE `groups` ADD COLUMN `lastActiveAt` DATETIME DEFAULT NULL",
+  // 3k+ scale composite indexes (equality columns first, sort column last,
+  // so LIMIT-30/60 listings read straight off the index with no filesort).
+  // "Duplicate key name" errors are swallowed by the try/catch above, so
+  // these stay idempotent on every boot.
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_pub_created` (`status`, `isAdult`, `createdAt`)",
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_pub_clicks` (`status`, `isAdult`, `clicks`)",
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_cat_pub` (`categoryId`, `status`, `isAdult`, `clicks`)",
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_country_pub` (`countryId`, `status`, `isAdult`, `clicks`)",
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_city_pub` (`city`(64), `status`, `isAdult`, `clicks`)",
+  // Bulk-import dedup lookups (join_link IN (...)) — prefix index.
+  "ALTER TABLE `groups` ADD INDEX `idx_groups_joinLink` (`joinLink`(64))",
 ];
 
 async function runSchemaGuard(): Promise<void> {

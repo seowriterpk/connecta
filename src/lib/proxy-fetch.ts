@@ -31,8 +31,9 @@ async function getUndiciPair(): Promise<{ fetch: typeof fetch; agent: unknown } 
   if (undiciPair !== undefined) return undiciPair;
   try {
     // Dynamic import: keeps undici out of the client bundle and out of
-    // environments where it isn't installed.
-    const mod = (await import("undici")) as {
+    // environments where it isn't installed. (Double assertion: the npm
+    // undici module shape intentionally differs from the DOM lib types.)
+    const mod = (await import("undici")) as unknown as {
       fetch: typeof fetch;
       ProxyAgent: new (uri: string) => unknown;
     };

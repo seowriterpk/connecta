@@ -9,7 +9,7 @@
  * to the DB). Safe to call from server-side code.
  */
 
-import { query, queryOne, exec, newId, type Row } from "@/lib/db";
+import { query, exec, tx, newId, type Row } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 import { extractInviteCode, isValidWhatsAppInvite } from "@/lib/whatsapp-validator";
 import {
@@ -70,6 +70,9 @@ export interface ImportResult {
   skipped: number;
   /** WhatsApp CDN images persisted to /media/group_images during import. */
   imagesLocalized: number;
+  /** CDN images NOT localized because the soft deadline hit — the
+   *  image-refresh cron localizes them later (they keep the CDN URL). */
+  imagesDeferred: number;
   errors: { rowIndex: number; rowName: string; reason: string }[];
 }
 
@@ -293,6 +296,44 @@ export function normalizeRow(raw: RawGroupRow): NormalizedGroup {
 // Validation (against DB)
 // ---------------------------------------------------------------------------
 
+/** Max rows accepted per import request (matches the admin API route cap). */
+const MAX_IMPORT_ROWS = 3000;
+/** Soft deadline for the proxied image pass inside an import. */
+const IMAGE_PASS_BUDGET_MS = 200_000;
+/** Image download workers inside an import (saturates the proxy nicely). */
+const IMAGE_PASS_CONCURRENCY = 6;
+/** Rows per insert transaction — cuts per-statement fsyncs ~100×. */
+const INSERT_TX_CHUNK = 100;
+/** Chunk size for dedup candidate lookups (IN (...)). */
+const DEDUP_CHUNK = 500;
+
+/** All live-table slugs (one narrow indexed column — the full set is needed
+ *  for makeUniqueSlug's -1, -2 … suffix resolution without per-row queries). */
+async function fetchAllSlugs(): Promise<Set<string>> {
+  const rows = await query<Row & { slug: string }>("SELECT `slug` FROM `groups`");
+  return new Set(rows.map((r) => r.slug));
+}
+
+/** Existing join links for a candidate batch — chunked IN() lookups against
+ *  the idx_groups_joinLink prefix index (no full-column pull at 3k+ scale). */
+async function fetchExistingLinks(links: string[]): Promise<Set<string>> {
+  const out = new Set<string>();
+  const candidates = Array.from(
+    new Set(links.map((l) => l.trim()).filter(Boolean))
+  );
+  for (let i = 0; i < candidates.length; i += DEDUP_CHUNK) {
+    const chunk = candidates.slice(i, i + DEDUP_CHUNK);
+    const rows = await query<Row & { joinLink: string }>(
+      `SELECT \`joinLink\` FROM \`groups\` WHERE \`joinLink\` IN (${chunk
+        .map(() => "?")
+        .join(", ")})`,
+      chunk
+    );
+    for (const r of rows) out.add(r.joinLink);
+  }
+  return out;
+}
+
 /**
  * Validate a list of raw rows. Each row is checked for:
  *  - Required fields + URL format (via normalizeRow)
@@ -312,15 +353,19 @@ export async function validateGroupRows(
 ): Promise<ValidatedGroupRow[]> {
   // Load category + country banks up-front for cheap lookup.
   // A single groups query returns both slug + joinLink for dedup checks.
-  const [categories, countries, existingGroups] = await Promise.all([
+  const [categories, countries, existingSlugSet, existingLinkSet] = await Promise.all([
     query<Row & { name: string; isAdult: number; isActive: number }>(
       "SELECT `name`, `isAdult`, `isActive` FROM `categories`"
     ),
     query<Row & { name: string; nameEs: string | null }>(
       "SELECT `name`, `nameEs` FROM `countries`"
     ),
-    query<Row & { slug: string; joinLink: string }>(
-      "SELECT `slug`, `joinLink` FROM `groups`"
+    // 3k+ scale: the old path pulled slug+joinLink for EVERY group row on
+    // every validation pass. Slugs are one narrow indexed column; join
+    // links are looked up per candidate with chunked IN() queries.
+    fetchAllSlugs(),
+    fetchExistingLinks(
+      rows.map((r) => String(r.join_link || "").trim()).filter(Boolean)
     ),
   ]);
 
@@ -333,9 +378,6 @@ export async function validateGroupRows(
   const countryNames = new Set(
     countries.flatMap((c) => [c.name.toLowerCase(), (c.nameEs || "").toLowerCase()].filter(Boolean))
   );
-
-  const existingSlugSet = new Set(existingGroups.map((s) => s.slug));
-  const existingLinkSet = new Set(existingGroups.map((s) => s.joinLink));
 
   // Intra-batch slug/links dedup tracking
   const batchSlugSeen = new Map<string, number>(); // slug → first rowIndex
@@ -442,20 +484,27 @@ export async function importGroups(
   rows: NormalizedGroup[],
   options: { target: ImportTarget }
 ): Promise<ImportResult> {
-  const result: ImportResult = { imported: 0, skipped: 0, imagesLocalized: 0, errors: [] };
+  const result: ImportResult = {
+    imported: 0,
+    skipped: 0,
+    imagesLocalized: 0,
+    imagesDeferred: 0,
+    errors: [],
+  };
 
   if (rows.length === 0) return result;
-  if (rows.length > 500) {
-    // Defensive cap
+  if (rows.length > MAX_IMPORT_ROWS) {
+    // Defensive cap — 3.000 rows per request is already a large paste/JSON.
     return {
       imported: 0,
       skipped: rows.length,
       imagesLocalized: 0,
+      imagesDeferred: 0,
       errors: [
         {
           rowIndex: 0,
           rowName: "",
-          reason: "Demasiadas filas (máximo 500 por lote).",
+          reason: `Demasiadas filas (máximo ${MAX_IMPORT_ROWS} por lote). Divide el archivo en lotes más pequeños.`,
         },
       ],
     };
@@ -466,14 +515,20 @@ export async function importGroups(
   // to media/group_images through the residential proxy BEFORE inserting, so
   // the DB stores a local /media/group_images URL. Failures silently fall
   // back to the CDN URL — an image problem must never block an import.
-  // Concurrency 3: fast enough for 500-row batches without hammering
-  // the proxy connection limit.
+  // Concurrency 6 keeps the proxy busy without hammering it; the soft
+  // deadline guarantees the HTTP request finishes — leftover rows keep the
+  // CDN URL and the image-refresh cron localizes them later (it processes
+  // every live group whose profileImage is not a /media/... URL yet).
   const rowsWithCdn = rows.filter((r) => isWhatsappCdnUrl(r.profileImage));
   if (rowsWithCdn.length > 0) {
     let cursor = 0;
+    let processed = 0;
+    const startedAt = Date.now();
     const worker = async () => {
       while (cursor < rowsWithCdn.length) {
+        if (Date.now() - startedAt > IMAGE_PASS_BUDGET_MS) return;
         const row = rowsWithCdn[cursor++];
+        processed++;
         const dl = await downloadGroupImage(row.profileImage as string, row.groupName);
         if (dl.localUrl) {
           row.profileImage = dl.localUrl;
@@ -481,7 +536,10 @@ export async function importGroups(
         }
       }
     };
-    await Promise.all([worker(), worker(), worker()]);
+    await Promise.all(
+      Array.from({ length: IMAGE_PASS_CONCURRENCY }, () => worker())
+    );
+    result.imagesDeferred = Math.max(0, rowsWithCdn.length - processed);
   }
 
   // Look up all category + country IDs up-front
@@ -496,158 +554,157 @@ export async function importGroups(
   const catIdByName = new Map(cats.map((c) => [c.name.toLowerCase(), c.id]));
   const countryIdByName = new Map(countries.map((c) => [c.name.toLowerCase(), c.id]));
 
-  // Final DB-side dedup: check which join_links already exist
-  const linksToCheck = rows.map((r) => r.joinLink);
-  const linkPlaceholders = linksToCheck.map(() => "?").join(", ");
-  const existing = await query<Row & { joinLink: string }>(
-    `SELECT \`joinLink\` FROM \`groups\` WHERE \`joinLink\` IN (${linkPlaceholders})`,
-    linksToCheck
-  );
-  const existingLinks = new Set(existing.map((e) => e.joinLink));
+  // Final DB-side dedup (defensive — also checked during validation):
+  // TWO chunked lookups total instead of 1–2 queries per row.
+  const existingLinks = await fetchExistingLinks(rows.map((r) => r.joinLink));
+  const existingSlugs = await fetchAllSlugs();
 
   // Track slugs we've already used in this run
   const usedSlugs = new Set<string>();
 
+  interface PreparedRow {
+    rowIndex: number;
+    g: NormalizedGroup;
+    categoryId: string;
+    countryId: string;
+    slug: string;
+    tagsJson: string;
+    keywordsJson: string;
+  }
+
+  const prepared: PreparedRow[] = [];
   for (let i = 0; i < rows.length; i++) {
     const g = rows[i];
     const rowIndex = i + 1;
 
-    try {
-      const categoryId = catIdByName.get(g.category.toLowerCase());
-      if (!categoryId) {
-        result.skipped++;
-        result.errors.push({
-          rowIndex,
-          rowName: g.groupName,
-          reason: `Categoría «${g.category}» no encontrada.`,
-        });
-        continue;
-      }
-
-      const countryId = countryIdByName.get(g.country.toLowerCase());
-      if (!countryId) {
-        result.skipped++;
-        result.errors.push({
-          rowIndex,
-          rowName: g.groupName,
-          reason: `País «${g.country}» no encontrado.`,
-        });
-        continue;
-      }
-
-      if (existingLinks.has(g.joinLink)) {
-        result.skipped++;
-        result.errors.push({
-          rowIndex,
-          rowName: g.groupName,
-          reason: "Enlace ya existe en la BD (join_link duplicado).",
-        });
-        continue;
-      }
-
-      // Make slug unique within this run + against DB
-      const finalSlug = makeUniqueSlug(g.slug, (s) =>
-        usedSlugs.has(s) ? true : false
-      );
-      usedSlugs.add(finalSlug);
-
-      const tagsJson = JSON.stringify(g.tags);
-      const keywordsJson = JSON.stringify(g.keywords);
-
-      if (options.target === "queue") {
-        await exec(
-          `INSERT INTO \`groups_queue\`
-            (\`groupName\`, \`joinLink\`, \`description\`, \`category\`, \`country\`, \`city\`,
-             \`keywords\`, \`tags\`, \`profileImage\`, \`isAdult\`, \`language\`)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            g.groupName,
-            g.joinLink,
-            g.description,
-            g.category,
-            g.country,
-            g.city,
-            keywordsJson,
-            tagsJson,
-            g.profileImage,
-            g.isAdult,
-            "Espanol",
-          ]
-        );
-      } else {
-        // target === "pending" → insert into groups table with status=pending
-        // Ensure the slug is unique across the live table.
-        const liveSlug = await ensureUniqueDbSlug(finalSlug);
-        usedSlugs.add(liveSlug);
-
-        await exec(
-          `INSERT INTO \`groups\`
-            (\`id\`, \`groupName\`, \`slug\`, \`joinLink\`, \`description\`, \`category\`, \`categoryId\`,
-             \`country\`, \`countryId\`, \`city\`, \`keywords\`, \`tags\`, \`profileImage\`, \`language\`,
-             \`status\`, \`linkStatus\`, \`isAdult\`, \`submitSource\`, \`lastValidatedAt\`, \`imageRefreshedAt\`)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            newId(),
-            g.groupName,
-            liveSlug,
-            g.joinLink,
-            g.description,
-            g.category,
-            categoryId,
-            g.country,
-            countryId,
-            g.city,
-            keywordsJson,
-            tagsJson,
-            g.profileImage,
-            "Espanol",
-            "pending",
-            "active",
-            g.isAdult,
-            "staff",
-            new Date(),
-            g.profileImage ? new Date() : null,
-          ]
-        );
-      }
-
-      result.imported++;
-    } catch (err: any) {
+    const categoryId = catIdByName.get(g.category.toLowerCase());
+    if (!categoryId) {
       result.skipped++;
       result.errors.push({
         rowIndex,
         rowName: g.groupName,
-        reason: err?.message || "Error al insertar la fila.",
+        reason: `Categoría «${g.category}» no encontrada.`,
       });
-      // Log to server console for diagnostics
-      console.error("[bulk-import] insert failed:", err);
+      continue;
+    }
+
+    const countryId = countryIdByName.get(g.country.toLowerCase());
+    if (!countryId) {
+      result.skipped++;
+      result.errors.push({
+        rowIndex,
+        rowName: g.groupName,
+        reason: `País «${g.country}» no encontrado.`,
+      });
+      continue;
+    }
+
+    if (existingLinks.has(g.joinLink)) {
+      result.skipped++;
+      result.errors.push({
+        rowIndex,
+        rowName: g.groupName,
+        reason: "Enlace ya existe en la BD (join_link duplicado).",
+      });
+      continue;
+    }
+
+    // Make slug unique within this run AND against the live table (the full
+    // slug set was prefetched in ONE query — no per-row lookups).
+    const finalSlug = makeUniqueSlug(
+      g.slug,
+      (s) => usedSlugs.has(s) || existingSlugs.has(s)
+    );
+    usedSlugs.add(finalSlug);
+
+    prepared.push({
+      rowIndex,
+      g,
+      categoryId,
+      countryId,
+      slug: finalSlug,
+      tagsJson: JSON.stringify(g.tags),
+      keywordsJson: JSON.stringify(g.keywords),
+    });
+  }
+
+  const QUEUE_SQL =
+    "INSERT INTO `groups_queue` (`groupName`, `joinLink`, `description`, `category`, `country`, `city`, `keywords`, `tags`, `profileImage`, `isAdult`, `language`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  const GROUPS_SQL =
+    "INSERT INTO `groups` (`id`, `groupName`, `slug`, `joinLink`, `description`, `category`, `categoryId`, `country`, `countryId`, `city`, `keywords`, `tags`, `profileImage`, `language`, `status`, `linkStatus`, `isAdult`, `submitSource`, `lastValidatedAt`, `imageRefreshedAt`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+  const sql = options.target === "queue" ? QUEUE_SQL : GROUPS_SQL;
+  const paramsFor = (p: PreparedRow): unknown[] =>
+    options.target === "queue"
+      ? [
+          p.g.groupName,
+          p.g.joinLink,
+          p.g.description,
+          p.g.category,
+          p.g.country,
+          p.g.city,
+          p.keywordsJson,
+          p.tagsJson,
+          p.g.profileImage,
+          p.g.isAdult,
+          "Espanol",
+        ]
+      : [
+          newId(),
+          p.g.groupName,
+          p.slug,
+          p.g.joinLink,
+          p.g.description,
+          p.g.category,
+          p.categoryId,
+          p.g.country,
+          p.countryId,
+          p.g.city,
+          p.keywordsJson,
+          p.tagsJson,
+          p.g.profileImage,
+          "Espanol",
+          "pending",
+          "active",
+          p.g.isAdult,
+          "staff",
+          new Date(),
+          p.g.profileImage ? new Date() : null,
+        ];
+
+  // Chunked inserts: one transaction per INSERT_TX_CHUNK rows keeps the
+  // undo log small while cutting per-statement fsyncs ~100×. On chunk
+  // failure (one bad row / transient error) we retry its rows individually
+  // so the good ones import and the bad ones get an exact error report.
+  for (let i = 0; i < prepared.length; i += INSERT_TX_CHUNK) {
+    const chunk = prepared.slice(i, i + INSERT_TX_CHUNK);
+    try {
+      await tx(async (conn) => {
+        for (const p of chunk) {
+          await conn.query(sql, paramsFor(p));
+        }
+      });
+      result.imported += chunk.length;
+    } catch {
+      for (const p of chunk) {
+        try {
+          await exec(sql, paramsFor(p));
+          result.imported++;
+        } catch (err: any) {
+          result.skipped++;
+          result.errors.push({
+            rowIndex: p.rowIndex,
+            rowName: p.g.groupName,
+            reason: err?.message || "Error al insertar la fila.",
+          });
+          // Log to server console for diagnostics
+          console.error("[bulk-import] insert failed:", err);
+        }
+      }
     }
   }
 
   return result;
-}
-
-/**
- * Ensure a slug is unique against the live groups table.
- * If taken, appends -2, -3, … or a short timestamp fallback.
- */
-async function ensureUniqueDbSlug(baseSlug: string): Promise<string> {
-  const exists = await queryOne<Row & { id: string }>(
-    "SELECT `id` FROM `groups` WHERE `slug` = ?",
-    [baseSlug]
-  );
-  if (!exists) return baseSlug;
-
-  for (let i = 2; i <= 50; i++) {
-    const candidate = `${baseSlug}-${i}`;
-    const taken = await queryOne<Row & { id: string }>(
-      "SELECT `id` FROM `groups` WHERE `slug` = ?",
-      [candidate]
-    );
-    if (!taken) return candidate;
-  }
-
-  return `${baseSlug}-${Date.now().toString(36)}`;
 }
 
 // ---------------------------------------------------------------------------

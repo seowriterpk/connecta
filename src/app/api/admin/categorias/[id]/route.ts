@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import { queryOne, exec } from "@/lib/db";
 import { generateSlug } from "@/lib/slug";
 
@@ -102,6 +103,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
   await logAdminAction("categoria.update", id, name);
 
+  // Taxonomy changed — drop the public directory micro-cache.
+  clearDataCache();
+
   return NextResponse.json({ ok: true, slug });
 }
 
@@ -144,6 +148,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   }
 
   await exec("DELETE FROM `categories` WHERE `id` = ?", [id]);
+
+  // Taxonomy changed — drop the public directory micro-cache.
+  clearDataCache();
 
   await logAdminAction("categoria.delete", id, existing.name);
 

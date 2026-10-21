@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { clearDataCache } from "@/lib/cache";
 import { queryOne, exec } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 
@@ -156,6 +157,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     ]
   );
 
+  // Group data changed — drop the public directory micro-cache.
+  clearDataCache();
+
   await logAdminAction("grupos.update", id, groupName);
 
   // slug is deterministic — return the computed value
@@ -191,6 +195,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
   // Soft-delete: status → rejected
   await exec("UPDATE `groups` SET `status` = 'rejected' WHERE `id` = ?", [id]);
+
+  // Group data changed — drop the public directory micro-cache.
+  clearDataCache();
 
   await logAdminAction("grupos.delete", id, existing.groupName);
 
