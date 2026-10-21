@@ -1,21 +1,22 @@
 /**
  * Related Groups Engine
  *
+ * OWNER DIRECTIVE (2026-10-21): related groups must ALWAYS be from the SAME
+ * CATEGORY. The old < 4-results fallback filled the section with groups
+ * from the same COUNTRY — any category — which is how a "friendship" group
+ * ended up in an education group's "Grupos similares". The fallback is gone.
+ * If a category is thin, the section simply shows fewer (honest) groups.
+ *
  * getRelatedGroups (group detail page — "Grupos similares"):
- * Up to 8 unique related groups with a DETERMINISTIC "clicks + old" order —
- * most-clicked groups first, older groups break ties (no shuffling).
- * Maximum of 2 queries:
- *   1) Same content silo + same category (indexed g.categoryId), status
- *      live + linkStatus active, id <> current, ORDER BY g.clicks DESC,
- *      g.createdAt ASC, LIMIT 8. Dedupe guaranteed by SQL.
- *   2) Fallback (only if query 1 returned < 4): same silo + same country
- *      (indexed g.countryId), excluding already-fetched ids + current,
- *      same ordering, LIMIT (8 - results). Merged, re-sorted by
- *      clicks DESC / createdAt ASC and capped at the limit.
+ * ONE indexed query (g.categoryId) — same silo + same category, status live,
+ * id <> current. Ordering: active links first ((linkStatus = 'active') DESC,
+ * boolean sort — valid on MySQL/MariaDB), then most-clicked, then older.
+ * Expired groups stay listable everywhere (owner rule), they just sort
+ * behind active ones so the freshest working links lead the section.
  *
  * getRecentRelatedGroups (verify page — "Grupos nuevos de la misma
- * categoría"): the most recent live + active groups in the same category
- * (and the same content silo) as the current group.
+ * categoría"): the most recent live groups in the same category (and silo),
+ * active links first, then createdAt DESC.
  *
  * SILOED LINKING (adult separation directive): related groups always match
  * the current group's content silo — adult groups only ever recommend other
@@ -79,71 +80,35 @@ const RELATED_FROM = `
   LEFT JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
 `;
 
-const RELATED_BASE_WHERE = "g.\`status\` = 'live' AND g.\`linkStatus\` = 'active'";
-
-function rowCreatedAt(g: GroupRow): number {
-  return g.createdAt instanceof Date ? g.createdAt.getTime() : new Date(g.createdAt).getTime() || 0;
-}
-
 /**
- * Related groups for the group detail page — deterministic "clicks + old"
- * ordering (clicks DESC, createdAt ASC). Maximum of 2 sequential queries.
+ * Related groups for the group detail page — strictly SAME CATEGORY (never
+ * country, never random), same content silo, ONE indexed query.
+ * Active links sort first, then clicks DESC, then createdAt ASC.
  */
 export async function getRelatedGroups(
   currentGroupId: string,
   categoryId: string,
-  countryId: string,
   limit = 8,
   opts: { isAdult?: boolean } = {}
 ): Promise<GroupDTO[]> {
-  // Silo: related groups must live in the same content silo as this group.
   const siloIsAdult = opts.isAdult ? 1 : 0;
-  const usedIds = new Set<string>([currentGroupId]);
+  // No category → nothing honest to relate; the section hides itself.
+  if (!categoryId) return [];
 
-  // QUERY 1 — same silo + same category (indexed id column), popular
-  // (clicks DESC) then older (createdAt ASC). Dedupe guaranteed by SQL.
-  const categoryFilter = categoryId ? "AND g.`categoryId` = ?" : "";
-  let rows = await query<GroupRow>(
+  const rows = await query<GroupRow>(
     `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-     WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${categoryFilter} AND g.\`id\` <> ?
-     ORDER BY g.\`clicks\` DESC, g.\`createdAt\` ASC
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = ? AND g.\`categoryId\` = ? AND g.\`id\` <> ?
+     ORDER BY (g.\`linkStatus\` = 'active') DESC, g.\`clicks\` DESC, g.\`createdAt\` ASC
      LIMIT ?`,
-    [siloIsAdult, ...(categoryId ? [categoryId] : []), currentGroupId, limit]
+    [siloIsAdult, categoryId, currentGroupId, limit]
   );
-  rows.forEach((g) => usedIds.add(g.id));
-
-  // QUERY 2 (fallback) — only when the category silo is thin (< 4 groups):
-  // same silo + same country, excluding everything already fetched.
-  if (rows.length < 4) {
-    const excludeIds = [...usedIds];
-    const countryFilter = countryId ? "AND g.`countryId` = ?" : "";
-    const notInSql =
-      excludeIds.length > 0
-        ? `AND g.\`id\` NOT IN (${excludeIds.map(() => "?").join(", ")})`
-        : "";
-    const fallback = await query<GroupRow>(
-      `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-       WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${countryFilter} ${notInSql}
-       ORDER BY g.\`clicks\` DESC, g.\`createdAt\` ASC
-       LIMIT ?`,
-      [siloIsAdult, ...(countryId ? [countryId] : []), ...excludeIds, limit - rows.length]
-    );
-    fallback.forEach((g) => usedIds.add(g.id));
-    rows = [...rows, ...fallback];
-  }
-
-  // Deterministic merge order: clicks DESC, then createdAt ASC (older first).
-  const sorted = [...rows].sort((a, b) => {
-    const byClicks = (b.clicks ?? 0) - (a.clicks ?? 0);
-    if (byClicks !== 0) return byClicks;
-    return rowCreatedAt(a) - rowCreatedAt(b);
-  });
-  return sorted.slice(0, limit).map(toDTO);
+  return rows.map(toDTO);
 }
 
 /**
  * Most recent groups in the same category (and the same content silo) as
  * the current group — used by the /verificar/[slug] interstitial.
+ * Active links sort first, then newest.
  */
 export async function getRecentRelatedGroups(
   currentGroupId: string,
@@ -152,13 +117,14 @@ export async function getRecentRelatedGroups(
   limit = 9
 ): Promise<GroupDTO[]> {
   const siloIsAdult = isAdult ? 1 : 0;
-  const categoryFilter = categoryId ? "AND g.`categoryId` = ?" : "";
+  if (!categoryId) return [];
+
   const rows = await query<GroupRow>(
     `SELECT ${RELATED_SELECT} ${RELATED_FROM}
-     WHERE ${RELATED_BASE_WHERE} AND g.\`isAdult\` = ? ${categoryFilter} AND g.\`id\` <> ?
-     ORDER BY g.\`createdAt\` DESC
+     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = ? AND g.\`categoryId\` = ? AND g.\`id\` <> ?
+     ORDER BY (g.\`linkStatus\` = 'active') DESC, g.\`createdAt\` DESC
      LIMIT ?`,
-    [siloIsAdult, ...(categoryId ? [categoryId] : []), currentGroupId, limit]
+    [siloIsAdult, categoryId, currentGroupId, limit]
   );
   return rows.map(toDTO);
 }

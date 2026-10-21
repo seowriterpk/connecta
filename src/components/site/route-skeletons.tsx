@@ -81,25 +81,22 @@ function BadgeHero({ className }: { className?: string }) {
   return <S className={cn("h-7 rounded-full", className)} />;
 }
 
-/** Mimics one collapsed GroupRow (measured 104px) from the directory table. */
+/** Mimics one collapsed GroupRow (measured ~104px desktop / 96px mobile)
+ *  from the directory table. */
 function GroupRowSkeleton() {
   return (
     <div
       aria-hidden
-      className="relative flex h-[104px] items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm sm:gap-4 sm:p-4"
+      className="relative flex h-[96px] items-center gap-2.5 overflow-hidden rounded-2xl border bg-card p-3 pr-3 shadow-sm sm:h-[104px] sm:gap-4 sm:p-4"
     >
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-teal-600 opacity-50" />
-      <S className="h-14 w-14 shrink-0 rounded-xl sm:h-16 sm:w-16" />
+      <S className="h-12 w-12 shrink-0 rounded-xl sm:h-16 sm:w-16" />
       <div className="min-w-0 flex-1 space-y-2">
         <S className="h-4 w-2/3 rounded-full" />
         <S className="h-3 w-1/3 rounded-full" />
         <S className="h-5 w-40 rounded-full" />
       </div>
-      <div className="flex shrink-0 flex-col items-center gap-1.5 sm:flex-row sm:gap-2">
-        <div className="flex gap-1.5">
-          <S className="h-8 w-8 rounded-full" />
-          <S className="h-8 w-8 rounded-full" />
-        </div>
+      <div className="flex shrink-0 items-center">
         <S className="h-8 w-[86px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40" />
       </div>
     </div>
@@ -111,18 +108,21 @@ function GroupCardSkeleton() {
   return (
     <div
       aria-hidden
-      className="relative flex h-[205px] flex-col rounded-2xl border bg-card p-4 pt-5 shadow-sm"
+      className="relative flex h-[190px] flex-col rounded-2xl border bg-card p-3 pt-4 shadow-sm sm:h-[205px] sm:p-4 sm:pt-5"
     >
       <div className="absolute inset-x-4 top-0 h-1 rounded-full bg-gradient-to-r from-emerald-500/50 to-teal-500/50" />
-      <S className="absolute right-2.5 top-2.5 h-8 w-8 rounded-full" />
-      <S className="h-12 w-12 rounded-xl" />
-      <S className="mt-3 h-4 w-11/12 rounded-full" />
-      <S className="mt-1.5 h-4 w-2/3 rounded-full" />
-      <S className="mt-2 h-3 w-1/2 rounded-full" />
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <S className="h-11 w-11 shrink-0 rounded-xl sm:h-12 sm:w-12" />
+        <div className="flex-1 space-y-2 pt-0.5">
+          <S className="h-4 w-11/12 rounded-full" />
+          <S className="h-3 w-2/3 rounded-full" />
+        </div>
+      </div>
+      <S className="mt-2.5 h-3 w-1/2 rounded-full" />
       <S className="mt-auto h-5 w-44 rounded-full" />
       <div className="mt-2 flex items-center justify-between border-t pt-3">
         <S className="h-5 w-14 rounded-full" />
-        <S className="h-8 w-[76px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40" />
+        <S className="h-7 w-[76px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-8" />
       </div>
     </div>
   );

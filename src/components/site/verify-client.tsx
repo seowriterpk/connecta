@@ -17,7 +17,7 @@
  */
 
 import * as React from "react";
-import { CheckCircle2, ExternalLink, Loader2, ShieldCheck, XCircle, RefreshCw } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, ShieldCheck, ShieldAlert, XCircle, RefreshCw } from "lucide-react";
 import type { GroupDTO } from "@/lib/types";
 
 interface CheckStep {
@@ -35,6 +35,8 @@ interface VerifyResponse {
     checkedAt: string;
     checkCount: number;
     listedSince: string | null;
+    /** Link-checker verdict: "active" | "revoked" | "unknown". */
+    linkStatus: string;
   };
 }
 
@@ -43,7 +45,7 @@ const STEP_INTERVAL_MS = 800;
 export function VerifyClient({ group }: { group: GroupDTO }) {
   const [steps, setSteps] = React.useState<CheckStep[] | null>(null);
   const [revealed, setRevealed] = React.useState(0);
-  const [meta, setMeta] = React.useState<{ passed: boolean; checkCount: number; checkedAt: string } | null>(null);
+  const [meta, setMeta] = React.useState<{ passed: boolean; checkCount: number; checkedAt: string; linkStatus: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
 
@@ -66,7 +68,7 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
           return;
         }
         setSteps(j.data.steps);
-        setMeta({ passed: j.data.passed, checkCount: j.data.checkCount, checkedAt: j.data.checkedAt });
+        setMeta({ passed: j.data.passed, checkCount: j.data.checkCount, checkedAt: j.data.checkedAt, linkStatus: j.data.linkStatus ?? "unknown" });
       })
       .catch(() => {
         setError("No se pudo contactar con el servidor de comprobación. Inténtalo de nuevo.");
@@ -89,8 +91,12 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
     return () => window.clearTimeout(t);
   }, [steps, revealed, done]);
 
-  const ready = done && !!meta?.passed;
-  const hasFailure = done && meta && !meta.passed;
+  // OWNER DIRECTIVE: the join button enables as soon as the checks finish —
+  // EVEN when the link was marked expired. We TELL the user the verdict
+  // (see the amber box below) but never take the button away: he can go and
+  // check the link himself on WhatsApp.
+  const ready = done;
+  const isExpired = done && meta?.linkStatus === "revoked";
 
   function handleJoin() {
     // Track click (fire-and-forget)
@@ -175,7 +181,21 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
         </div>
       )}
 
-      {/* Join button */}
+      {/* Expired verdict — TELL, don't block (owner directive) */}
+      {isExpired && (
+        <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/[0.08] p-3" role="alert">
+          <p className="flex items-start gap-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>
+              <strong>Enlace caducado:</strong> nuestro verificador marcó esta invitación como
+              expirada. Puedes intentarlo de todos modos y comprobarlo tú mismo — si WhatsApp
+              dice que ya no sirve, avísanos para que lo renueven.
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* Join button — always available once the checks complete */}
       <button
         onClick={handleJoin}
         disabled={!ready}
@@ -205,7 +225,7 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
           Comprobación completada · n.º {meta.checkCount} registrada en el historial del grupo
         </p>
       )}
-      {hasFailure && (
+      {done && meta && !meta.passed && !isExpired && (
         <p className="mt-2 text-center text-xs leading-relaxed text-amber-600 dark:text-amber-400">
           La comprobación detectó incidencias en el enlace. Puedes intentarlo, pero si WhatsApp
           dice que el enlace no sirve, avísanos para que lo renueven.

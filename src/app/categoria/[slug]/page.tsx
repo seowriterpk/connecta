@@ -384,7 +384,7 @@ export default async function CategoryPage({
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} imageAlt={!category.isAdult} />
+                    <GroupCard key={g.id} group={g} imageAlt={!category.isAdult} expiredHint />
                   ))}
                 </div>
               </Reveal>

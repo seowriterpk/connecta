@@ -6,6 +6,39 @@ import { Heart } from "lucide-react";
 import { useFavorites, FAVORITES_MAX } from "@/lib/favorites";
 
 /**
+ * FavoriteToggleAction — labeled pill toggle for listing-card dropdowns
+ * (group cards + directory rows). The old surface-level heart icon was moved
+ * INSIDE the dropdown (owner directive: it squeezed group titles on small
+ * screens); this is its labeled replacement.
+ */
+export function FavoriteToggleAction({ id }: { id: string }) {
+  const toggle = useFavorites((s) => s.toggle);
+  const has = useFavorites((s) => s.ids.includes(id));
+
+  return (
+    <motion.button
+      type="button"
+      aria-pressed={has}
+      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggle(id);
+      }}
+      whileTap={{ scale: 0.96 }}
+      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+        has
+          ? "border-rose-400/50 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+          : "border-border bg-background text-muted-foreground hover:border-rose-400/40 hover:bg-rose-500/5 hover:text-rose-600 dark:hover:text-rose-400"
+      }`}
+    >
+      <Heart className={`h-3.5 w-3.5 ${has ? "fill-current" : ""}`} aria-hidden />
+      {has ? "En favoritos" : "Me gusta"}
+    </motion.button>
+  );
+}
+
+/**
  * FavoritePillButton — heart toggle for the group detail sticky bar.
  *
  * - Mirrors ComparePillButton's pill design (rose accent = favorites system).

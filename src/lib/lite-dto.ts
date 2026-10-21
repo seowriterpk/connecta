@@ -50,8 +50,9 @@ export interface GroupCardDTO {
   isFeatured: boolean;
   lastActiveAt: string | null;
   /** Present when the link checker marked the invite link revoked/expired
-   *  ("revoked") — the card renders the red "Expirado" icon/badge. Kept
-   *  optional (and `string`-typed so full GroupDTOs stay structurally
+   *  ("revoked") — cards use it to suppress the green "active" signals and
+   *  (category pages only, via expiredHint) to render the single red icon.
+   *  Kept optional (and `string`-typed so full GroupDTOs stay structurally
    *  assignable) — components compare against "revoked". */
   linkStatus?: string;
   category?: CategoryLiteDTO;

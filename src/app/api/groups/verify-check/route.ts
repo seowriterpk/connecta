@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
 
     // --- Check 1: the group exists and is listed ---------------------------
     const group = (await queryOne(
-      "SELECT `id`, `groupName`, `joinLink`, `status`, `linkStatus`, `createdAt` FROM `groups` WHERE `slug` = ? LIMIT 1",
+      "SELECT `id`, `groupName`, `joinLink`, `status`, `linkStatus`, `lastValidatedAt`, `createdAt` FROM `groups` WHERE `slug` = ? LIMIT 1",
       [slug]
     )) as
-      | { id: string; groupName: string; joinLink: string; status: string; linkStatus: string; createdAt: Date | string }
+      | { id: string; groupName: string; joinLink: string; status: string; linkStatus: string; lastValidatedAt: Date | string | null; createdAt: Date | string }
       | null;
 
     if (!group) return fail("Grupo no encontrado.", 404);
@@ -103,6 +103,24 @@ export async function POST(req: NextRequest) {
           : `Código ${maskedCode} — estructura inesperada`,
       },
       {
+        // Link-checker verdict from our own link_checks history (no external
+        // fetch — zero cost). Owner directive: TELL the user the link is
+        // expired, but never block the join button — he checks it himself.
+        key: "status",
+        label: "Consultando el estado del enlace…",
+        ok: group.linkStatus !== "revoked",
+        detail:
+          group.linkStatus === "revoked"
+            ? `Nuestro verificador marcó este enlace como caducado (expirado)${
+                group.lastValidatedAt
+                  ? ` el ${new Date(group.lastValidatedAt).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}`
+                  : ""
+              }. Puedes intentarlo de todos modos — si WhatsApp no te deja entrar, avísanos para renovarlo.`
+            : group.linkStatus === "active"
+            ? "Enlace activo según nuestra última comprobación automática"
+            : "La última comprobación automática no fue concluyente — el enlace podría funcionar con normalidad",
+      },
+      {
         key: "record",
         label: "Registrando la comprobación…",
         ok: true,
@@ -111,16 +129,21 @@ export async function POST(req: NextRequest) {
     ];
 
     // --- Check 4: audit trail (real DB writes, trivial cost) ---------------
+    // `passed` includes the link-status verdict so the green success line is
+    // honest — but the JOIN BUTTON on the verify page does NOT depend on it
+    // (owner directive: expired = tell, don't block).
     const allOk = listedOk && formatOk && codeOk;
+    const linkOk = group.linkStatus !== "revoked";
+    const passed = allOk && linkOk;
     const now = new Date();
     await exec(
       "INSERT INTO `link_checks` (`id`, `groupId`, `ok`, `inviteCodeLength`, `detail`, `source`) VALUES (?, ?, ?, ?, ?, 'verify-page')",
       [
         newId(),
         group.id,
-        allOk ? 1 : 0,
+        passed ? 1 : 0,
         code ? code.length : null,
-        `format:${formatOk ? "ok" : "bad"} code:${codeOk ? "ok" : "bad"} listed:${listedOk ? "ok" : "bad"}`,
+        `format:${formatOk ? "ok" : "bad"} code:${codeOk ? "ok" : "bad"} listed:${listedOk ? "ok" : "bad"} status:${group.linkStatus}`,
       ]
     );
     await exec("UPDATE `groups` SET `lastValidatedAt` = ? WHERE `id` = ?", [now, group.id]);
@@ -135,7 +158,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       data: {
         steps,
-        passed: allOk,
+        passed,
         checkedAt: now.toISOString(),
         checkCount,
         lastValidatedAt: now.toISOString(),

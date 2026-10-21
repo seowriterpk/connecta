@@ -407,7 +407,8 @@ export function LinkCheckerTool({
             </CardTitle>
             <CardDescription>
               Los cambios se aplican a la base de datos en tiempo real. Los
-              revocados conservan su imagen y el badge rojo «Expirado».
+              revocados conservan su imagen; el icono rojo solo se muestra en
+              las tarjetas de la página de categoría.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0">
@@ -422,8 +423,11 @@ export function LinkCheckerTool({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => (
-                    <TableRow key={`${r.id}-${r.newStatus}`} className="text-xs">
+                  {rows.map((r, i) => (
+                    // Index-qualified key: the same group can legitimately appear
+                    // twice (re-checked across batches, e.g. repeated "unknown"
+                    // verdicts) — id+status alone then collides and React warns.
+                    <TableRow key={`${r.id}-${i}`} className="text-xs">
                       <TableCell className="max-w-[280px] px-3">
                         <div className="truncate font-medium">{r.name}</div>
                         <div className="truncate font-mono text-muted-foreground">{r.slug}</div>
@@ -459,8 +463,8 @@ export function LinkCheckerTool({
               <span className="font-medium text-amber-700 dark:text-amber-300">
                 {counters.revoked} enlaces revocados.
               </span>{" "}
-              Los grupos siguen listados con badge «Expirado». ¿Quieres ocultarlos
-              o cambiar su estado en masa?
+              Los grupos siguen listados (icono rojo solo en la página de
+              categoría). ¿Quieres ocultarlos o cambiar su estado en masa?
             </p>
             <Button asChild variant="outline" size="sm">
               <Link href="/admin/grupos">

@@ -96,9 +96,10 @@ export default async function GroupPage({ params }: PageProps) {
   touchGroupActivity(group.id).catch(() => {});
 
   const [related, activity, feedback] = await Promise.all([
-    // Siloed linking: adult groups only see adult related, clean only clean.
-    // Deterministic "clicks + old" ordering, max 2 indexed queries.
-    getRelatedGroups(group.id, group.category?.id ?? "", group.country?.id ?? "", 8, {
+    // STRICT same-category related groups (owner directive: never mix
+    // categories — no more "friendship" groups under an education group).
+    // Single indexed query, active links sorted first.
+    getRelatedGroups(group.id, group.category?.id ?? "", 8, {
       isAdult: group.isAdult,
     }),
     getGroupActivity(group.id),

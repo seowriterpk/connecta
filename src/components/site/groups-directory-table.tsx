@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown, Link2Off } from "lucide-react";
+import { Search, Users, Eye, BadgeCheck, MapPin, Flame, ArrowRight, Filter, X, Loader2, Heart, Star, TrendingUp, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
@@ -14,7 +14,8 @@ import type {
 import { GroupImage } from "@/components/site/group-image";
 import { SearchPredictive } from "@/components/site/search-predictive";
 import { useFavorites } from "@/lib/favorites";
-import { CompareIconButton } from "@/components/site/compare-button";
+import { CompareToggleAction } from "@/components/site/compare-button";
+import { FavoriteToggleAction } from "@/components/site/favorite-pill-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { CountryFlag } from "@/components/site/country-flag";
 import { Button } from "@/components/ui/button";
@@ -448,30 +449,6 @@ const ROW_GRADIENTS: Record<string, string> = {
   purple: "from-purple-500 to-violet-600",
 };
 
-function RowHeartButton({ id }: { id: string }) {
-  const toggle = useFavorites((s) => s.toggle);
-  const has = useFavorites((s) => s.ids.includes(id));
-  return (
-    <motion.button
-      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
-      aria-pressed={has}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        toggle(id);
-      }}
-      whileTap={{ scale: 0.8 }}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition ${
-        has
-          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
-          : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
-      }`}
-    >
-      <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} />
-    </motion.button>
-  );
-}
-
 function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: string }) {
   const isActiveRecently = group.lastActiveAt
     ? Date.now() - new Date(group.lastActiveAt).getTime() < 7 * 86400000
@@ -479,7 +456,10 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
   const isHot = group.members >= 1000;
   const isTrending = group.views >= 50 || group.members >= 700;
   const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
-  // Link-checker verdict: revoked invite link → red "Expirado" chip.
+  // Link-checker verdict (premium-vibe directive): the homepage directory
+  // stays CLEAN — no red "Expirado" chip, icon or dot on rows. The verdict
+  // is only used to suppress the green "recently active" dot so we never
+  // claim a dead link is active. The category page card keeps the one icon.
   const isExpired = group.linkStatus === "revoked";
   // Adult directive: blank image title/alt on adult groups (SEO safety).
   const imgAlt = group.isAdult ? "" : group.title;
@@ -489,7 +469,7 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
     <motion.article
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 320, damping: 24 }}
-      className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border bg-card p-3.5 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
+      className="group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border bg-card p-3 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
     >
       {/* Category color left accent */}
       <span
@@ -518,21 +498,12 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           alt={imgAlt}
           title={imgTitle}
           size={56}
-          className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
+          className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 max-sm:h-12! max-sm:w-12!"
           fallbackEmoji={group.category?.icon}
         />
         {isActiveRecently && !isExpired && (
           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500">
             <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
-          </span>
-        )}
-        {isExpired && (
-          <span
-            title="Enlace de invitación caducado (expirado)"
-            aria-label="Enlace de invitación caducado (expirado)"
-            className="absolute -right-1 -top-1 grid h-4.5 w-4.5 place-items-center rounded-full border-2 border-card bg-rose-500 text-rose-50"
-          >
-            <Link2Off className="h-2.5 w-2.5" aria-hidden />
           </span>
         )}
       </div>
@@ -553,25 +524,17 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
           {group.isVerified && (
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
           )}
-          {isExpired && (
-            <Link2Off className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-label="Enlace caducado (expirado)" />
-          )}
           {group.isFeatured && (
-            <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Destacado" />
+            <Star className="mt-0.5 hidden h-4 w-4 shrink-0 fill-amber-500 text-amber-500 sm:inline-block" aria-label="Destacado" />
           )}
-          {isHot && <Flame className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-label="Popular" />}
+          {isHot && <Flame className="mt-0.5 hidden h-4 w-4 shrink-0 text-orange-500 sm:inline-block" aria-label="Popular" />}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 font-medium text-foreground/75">
-            <Users className="h-3 w-3 text-primary/70" /> {fmt(group.members)}
+        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground sm:text-xs">
+          <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground/75">
+            <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)}
           </span>
-          {isExpired && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 font-semibold text-rose-600 dark:text-rose-400" title="El enlace de invitación ha caducado — marcado por el verificador">
-              <Link2Off className="h-3 w-3" aria-hidden /> Expirado
-            </span>
-          )}
           {isTrending && !isExpired && (
-            <span className="inline-flex items-center gap-0.5 text-orange-600 dark:text-orange-400">
+            <span className="inline-flex shrink-0 items-center gap-0.5 text-orange-600 dark:text-orange-400">
               <TrendingUp className="h-3 w-3" /> Tendencia
             </span>
           )}
@@ -580,7 +543,7 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
         <details className="group/details relative z-[2]">
           <summary
             className="-ml-1 flex min-h-8 cursor-pointer select-none list-none items-center gap-1 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
-            aria-label={`Mostrar país, ciudad, categoría y descripción de ${group.isAdult ? "este grupo 18+" : group.title}`}
+            aria-label={`Mostrar país, ciudad, categoría, descripción y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
           >
             <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
               <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
@@ -611,18 +574,22 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
             <p className="line-clamp-3 break-words text-muted-foreground/90">
               <Highlight text={group.description} query={searchQuery} />
             </p>
+            {/* Quick actions: me gusta + comparar (owner directive: these live
+                INSIDE the dropdown so the title keeps the full row width on
+                small screens). */}
+            <div className="flex items-center gap-2 pt-1">
+              <FavoriteToggleAction id={group.id} />
+              <CompareToggleAction slug={group.slug} title={group.title} />
+            </div>
           </div>
         </details>
       </div>
 
-      {/* Actions: heart + compare + join CTA */}
-      <div className="relative z-[2] flex shrink-0 flex-col items-center justify-center gap-1.5 pl-1 sm:flex-row sm:gap-2 sm:pl-2">
-        <div className="flex flex-row items-center gap-0.5 sm:gap-1">
-          <RowHeartButton id={group.id} />
-          <CompareIconButton slug={group.slug} title={group.title} />
-        </div>
+      {/* Actions: join CTA (me gusta / comparar live in the dropdown now —
+          frees the whole right side for the title on small screens). */}
+      <div className="relative z-[2] flex shrink-0 items-center pl-1 sm:pl-2">
         <span
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:px-4 sm:py-2"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:gap-1.5 sm:px-4 sm:py-2 sm:text-xs"
           aria-hidden
         >
           Unirme

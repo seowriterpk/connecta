@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Heart, Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown, Link2Off } from "lucide-react";
+import { Users, Eye, BadgeCheck, Star, MapPin, Flame, TrendingUp, ArrowRight, ChevronDown, Link2Off } from "lucide-react";
 import type { GroupCardDTO } from "@/lib/lite-dto";
 import { Badge } from "@/components/ui/badge";
-import { useFavorites } from "@/lib/favorites";
-import { CompareIconButton } from "@/components/site/compare-button";
+import { CompareToggleAction } from "@/components/site/compare-button";
+import { FavoriteToggleAction } from "@/components/site/favorite-pill-button";
 import { Highlight } from "@/components/site/highlight";
 import { GroupImage } from "@/components/site/group-image";
 import { CountryFlag } from "@/components/site/country-flag";
@@ -43,33 +43,18 @@ const AVATAR_GRADIENTS: Record<string, string> = {
   purple: "from-purple-500 to-violet-600",
 };
 
-function HeartButton({ id }: { id: string }) {
-  const toggle = useFavorites((s) => s.toggle);
-  const has = useFavorites((s) => s.ids.includes(id));
-  return (
-    <motion.button
-      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
-      aria-pressed={has}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        toggle(id);
-      }}
-      whileTap={{ scale: 0.8 }}
-      className={`absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition ${
-        has
-          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
-          : "bg-background/70 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:opacity-0"
-      } ${has ? "opacity-100" : ""}`}
-    >
-      <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} />
-    </motion.button>
-  );
-}
+/**
+ * Labeled favorite + compare toggles for the card dropdown live in
+ * favorite-pill-button.tsx / compare-button.tsx (shared with the homepage
+ * directory rows). They replace the old absolute top-right heart and the
+ * CTA-row compare icon — those surface icons reserved space over the title
+ * and cut long group names off on small screens.
+ */
 
 export function GroupCard({
   group,
   imageAlt = true,
+  expiredHint = false,
 }: {
   group: GroupCardDTO;
   /**
@@ -80,6 +65,15 @@ export function GroupCard({
    * blank alt on adult groups elsewhere).
    */
   imageAlt?: boolean;
+  /**
+   * Premium-vibe directive (owner, 2026-10-21): listing cards stay CLEAN —
+   * no red "expired" icons/words anywhere. The ONE exception is the category
+   * page, which passes expiredHint to show the single red Link2Off icon next
+   * to the title. Everywhere else (home, search, city, country, popular,
+   * verify, related…) the link-checker verdict is deliberately invisible on
+   * cards; the group detail + verify pages still tell the user honestly.
+   */
+  expiredHint?: boolean;
 }) {
   const searchQuery = useGroupsFilter((s) => s.search);
   const gradient = AVATAR_GRADIENTS[group.category?.color ?? "emerald"] ?? AVATAR_GRADIENTS.emerald;
@@ -99,16 +93,16 @@ export function GroupCard({
     return diff < 7 * 86400000;
   })();
 
-  // Link-checker verdict: revoked invite link → red "Expirado" icon/badge
-  // (user directive 2026-10-21: everything else on the card stays as-is —
-  // the self-hosted image is kept because we only download once).
+  // Link-checker verdict. Only used to (a) suppress the green "active"
+  // signals on this card (no dishonest "Activo" badge over a dead link) and
+  // (b) render the single red icon when expiredHint is on (category page).
   const isExpired = group.linkStatus === "revoked";
 
   return (
     <motion.article
       whileHover={{ y: -6 }}
       transition={{ type: "spring", stiffness: 320, damping: 24 }}
-      className="group relative flex h-full w-full flex-col gap-2.5 overflow-hidden rounded-2xl border bg-card p-4 pt-5 text-left shadow-sm ring-1 ring-transparent transition-[box-shadow,border-color,ring-color] duration-300 hover:border-transparent hover:shadow-xl hover:shadow-primary/10 hover:ring-primary/25"
+      className="group relative flex h-full w-full flex-col gap-2 overflow-hidden rounded-2xl border bg-card p-3 pt-4 text-left shadow-sm ring-1 ring-transparent transition-[box-shadow,border-color,ring-color] duration-300 hover:border-transparent hover:shadow-xl hover:shadow-primary/10 hover:ring-primary/25 sm:gap-2.5 sm:p-4 sm:pt-5"
     >
       {/* Category color top accent */}
       <span
@@ -126,11 +120,9 @@ export function GroupCard({
         aria-hidden
       />
 
-      <HeartButton id={group.id} />
-
       {/* Stretched link: whole card remains clickable. Sits ABOVE static
-          content (z-[1]) but BELOW interactive controls (heart z-10,
-          details summary z-[2], footer buttons z-[2]). */}
+          content (z-[1]) but BELOW interactive controls (details summary and
+          its action buttons, z-[2]; footer badges z-[2]). */}
       <Link
         href={`/grupo/${group.slug}`}
         title={imgTitle}
@@ -138,8 +130,10 @@ export function GroupCard({
         className="absolute inset-0 z-[1] rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       />
 
-      {/* === ALWAYS VISIBLE: image · name · verify · 18+ === */}
-      <div className="flex items-start gap-3 pr-9">
+      {/* === ALWAYS VISIBLE: image · name · verify · 18+ ===
+          No more absolute heart overlay → the title row owns the full card
+          width (long names stay readable on small screens). */}
+      <div className="flex items-start gap-2.5 sm:gap-3">
         <span className="relative shrink-0">
           <span className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br opacity-0 blur-md transition duration-300 group-hover:opacity-40" aria-hidden />
           <GroupImage
@@ -147,7 +141,7 @@ export function GroupCard({
             alt={imgAlt}
             title={imgTitle}
             size={48}
-            className="rounded-xl transition duration-300 group-hover:scale-105"
+            className="rounded-xl transition duration-300 group-hover:scale-105 max-sm:h-11! max-sm:w-11!"
             fallbackEmoji={group.category?.icon}
           />
           {isActiveRecently && !isExpired && (
@@ -155,18 +149,9 @@ export function GroupCard({
               <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500 opacity-60" />
             </span>
           )}
-          {isExpired && (
-            <span
-              title="Enlace de invitación caducado (expirado)"
-              aria-label="Enlace de invitación caducado (expirado)"
-              className="absolute -right-1 -top-1 grid h-4.5 w-4.5 place-items-center rounded-full border-2 border-card bg-rose-500 text-rose-50"
-            >
-              <Link2Off className="h-2.5 w-2.5" aria-hidden />
-            </span>
-          )}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug transition-colors group-hover:text-primary">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary sm:text-[15px]">
             <Highlight text={group.title} query={searchQuery} />
             {group.isVerified && (
               <BadgeCheck
@@ -174,7 +159,7 @@ export function GroupCard({
                 aria-label="Grupo verificado"
               />
             )}
-            {isExpired && (
+            {expiredHint && isExpired && (
               <Link2Off
                 className="ml-1 inline h-4 w-4 shrink-0 align-[-2px] text-rose-500"
                 aria-label="Enlace caducado (expirado)"
@@ -190,21 +175,21 @@ export function GroupCard({
       </div>
 
       {/* === ALWAYS VISIBLE: members (one compact line) === */}
-      <div className="flex min-h-[1.25rem] items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex min-h-[1.1rem] items-center gap-2 text-[11px] text-muted-foreground sm:min-h-[1.25rem] sm:text-xs">
         <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-          <Users className="h-3.5 w-3.5 text-primary/70" /> {fmt(group.members)} miembros
+          <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)} miembros
         </span>
       </div>
 
       {/* === COLLAPSIBLE META (native <details>): país · ciudad · categoría ·
-          descripción + estadísticas.
+          descripción + estadísticas + quick actions (me gusta / comparar).
           Content stays in the server-rendered HTML — Googlebot sees it
           exactly as before; we only minimize it visually until the user
           clicks the dropdown. No JS needed to toggle. === */}
       <details className="group/details relative z-[2]">
         <summary
-          className="flex min-h-9 cursor-pointer select-none list-none items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
-          aria-label={`Mostrar país, ciudad, categoría y descripción de ${group.isAdult ? "este grupo 18+" : group.title}`}
+          className="flex min-h-8 cursor-pointer select-none list-none items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden sm:min-h-9 sm:px-1.5 sm:py-1.5 sm:text-xs"
+          aria-label={`Mostrar país, ciudad, categoría, descripción y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
         >
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
             <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
@@ -212,7 +197,7 @@ export function GroupCard({
           <span className="truncate">País, ciudad, categoría y descripción</span>
         </summary>
 
-        <div className="space-y-2 px-1 pb-1 pt-2 text-xs">
+        <div className="space-y-2 px-1 pb-1 pt-2 text-[11px] sm:text-xs">
           {/* Meta: country · city · category */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-muted-foreground">
             {group.country && (
@@ -250,15 +235,15 @@ export function GroupCard({
           </div>
 
           {/* Description (full text — visible to Googlebot in the HTML) */}
-          <p className="whitespace-pre-line break-words text-[13px] leading-relaxed text-muted-foreground/90">
+          <p className="whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground/90 sm:text-[13px]">
             <Highlight text={group.description} query={searchQuery} />
           </p>
 
           {/* Member popularity bar + views */}
           <div className="space-y-1.5 pt-0.5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground sm:text-xs">
               <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-                <Users className="h-3.5 w-3.5 text-primary/70" /> {fmt(group.members)} miembros
+                <Users className="h-3 w-3 text-primary/70 sm:h-3.5 sm:w-3.5" /> {fmt(group.members)} miembros
               </span>
               <span className="inline-flex items-center gap-1 tabular-nums">
                 <Eye className="h-3 w-3" /> {fmt(group.views)}
@@ -272,45 +257,43 @@ export function GroupCard({
               />
             </div>
           </div>
+
+          {/* Quick actions: me gusta + comparar (owner directive: these live
+              INSIDE the dropdown so the card surface stays clean and group
+              titles keep the full width on small screens). */}
+          <div className="flex items-center gap-2 pt-1">
+            <FavoriteToggleAction id={group.id} />
+            <CompareToggleAction slug={group.slug} title={group.title} />
+          </div>
         </div>
       </details>
 
-      {/* === ALWAYS VISIBLE: CTA row (compare + join) === */}
-      <div className="mt-auto flex items-end justify-between gap-3 pt-1">
+      {/* === ALWAYS VISIBLE: CTA row (badges + join) — clean, no red === */}
+      <div className="mt-auto flex items-end justify-between gap-2 pt-1 sm:gap-3">
         {/* z-[2] keeps these informational badges above the stretched link
             so their title tooltip is actually reachable on hover. */}
         <div className="relative z-[2] flex min-w-0 items-center gap-1.5">
-          {isExpired && (
-            <Badge
-              variant="outline"
-              className="gap-1 border-rose-300/70 font-semibold text-rose-600 dark:border-rose-800/60 dark:text-rose-400"
-              title="El verificador de enlaces marcó este enlace como caducado (expirado)"
-            >
-              <Link2Off className="h-3 w-3" aria-hidden /> Expirado
-            </Badge>
-          )}
           {group.isVerified && (
             <Badge
               variant="secondary"
-              className="gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              className="gap-1 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-300 sm:px-2.5 sm:text-xs"
               title="Enlace comprobado manualmente por el equipo antes de publicar"
             >
               <BadgeCheck className="h-3 w-3" aria-hidden /> Verificado
             </Badge>
           )}
           {isActiveRecently && !isExpired && (
-            <Badge variant="outline" className="gap-1 border-emerald-300/50 font-normal text-emerald-600 dark:text-emerald-400">
+            <Badge variant="outline" className="gap-1 border-emerald-300/50 px-1.5 text-[10px] font-normal text-emerald-600 dark:border-emerald-800/50 dark:text-emerald-400 sm:px-2.5 sm:text-xs">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo
             </Badge>
           )}
         </div>
         <div className="relative z-[2] flex shrink-0 items-center gap-1">
-          <CompareIconButton slug={group.slug} title={group.title} />
           <Link
             href={`/grupo/${group.slug}`}
             aria-hidden
             tabIndex={-1}
-            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/40 hover:brightness-110"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-1.5 text-[11px] font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/40 hover:brightness-110 sm:px-4 sm:py-2 sm:text-xs"
           >
             Unirme
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -323,24 +306,24 @@ export function GroupCard({
 
 export function SkeletonCard() {
   return (
-    <div className="relative flex animate-pulse flex-col gap-2.5 overflow-hidden rounded-2xl border bg-card p-4 pt-5">
+    <div className="relative flex animate-pulse flex-col gap-2 overflow-hidden rounded-2xl border bg-card p-3 pt-4 sm:gap-2.5 sm:p-4 sm:pt-5">
       <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-muted" />
       <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/5 to-transparent [animation:cg-shimmer_1.6s_infinite]" />
-      <div className="flex items-start gap-3 pr-9">
-        <div className="h-12 w-12 rounded-xl bg-muted" />
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <div className="h-11 w-11 rounded-xl bg-muted sm:h-12 sm:w-12" />
         <div className="flex-1 space-y-2">
           <div className="h-4 w-3/4 rounded bg-muted" />
           <div className="h-3 w-1/2 rounded bg-muted" />
         </div>
       </div>
       <div className="h-3 w-24 rounded bg-muted" />
-      <div className="flex min-h-9 items-center gap-1.5">
+      <div className="flex min-h-8 items-center gap-1.5">
         <div className="h-5 w-5 rounded-full bg-muted" />
         <div className="h-3 w-40 rounded bg-muted" />
       </div>
       <div className="mt-auto flex items-center justify-between">
         <div className="h-5 w-24 rounded-full bg-muted" />
-        <div className="h-8 w-20 rounded-full bg-muted" />
+        <div className="h-7 w-20 rounded-full bg-muted sm:h-8" />
       </div>
     </div>
   );
