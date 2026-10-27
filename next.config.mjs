@@ -1,8 +1,14 @@
-import type { NextConfig } from "next";
+// NOTE: This file is deliberately `next.config.mjs` (plain ESM JavaScript) — NOT `.ts`.
+// The production host (shared hosting) runs an older glibc that cannot load the
+// native SWC binary. With a `.ts` config, Next.js must transpile the config via
+// SWC into a temp "<hash>.next.config" file and import it from
+// `next.config.compiled.js` — that step fails on the host
+// (ERR_MODULE_NOT_FOUND). A plain `.mjs` config is loaded directly with zero
+// transpilation, so `next build` works on any Linux, old or new.
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: "standalone",
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -22,8 +28,7 @@ const nextConfig: NextConfig = {
     // Resource temporarily unavailable (os error 11)" -> SIGABRT.
     // `cpus` caps the number of build workers so a cheap server can never
     // spawn more threads than it is allowed to have. Build takes a bit
-    // longer; runtime is NOT affected (verified in Next 16.1.3 locally and
-    // 16.3.8 / 16.4.2 via unpkg — the flag exists in all of them).
+    // longer; runtime is NOT affected.
     cpus: 2,
   },
   // SEO policy: WhatsApp-sourced group images must NEVER be indexed —

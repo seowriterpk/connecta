@@ -65,3 +65,30 @@ logs/
 
 # Runtime-stored WhatsApp group images (regenerated per environment, robots-blocked)
 /media/
+
+# --- Repo hygiene: sandbox/QA/agent artifacts are NEVER part of the app ---
+# Session logs, agent notes, QA screenshots, sandbox runtime scripts, legacy
+# local DBs and scratch uploads live on the dev machine only — the GitHub repo
+# must contain exactly what the production build needs, nothing else.
+/worklog.md
+/agent-ctx/
+/tool-results/
+/qa-*.png
+/upload/
+/download/
+/examples/
+/mini-services/
+/tests/
+/.zscripts/
+/Caddyfile
+/db/
+/start-dev.sh
+/start-mariadb.sh
+*.pid
+
+# Next.js config transpile temp artifacts (generated on hosts that must
+# transpile next.config.ts; we ship .mjs so these should never exist, but
+# ignore them defensively)
+next.config.compiled.js
+*.next.config
+*.next.config.*

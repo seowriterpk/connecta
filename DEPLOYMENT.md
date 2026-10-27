@@ -159,7 +159,7 @@ file so runs never overlap.)
 ## 6. ZIP deployment checklist
 
 **Include:** `src/`, `public/`, `scripts/`, `package.json`, `package-lock.json`,
-`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `components.json`,
+`next.config.mjs`, `tsconfig.json`, `postcss.config.mjs`, `components.json`,
 `eslint.config.mjs`, `db/` (optional).
 
 **Exclude:** `node_modules/` (hPanel runs `npm install`), `.env*`
