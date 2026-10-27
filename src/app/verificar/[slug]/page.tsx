@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { GroupImage } from "@/components/site/group-image";
 import { CountryFlag } from "@/components/site/country-flag";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { BackToTop } from "@/components/site/back-to-top";
 import { VerifyClient } from "@/components/site/verify-client";
 
@@ -93,7 +94,7 @@ export default async function VerifyPage({ params }: PageProps) {
               <h2 className="mb-4 text-lg font-bold">Grupos nuevos de la misma categoría</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {related.map((r) => (
-                  <GroupCard key={r.id} group={r} />
+                  <GroupCard key={r.id} group={toGroupCardDTO(r)} />
                 ))}
               </div>
             </section>

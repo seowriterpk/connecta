@@ -13,6 +13,7 @@ import { BackToTop } from "@/components/site/back-to-top";
 import { Reveal } from "@/components/site/reveal";
 import { Badge } from "@/components/ui/badge";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { getGroups } from "@/lib/data";
 import { jsonLdScript } from "@/lib/jsonld";
 
@@ -237,7 +238,7 @@ export default async function GuiaArticlePage({ params }: PageProps) {
                   </p>
                   <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {related.map((g) => (
-                      <GroupCard key={g.id} group={g} />
+                      <GroupCard key={g.id} group={toGroupCardDTO(g)} />
                     ))}
                   </div>
                 </aside>

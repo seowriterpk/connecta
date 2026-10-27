@@ -158,10 +158,8 @@ export function RecentlyViewed() {
                       </div>
                     </div>
 
-                    <p className="line-clamp-1 text-xs text-muted-foreground/90">
-                      {g.description}
-                    </p>
-
+                    {/* SEO directive (owner): no group description on listing
+                        surfaces — it lives ONLY on /grupo/[slug]. */}
                     <div className="mt-auto flex items-center justify-between pt-1">
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                         {g.category?.icon} {g.category?.name ?? "Grupo"}

@@ -498,9 +498,10 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
         />
       </div>
 
-      {/* Content: name + compact stats always visible; país/ciudad/categoría/
-          descripción collapsed behind a native <details> dropdown (content
-          stays in the HTML for Googlebot — we only minimize visually). */}
+      {/* Content: name + compact stats always visible; país/ciudad/categoría
+          collapsed behind a native <details> dropdown. SEO directive
+          (owner): the group description lives ONLY on /grupo/[slug] — this
+          table must never duplicate it. */}
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
@@ -522,12 +523,12 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
         <details className="group/details relative z-[2]">
           <summary
             className="-ml-1 flex min-h-8 cursor-pointer select-none list-none items-center gap-1 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
-            aria-label={`Mostrar país, ciudad, categoría, descripción y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
+            aria-label={`Mostrar país, ciudad, categoría y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
           >
             <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
               <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
             </span>
-            <span className="truncate">País, ciudad, categoría y descripción</span>
+            <span className="truncate">País, ciudad y categoría</span>
           </summary>
           <div className="space-y-1.5 px-1 pb-1 pt-1.5 text-xs">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
@@ -550,12 +551,9 @@ function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: st
                 </Badge>
               )}
             </div>
-            <p className="line-clamp-3 break-words text-muted-foreground/90">
-              <Highlight text={group.description} query={searchQuery} />
-            </p>
             {/* Quick actions: me gusta + comparar (owner directive: these live
                 INSIDE the dropdown so the title keeps the full row width on
-                small screens). */}
+                small screens). No description here — SEO directive above. */}
             <div className="flex items-center gap-2 pt-1">
               <FavoriteToggleAction id={group.id} />
               <CompareToggleAction slug={group.slug} title={group.title} />

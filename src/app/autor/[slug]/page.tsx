@@ -27,6 +27,7 @@ import {
 } from "@/lib/data";
 import { getPublishedPostCards } from "@/lib/blog";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
@@ -479,7 +480,7 @@ export default async function AutorPage({ params }: PageProps) {
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} />
+                    <GroupCard key={g.id} group={toGroupCardDTO(g)} />
                   ))}
                 </div>
               </Reveal>

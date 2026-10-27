@@ -27,6 +27,7 @@ import { ComparePillButton } from "@/components/site/compare-button";
 import { FavoritePillButton } from "@/components/site/favorite-pill-button";
 import { BackToTop } from "@/components/site/back-to-top";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { GroupFeedback } from "@/components/site/group-feedback";
 import { RecentTracker } from "@/components/site/recent-tracker";
 
@@ -336,7 +337,7 @@ export default async function GroupPage({ params }: PageProps) {
                     </Link>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {related.map((r) => (<GroupCard key={r.id} group={r} />))}
+                    {related.map((r) => (<GroupCard key={r.id} group={toGroupCardDTO(r)} />))}
                   </div>
                 </section>
               )}

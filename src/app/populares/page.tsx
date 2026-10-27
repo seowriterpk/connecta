@@ -23,6 +23,7 @@ import {
   getTrendingMovers,
 } from "@/lib/data";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
@@ -314,7 +315,7 @@ export default async function PopularesPage({
                     <Reveal key={g.id} delay={Math.min(i * 0.03, 0.3)}>
                       <div className="relative">
                         <RankBadge rank={i + 1} />
-                        <GroupCard group={g} />
+                        <GroupCard group={toGroupCardDTO(g)} />
                       </div>
                     </Reveal>
                   );

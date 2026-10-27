@@ -15,6 +15,7 @@ import {
   buildTaxonomyMetaDescription,
 } from "@/lib/taxonomy-intro";
 import { GroupCard } from "@/components/site/group-card";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { SiteHeader } from "@/components/site/header";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteFooter } from "@/components/site/footer";
@@ -385,7 +386,7 @@ export default async function CategoryPage({
               <Reveal>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups.map((g) => (
-                    <GroupCard key={g.id} group={g} imageAlt={!category.isAdult} expiredHint />
+                    <GroupCard key={g.id} group={toGroupCardDTO(g)} imageAlt={!category.isAdult} expiredHint />
                   ))}
                 </div>
               </Reveal>

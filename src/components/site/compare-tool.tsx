@@ -16,6 +16,7 @@ import {
   Trophy,
   X,
 } from "lucide-react";
+import type { GroupCardDTO } from "@/lib/lite-dto";
 import type { GroupDTO } from "@/lib/types";
 import { GroupImage } from "@/components/site/group-image";
 import { useCompare, MAX_COMPARE } from "@/lib/compare";
@@ -41,7 +42,11 @@ function toSlots(slugs: string[]): (string | null)[] {
   return [...slugs, ...Array(MAX_COMPARE).fill(null)].slice(0, MAX_COMPARE);
 }
 
-export function CompareTool({ suggestions }: { suggestions: GroupDTO[] }) {
+// SEO directive (owner): suggestions arrive as card-lite DTOs (no
+// description — it lives only on /grupo/[slug]); the full comparison rows
+// are fetched client-side from /api/groups/compare and never rendered as
+// server HTML.
+export function CompareTool({ suggestions }: { suggestions: GroupCardDTO[] }) {
   // Zustand store (localStorage-persisted)
   const storeSlugs = useCompare((s) => s.slugs);
   const addSlug = useCompare((s) => s.add);

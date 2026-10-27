@@ -158,20 +158,22 @@ export function GroupCard({
         </div>
       </div>
 
-      {/* === COLLAPSIBLE META (native <details>): país · ciudad · categoría ·
-          descripción + quick actions (me gusta / comparar).
-          Content stays in the server-rendered HTML — Googlebot sees it
-          exactly as before; we only minimize it visually until the user
-          clicks the dropdown. No JS needed to toggle. === */}
+      {/* === COLLAPSIBLE META (native <details>): país · ciudad · categoría +
+          quick actions (me gusta / comparar).
+          SEO directive (owner): the group description is rendered ONLY on
+          /grupo/[slug] — listing cards must NEVER duplicate it (duplicate
+          content across hundreds of programmatic pages). Only compact
+          taxonomy metadata (country/city/category) lives here, and it is
+          unique per card context. No JS needed to toggle. === */}
       <details className="group/details relative z-[2]">
         <summary
           className="flex min-h-8 cursor-pointer select-none list-none items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden sm:min-h-9 sm:px-1.5 sm:py-1.5 sm:text-xs"
-          aria-label={`Mostrar país, ciudad, categoría, descripción y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
+          aria-label={`Mostrar país, ciudad, categoría y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
         >
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
             <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
           </span>
-          <span className="truncate">País, ciudad, categoría y descripción</span>
+          <span className="truncate">País, ciudad y categoría</span>
         </summary>
 
         <div className="space-y-2 px-1 pb-1 pt-2 text-[11px] sm:text-xs">
@@ -201,14 +203,10 @@ export function GroupCard({
             )}
           </div>
 
-          {/* Description (full text — visible to Googlebot in the HTML) */}
-          <p className="whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground/90 sm:text-[13px]">
-            <Highlight text={group.description} query={searchQuery} />
-          </p>
-
           {/* Quick actions: me gusta + comparar (owner directive: these live
               INSIDE the dropdown so the card surface stays clean and group
-              titles keep the full width on small screens). */}
+              titles keep the full width on small screens). NOTE: no
+              description here — see the SEO directive above. */}
           <div className="flex items-center gap-2 pt-1">
             <FavoriteToggleAction id={group.id} />
             <CompareToggleAction slug={group.slug} title={group.title} />

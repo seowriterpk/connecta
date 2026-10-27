@@ -45,9 +45,17 @@ export async function GET() {
     .map((g) => {
       const groupUrl = `${SITE.url}/grupo/${g.slug}`;
       const title = xmlEscape(g.title);
+      // SEO directive (owner): the group description text is published ONLY
+      // on /grupo/[slug] — the feed must not duplicate it. Items carry a
+      // taxonomy-derived teaser that invites the click instead.
+      const where = [
+        g.category?.name ? `de ${g.category.name}` : "",
+        g.country?.name ? `(${g.country.name})` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
       const description = xmlEscape(
-        normalize(g.description, 320) ||
-          `${g.title} — grupo de WhatsApp en español en Grupos Hoy.`
+        `Grupo de WhatsApp en español${where ? ` ${where}` : ""}. Lee la descripción completa, las estadísticas y únete desde la ficha del grupo en ${SITE.name}.`
       );
       const category = g.category?.name ? xmlEscape(g.category.name) : "";
       const pubDate = toRfc822(g.createdAt);

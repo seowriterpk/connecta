@@ -145,7 +145,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                 {recentItems.slice(0, 4).map((g) => (
                   <CommandItem
                     key={`recent-${g.id}`}
-                    value={`recent ${g.title} ${g.description} ${g.category?.name ?? ""}`}
+                    value={`recent ${g.title} ${g.category?.name ?? ""}`}
                     onSelect={() => pickGroup(g)}
                   >
                     <History className="h-4 w-4 text-teal-500" />
@@ -168,7 +168,7 @@ export function CommandPalette({ categories, countries, groups }: Props) {
                 {groups.slice(0, 6).map((g) => (
                   <CommandItem
                     key={g.id}
-                    value={`${g.title} ${g.description} ${g.category?.name} ${g.country?.name}`}
+                    value={`${g.title} ${g.category?.name} ${g.country?.name}`}
                     onSelect={() => pickGroup(g)}
                   >
                     <span className="text-base">{g.category?.icon ?? "💬"}</span>

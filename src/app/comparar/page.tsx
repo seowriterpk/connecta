@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { RecentlyViewed } from "@/components/site/recently-viewed";
 import { CompareTool } from "@/components/site/compare-tool";
+import { toGroupCardDTO } from "@/lib/lite-dto";
 import { jsonLdScript } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,9 @@ export const metadata: Metadata = {
 
 export default async function CompararPage() {
   // Pre-fetch popular groups for one-tap suggestions (no client loading state).
-  const suggestions = await getGroups({ sort: "populares", limit: 10 });
+  // Mapped to card-lite DTOs — no description crosses the boundary (SEO
+  // directive: the group description is rendered ONLY on /grupo/[slug]).
+  const suggestions = (await getGroups({ sort: "populares", limit: 10 })).map(toGroupCardDTO);
 
   const jsonLd = {
     "@context": "https://schema.org",

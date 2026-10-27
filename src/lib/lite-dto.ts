@@ -40,7 +40,11 @@ export interface GroupCardDTO {
   id: string;
   title: string;
   slug: string;
-  description: string;
+  // SEO directive (owner): NO `description` here — the group description is
+  // rendered ONLY on /grupo/[slug]. It used to ride along in every card /
+  // directory-table payload (and inside the card <details>), duplicating the
+  // same text across hundreds of programmatic listing pages. Cards now ship
+  // only taxonomy metadata; the full description stays on the group page.
   imageUrl: string | null;
   members: number;
   views: number;
@@ -87,7 +91,6 @@ export function toGroupCardDTO(g: GroupDTO): GroupCardDTO {
     id: g.id,
     title: g.title,
     slug: g.slug,
-    description: g.description,
     imageUrl: g.imageUrl,
     members: g.members,
     views: g.views,
