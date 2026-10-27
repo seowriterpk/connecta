@@ -53,10 +53,11 @@ export async function generateMetadata({
     };
   }
 
-  // ADULT INDEXABLE DIRECTIVE: adult categories are now indexed like any
-  // other category (the sitemap is their discovery path — clean pages don't
-  // link here). Count-first title, canonical, RTA-5042 adult content label.
-  // Still NO JSON-LD and no image alt text on these pages.
+  // ADULT INDEXABLE DIRECTIVE (owner, 2026-10-21): adult categories are
+  // indexed like any other category (the sitemap is their discovery path —
+  // clean pages don't link here). Count-first title, canonical. NO adult
+  // self-labelling of any kind — no RTA/rating meta (never trigger
+  // safesearch ourselves), NO JSON-LD and no image alt text on these pages.
   if (category.isAdult) {
     const basePath = `/categoria/${category.slug}`;
     const canonicalPath = page === 1 ? basePath : `${basePath}?page=${page}`;
@@ -71,7 +72,6 @@ export async function generateMetadata({
       description,
       alternates: hreflangAlternates(canonicalPath),
       robots: { index: true, follow: true },
-      other: { rating: "RTA-5042-1996-RTA" },
       openGraph: {
         title,
         description,
@@ -154,7 +154,8 @@ export default async function CategoryPage({
   // groups grid + pagination as clean categories — no client gate, no 18+
   // toggle. The default listing helpers exclude adult rows, so the adult
   // branch paginates the adult silo explicitly (same strict 404 rules, same
-  // clicks/views ordering, same PAGE_SIZE).
+  // SMART RANK ordering — featured → fresh → popular, dead links last —
+  // same PAGE_SIZE).
   let result: {
     groups: Awaited<ReturnType<typeof getGroups>>;
     total: number;

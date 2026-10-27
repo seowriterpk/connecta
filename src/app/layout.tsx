@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cache } from "react";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/site/theme-provider";
@@ -13,6 +14,7 @@ import { getCategories, getCountries, getGroups } from "@/lib/data";
 import { toCategoryLite, toCountryLite, toGroupCardDTO } from "@/lib/lite-dto";
 import { SITE } from "@/lib/constants";
 import { jsonLdScript } from "@/lib/jsonld";
+import { isAdultContentRoute } from "@/lib/adult-route";
 
 // Per-request dedupe: the homepage fetches the same lists for its own sections.
 const getCategoriesCached = cache(getCategories);
@@ -153,6 +155,14 @@ export default async function RootLayout({
     getGroups({ sort: "populares", limit: 8 }),
   ]);
 
+  // ADULT DIRECTIVE (owner, 2026-10-21): adult category and adult group
+  // pages ship ZERO structured data — including these site-wide schemas.
+  // The middleware (src/middleware.ts) exposes the request pathname for
+  // exactly the two adult-capable routes; everything else is clean and
+  // keeps the full WebSite + Organization JSON-LD.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const suppressGlobalSchema = await isAdultContentRoute(pathname);
+
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
@@ -162,14 +172,18 @@ export default async function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('cg-theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&m)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
           }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
-        />
+        {!suppressGlobalSchema && (
+          <>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteJsonLd) }}
+            />
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: jsonLdScript(orgJsonLd) }}
+            />
+          </>
+        )}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}

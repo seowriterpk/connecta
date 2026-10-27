@@ -58,9 +58,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = `${group.title} — Grupo de WhatsApp | Grupos Hoy`;
   const description = group.description.slice(0, 160);
-  // ADULT INDEXABLE DIRECTIVE: adult groups are indexed like any other
-  // (revoked links still drop to noindex for everyone). Adult groups carry
-  // the RTA-5042 adult content meta label; they still emit NO JSON-LD.
+  // ADULT INDEXABLE DIRECTIVE (owner, 2026-10-21): adult groups are indexed
+  // like any other (revoked links still drop to noindex for everyone) with
+  // NO adult self-labelling of any kind — no RTA/rating meta (we never want
+  // safesearch filters triggered by our own tags), no JSON-LD.
   const robots =
     group.linkStatus === "revoked" ? "noindex, follow" : "index, follow";
 
@@ -69,7 +70,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: `${SITE.url}/grupo/${group.slug}` },
     robots,
-    ...(group.isAdult ? { other: { rating: "RTA-5042-1996-RTA" } } : {}),
     openGraph: {
       title, description,
       url: `${SITE.url}/grupo/${group.slug}`,

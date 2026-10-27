@@ -176,6 +176,10 @@ export default async function CityPage({
   const result = await getCityGroups(city.city, page, adultAllowed);
   if (!result) notFound();
   const groups = result.groups;
+  // ADULT DIRECTIVE: when 18+ mode mixes adult rows into the rendered HTML,
+  // this page carries adult content → NO structured data (owner, 2026-10-21)
+  // and noindex (already handled in generateMetadata).
+  const adultRendered = adultAllowed && groups.some((g) => g.isAdult);
   // Honest count for THIS visitor (clean-only by default, mixed when 18+ is
   // confirmed server-side): the header badge, the "Mostrando X–Y de Z"
   // range, the SEO copy and the JSON-LD all use this same number.
@@ -266,14 +270,19 @@ export default async function CityPage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      {/* ADULT DIRECTIVE: zero structured data on 18+ mixed pages. */}
+      {!adultRendered && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+          />
+        </>
+      )}
 
       <SiteHeader />
 

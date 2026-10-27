@@ -205,19 +205,22 @@ export async function getStats(): Promise<StatsDTO> {
 }
 
 async function getStatsImpl(): Promise<StatsDTO> {
-  // Clean-only counts: global stats describe the clean, indexable directory.
+  // ACCURATE TOTALS (owner directive 2026-10-21): the 18+ silo is a public,
+  // indexable part of the directory (browsable toggle + sitemap), so the
+  // global site stats count ALL live groups / all categories / all featured.
+  // Homepage title, hero, metrics grid and admin dashboard must agree.
   // "members" = sum of the per-group derived estimates (computeDisplayedMembers:
   // ≈0.2 members per real click, capped under WhatsApp's 1,024 limit) — never raw
   // click sums, which would inflate the figure ~5×.
   const row = await queryOne<Row>(
     `SELECT
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
-       (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)                    AS \`categories\`,
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`groups\`,
+       (SELECT COUNT(*) FROM \`categories\`)                    AS \`categories\`,
        (SELECT COUNT(*) FROM \`countries\`)                     AS \`countries\`,
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`popularityBadge\` = 'featured') AS \`featured\``
   );
   const memberRows = await query<Row>(
-    "SELECT `id`, `clicks`, `joinCount` FROM `groups` WHERE `status` = 'live' AND `isAdult` = 0"
+    "SELECT `id`, `clicks`, `joinCount` FROM `groups` WHERE `status` = 'live'"
   );
   const members = (memberRows as any[]).reduce(
     (acc, g) =>
@@ -302,17 +305,52 @@ function buildGroupWhere(q: {
   return { where: clauses.join(" AND "), params };
 }
 
+/**
+ * SMART RANK — the internal listing algorithm (owner directive 2026-10-21:
+ * "active groups, new groups and popular groups to users; expired links go
+ * down"). With 1500+ groups in a single category the ORDER IS the product, so
+ * every public listing (category, country, city, tag, search, homepage
+ * directory, author pages) ranks with the same three-key ladder:
+ *
+ *   1. LINK SAFETY — groups whose invite link the automated checker PROVED
+ *      dead (linkStatus='revoked') always sink below live/unchecked ones.
+ *      A dead link never leads a listing, no matter how popular it once was.
+ *   2. CURATED FEATURED — admin-spotlighted groups (popularityBadge=
+ *      'featured') lead within their safety tier.
+ *   3. TIME-DECAYED POPULARITY (Hacker-News style):
+ *         (ln(1 + clicks + views) + 2) / (days since createdAt + 1)^0.5
+ *      Fresh groups get a real visibility window (the +2 baseline gives every
+ *      newcomer a fair start against months-old entries), proven-popular
+ *      groups stay on top via log-scaled engagement, and everything fades
+ *      gently so each new wave of imports can surface again.
+ *
+ * Tiebreakers: newest first, then stable id — pagination never shuffles rows
+ * between pages. Computed per query; a filesort over a few thousand rows is
+ * sub-millisecond next to the join, and keeps the ladder honest live.
+ */
+const SMART_RANK = `
+  (g.\`linkStatus\` = 'revoked') ASC,
+  (COALESCE(g.\`popularityBadge\`, '') = 'featured') DESC,
+  ((LN(1 + g.\`clicks\` + g.\`views\`) + 2) / POW(GREATEST(DATEDIFF(NOW(), g.\`createdAt\`), 0) + 1, 0.5)) DESC,
+  g.\`createdAt\` DESC,
+  g.\`id\` ASC`;
+
+/** Expired-sink prefix for user-picked sorts (the sort's own semantics stay). */
+const LIVE_FIRST = "(g.`linkStatus` = 'revoked') ASC, ";
+
 function sortToOrderBy(sort?: string): string {
   switch (sort) {
     case "miembros":
-      return "g.`clicks` DESC, g.`views` DESC";
+      return `${LIVE_FIRST}g.\`clicks\` DESC, g.\`views\` DESC, g.\`id\` ASC`;
     case "populares":
-      return "g.`views` DESC, g.`clicks` DESC";
+      return `${LIVE_FIRST}g.\`views\` DESC, g.\`clicks\` DESC, g.\`id\` ASC`;
     case "destacados":
-      return "g.`clicks` DESC, g.`views` DESC";
+      // "Destacados" = the smart ladder itself (featured → fresh → popular,
+      // dead links last). Adult category listings share this default.
+      return SMART_RANK;
     case "recientes":
     default:
-      return "g.`createdAt` DESC";
+      return `${LIVE_FIRST}g.\`createdAt\` DESC, g.\`id\` ASC`;
   }
 }
 
@@ -436,19 +474,19 @@ export async function submitGroup(payload: {
 }
 
 export async function getMetrics() {
-  // CLEAN-ONLY (matches getStats): public "en cifras" describes the clean,
-  // indexable directory — the adult silo is opt-in and never counted here,
-  // so the homepage figures stay consistent (hero vs metrics grid) and
-  // don't advertise adult content.
+  // ACCURATE TOTALS (owner directive 2026-10-21, matches getStats): every
+  // public figure counts the whole public directory — all live groups, all
+  // categories, all featured — so hero, metrics grid and admin agree. The 18+
+  // silo is public + indexable, excluding it understated the directory.
   const row = await queryOne<Row>(
     `SELECT
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0) AS \`groups\`,
-       (SELECT COUNT(*) FROM \`categories\` WHERE \`isAdult\` = 0)  AS \`categories\`,
-       (SELECT COUNT(*) FROM \`countries\`)                          AS \`countries\`,
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live') AS \`groups\`,
+       (SELECT COUNT(*) FROM \`categories\`)                    AS \`categories\`,
+       (SELECT COUNT(*) FROM \`countries\`)                     AS \`countries\`,
        (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'pending') AS \`pending\`,
        (SELECT COUNT(*) FROM \`group_reports\` WHERE \`status\` = 'OPEN') AS \`reports\`,
        (SELECT COUNT(*) FROM \`newsletter\` WHERE \`status\` = 'SUBSCRIBED') AS \`newsletter\`,
-       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`popularityBadge\` = 'featured') AS \`featured\``
+       (SELECT COUNT(*) FROM \`groups\` WHERE \`status\` = 'live' AND \`popularityBadge\` = 'featured') AS \`featured\``
   );
   const r: any = row ?? {};
 
@@ -458,7 +496,7 @@ export async function getMetrics() {
   const activeGroups = await query<Row>(
     `SELECT g.\`id\`, g.\`clicks\`, g.\`joinCount\`, co.\`name\`, co.\`code\`, co.\`flag\`, co.\`region\`
      FROM \`groups\` g JOIN \`countries\` co ON co.\`id\` = g.\`countryId\`
-     WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0`
+     WHERE g.\`status\` = 'live'`
   );
   let members = 0;
   const regionMap = new Map<string, number>();
@@ -1143,7 +1181,7 @@ async function getGroupsByCategorySlugPaginatedImpl(
   if (!cat) return null;
   const result = await buildPaginated(
     buildGroupWhere({ categoryId: (cat as any).id }),
-    "g.`clicks` DESC, g.`views` DESC",
+    SMART_RANK,
     page
   );
   return result ? { category: cat, ...result } : null;
@@ -1169,7 +1207,7 @@ async function getGroupsByCountryCodePaginatedImpl(
   if (!country) return null;
   const result = await buildPaginated(
     buildGroupWhere({ countryId: (country as any).id }),
-    "g.`clicks` DESC, g.`views` DESC",
+    SMART_RANK,
     page
   );
   return result ? { country, ...result } : null;
@@ -1200,7 +1238,7 @@ async function getGroupsByCityPaginatedImpl(
       where: `g.\`status\` = 'live' AND g.\`city\` = ?${adultClause}`,
       params: [city],
     },
-    "g.`clicks` DESC, g.`views` DESC",
+    SMART_RANK,
     page
   );
 }
@@ -1324,7 +1362,7 @@ export async function searchGroups(q: string, limit = 48): Promise<SearchGroupsR
     query<GroupRow>(
       `SELECT ${GROUP_SELECT} ${GROUP_FROM}
        WHERE ${where}
-       ORDER BY g.\`clicks\` DESC, g.\`views\` DESC, g.\`createdAt\` DESC
+       ORDER BY ${SMART_RANK}
        LIMIT ?`,
       [...params, take]
     ),
@@ -1381,7 +1419,7 @@ async function getGroupsByTagPaginatedImpl(
       where: "g.`status` = 'live' AND g.`isAdult` = 0 AND g.`tags` LIKE ?",
       params: [like(`"${tagName}"`)],
     },
-    "g.`clicks` DESC, g.`views` DESC, g.`createdAt` DESC",
+    SMART_RANK,
     page
   );
 }
@@ -1542,10 +1580,12 @@ async function getAllAuthorsImpl(): Promise<AuthorIndexDTO[]> {
 }
 
 export async function getGroupsByUploader(uploaderId: string, limit = 60): Promise<GroupDTO[]> {
+  // SMART RANK (owner directive): author listings rank like every other
+  // public listing — dead links never lead an author's page.
   const rows = await query<GroupRow>(
     `SELECT ${GROUP_SELECT} ${GROUP_FROM}
      WHERE g.\`status\` = 'live' AND g.\`isAdult\` = 0 AND (g.\`uploaderId\` = ? OR g.\`ugcContributorId\` = ?)
-     ORDER BY g.\`clicks\` DESC, g.\`views\` DESC, g.\`createdAt\` DESC
+     ORDER BY ${SMART_RANK}
      LIMIT ?`,
     [uploaderId, uploaderId, Math.min(Math.max(limit, 1), 100)]
   );
