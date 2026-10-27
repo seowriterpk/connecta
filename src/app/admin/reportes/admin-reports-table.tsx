@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -15,37 +14,21 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Check, X, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
-
-type Report = {
-  id: string;
-  reason: string;
-  reporterIp: string;
-  status: string;
-  createdAt: Date | string;
-  group: {
-    id: string;
-    groupName: string;
-    slug: string;
-    status: string;
-    linkStatus: string;
-  } | null;
-};
+import {
+  AdminReportStatusBadge,
+  AdminGroupStatusBadge,
+  AdminLinkStatusBadge,
+} from "@/components/admin/admin-badges";
+import type { AdminReportRow } from "@/lib/admin-listing-params";
 
 interface Props {
-  reports: Report[];
+  reports: AdminReportRow[];
   csrfToken: string;
+  /** Explorer callback: refetch the current view after an action. */
+  onChanged?: () => void;
 }
 
-function statusBadge(s: string) {
-  if (s === "OPEN")
-    return <Badge className="bg-amber-600 hover:bg-amber-700">Abierto</Badge>;
-  if (s === "RESOLVED")
-    return <Badge className="bg-emerald-600 hover:bg-emerald-700">Resuelto</Badge>;
-  return <Badge variant="outline">Descartado</Badge>;
-}
-
-function formatDate(iso: Date | string | null): string {
-  if (!iso) return "—";
+function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleString("es-ES", {
       day: "2-digit",
@@ -59,7 +42,7 @@ function formatDate(iso: Date | string | null): string {
   }
 }
 
-export function AdminReportsTable({ reports, csrfToken }: Props) {
+export function AdminReportsTable({ reports, csrfToken, onChanged }: Props) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
 
@@ -77,9 +60,12 @@ export function AdminReportsTable({ reports, csrfToken }: Props) {
         toast.error(data?.error || "No se pudo actualizar.");
         return;
       }
-      toast.success(action === "resolve" ? "Reporte marcado como resuelto." : "Reporte descartado.");
-      router.refresh();
-    } catch (err) {
+      toast.success(
+        action === "resolve" ? "Reporte marcado como resuelto." : "Reporte descartado."
+      );
+      if (onChanged) onChanged();
+      else router.refresh();
+    } catch {
       toast.error("Error de red.");
     } finally {
       setBusy(null);
@@ -87,10 +73,9 @@ export function AdminReportsTable({ reports, csrfToken }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/40 hover:bg-muted/40">
+    <Table containerClassName="cg-scroll max-h-[70vh] overflow-y-auto">
+      <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableRow className="bg-background hover:bg-background">
             <TableHead className="px-3 text-xs">Grupo</TableHead>
             <TableHead className="px-2 text-xs">Motivo</TableHead>
             <TableHead className="px-2 text-xs">IP reportante</TableHead>
@@ -101,56 +86,69 @@ export function AdminReportsTable({ reports, csrfToken }: Props) {
         </TableHeader>
         <TableBody>
           {reports.map((r) => (
-            <TableRow key={r.id} className="text-xs">
+            <TableRow key={r.id} className="text-xs transition-colors">
               <TableCell className="px-3">
-                {r.group ? (
+                {r.groupName != null ? (
                   <div className="flex flex-col gap-1">
                     <Link
-                      href={`/admin/grupos/${r.group.id}`}
-                      className="truncate font-medium hover:text-emerald-700"
-                      title={r.group.groupName}
+                      href={`/admin/grupos/${r.groupId}`}
+                      className="max-w-[220px] truncate text-sm font-medium hover:text-emerald-700 dark:hover:text-emerald-400"
+                      title={r.groupName}
                     >
-                      {r.group.groupName}
+                      {r.groupName}
                     </Link>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Badge
-                        variant="outline"
-                        className="px-1 py-0 text-[9px]"
-                      >
-                        {r.group.status}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="px-1 py-0 text-[9px]"
-                      >
-                        {r.group.linkStatus}
-                      </Badge>
+                    <div className="flex items-center gap-1">
+                      {r.groupStatus && <AdminGroupStatusBadge status={r.groupStatus} />}
+                      {r.groupLinkStatus && (
+                        <AdminLinkStatusBadge linkStatus={r.groupLinkStatus} />
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground italic">Grupo eliminado</span>
+                  <span className="italic text-muted-foreground">Grupo eliminado</span>
                 )}
               </TableCell>
-              <TableCell className="px-2 max-w-[240px]">
+              <TableCell className="max-w-[240px] px-2">
                 <div className="truncate" title={r.reason}>
                   {r.reason || "—"}
                 </div>
               </TableCell>
               <TableCell className="px-2 font-mono text-xs">{r.reporterIp}</TableCell>
-              <TableCell className="px-2">{statusBadge(r.status)}</TableCell>
+              <TableCell className="px-2">
+                <AdminReportStatusBadge status={r.status} />
+              </TableCell>
               <TableCell className="px-2 whitespace-nowrap">{formatDate(r.createdAt)}</TableCell>
               <TableCell className="px-2 whitespace-nowrap text-right">
                 <div className="inline-flex items-center gap-1">
-                  {r.group && (
+                  {r.groupName != null && (
                     <>
-                      <Button asChild size="icon" variant="ghost" className="h-7 w-7" title="Ver grupo">
-                        <Link href={`/grupo/${r.group.slug}`} target="_blank">
-                          <Eye className="h-3.5 w-3.5" />
+                      <Button
+                        asChild
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      >
+                        <Link
+                          href={`/grupo/${r.groupSlug}`}
+                          target="_blank"
+                          title="Ver grupo"
+                          aria-label={`Ver ${r.groupName} en el sitio`}
+                        >
+                          <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button asChild size="icon" variant="ghost" className="h-7 w-7" title="Editar grupo">
-                        <Link href={`/admin/grupos/${r.group.id}`}>
-                          <Pencil className="h-3.5 w-3.5" />
+                      <Button
+                        asChild
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      >
+                        <Link
+                          href={`/admin/grupos/${r.groupId}`}
+                          title="Editar grupo"
+                          aria-label={`Editar ${r.groupName}`}
+                        >
+                          <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>
                     </>
@@ -160,29 +158,31 @@ export function AdminReportsTable({ reports, csrfToken }: Props) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        className="h-9 w-9 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                         onClick={() => act(r.id, "resolve")}
                         disabled={busy !== null}
                         title="Marcar resuelto"
+                        aria-label="Marcar reporte como resuelto"
                       >
                         {busy === `resolve:${r.id}` ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-4 w-4" />
                         )}
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                        className="h-9 w-9 text-muted-foreground hover:bg-muted"
                         onClick={() => act(r.id, "dismiss")}
                         disabled={busy !== null}
                         title="Descartar"
+                        aria-label="Descartar reporte"
                       >
                         {busy === `dismiss:${r.id}` ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <X className="h-3.5 w-3.5" />
+                          <X className="h-4 w-4" />
                         )}
                       </Button>
                     </>
@@ -193,6 +193,5 @@ export function AdminReportsTable({ reports, csrfToken }: Props) {
           ))}
         </TableBody>
       </Table>
-    </div>
   );
 }

@@ -33,6 +33,8 @@ import {
   XCircle,
   HelpCircle,
   ArrowRight,
+  ShieldQuestion,
+  ScanSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ToolStats } from "@/lib/admin-tools";
@@ -221,34 +223,54 @@ export function LinkCheckerTool({
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
-          <CardContent className="py-4">
-            <div className="text-xs text-muted-foreground">Enlaces activos</div>
-            <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {stats.linkActive.toLocaleString("es-ES")}
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xl font-bold leading-tight tabular-nums text-emerald-600 dark:text-emerald-400">
+                {stats.linkActive.toLocaleString("es-ES")}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">Enlaces activos</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
-            <div className="text-xs text-muted-foreground">Revocados (Expirado)</div>
-            <div className="mt-1 text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {stats.linkRevoked.toLocaleString("es-ES")}
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+              <XCircle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xl font-bold leading-tight tabular-nums text-rose-600 dark:text-rose-400">
+                {stats.linkRevoked.toLocaleString("es-ES")}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">Revocados (expirados)</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
-            <div className="text-xs text-muted-foreground">Nunca comprobados</div>
-            <div className="mt-1 text-2xl font-bold">
-              {stats.neverChecked.toLocaleString("es-ES")}
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <ShieldQuestion className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xl font-bold leading-tight tabular-nums">
+                {stats.neverChecked.toLocaleString("es-ES")}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">Nunca comprobados</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
-            <div className="text-xs text-muted-foreground">Comprobados 24 h</div>
-            <div className="mt-1 text-2xl font-bold">
-              {stats.checkedLast24h.toLocaleString("es-ES")}
+          <CardContent className="flex items-center gap-3 py-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
+              <ScanSearch className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xl font-bold leading-tight tabular-nums">
+                {stats.checkedLast24h.toLocaleString("es-ES")}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">Comprobados 24 h</div>
             </div>
           </CardContent>
         </Card>
@@ -340,8 +362,23 @@ export function LinkCheckerTool({
           <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center">
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-medium">
-                  {running ? "Comprobando…" : finished ? "Completado" : "Listo para empezar"}
+                <span className="flex items-center gap-1.5 font-medium">
+                  {running ? (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+                      </span>
+                      Comprobando…
+                    </>
+                  ) : finished ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      Completado
+                    </>
+                  ) : (
+                    "Listo para empezar"
+                  )}
                 </span>
                 <span className="text-muted-foreground">
                   {checked.toLocaleString("es-ES")} comprobados
@@ -398,7 +435,7 @@ export function LinkCheckerTool({
       </Card>
 
       {/* Results */}
-      {rows.length > 0 && (
+      {rows.length > 0 ? (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -412,10 +449,9 @@ export function LinkCheckerTool({
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0">
-            <div className="max-h-96 overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <Table containerClassName="cg-scroll max-h-96 overflow-y-auto">
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow className="bg-background hover:bg-background">
                     <TableHead className="px-3 text-xs">Grupo</TableHead>
                     <TableHead className="px-2 text-xs">Antes</TableHead>
                     <TableHead className="px-2 text-xs">Ahora</TableHead>
@@ -450,6 +486,20 @@ export function LinkCheckerTool({
                   ))}
                 </TableBody>
               </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
+              <ScanSearch className="h-6 w-6" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Sin resultados todavía</p>
+              <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                Configura los filtros y pulsa «Iniciar comprobación». Cada lote
+                se procesa con concurrencia baja para no saturar el servidor.
+              </p>
             </div>
           </CardContent>
         </Card>
