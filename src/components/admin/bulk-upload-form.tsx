@@ -26,6 +26,7 @@ import {
 import {
   Upload,
   FileText,
+  FileJson,
   Download,
   Loader2,
   CheckCircle2,
@@ -271,8 +272,12 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
   const [importing, setImporting] = React.useState(false);
   const [result, setResult] = React.useState<ImportResult | null>(null);
   const [dragOver, setDragOver] = React.useState(false);
+  const [jsonFileName, setJsonFileName] = React.useState<string>("");
+  const [jsonFileMeta, setJsonFileMeta] = React.useState<string>("");
+  const [jsonDragOver, setJsonDragOver] = React.useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Validation results (recomputed when rows change)
   const validations: RowValidation[] = React.useMemo(() => {
@@ -365,6 +370,24 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     }
   }, [jsonText]);
 
+  /** Map parsed JSON objects (snake_case or camelCase keys) to RawRow. */
+  function cleanJsonRows(parsed: any[]): RawRow[] {
+    return parsed.map((r) => ({
+      group_name: String(r.group_name ?? r.groupName ?? r.name ?? ""),
+      join_link: String(r.join_link ?? r.joinLink ?? r.link ?? r.url ?? ""),
+      description: String(r.description ?? r.descripcion ?? ""),
+      category: String(r.category ?? r.categoria ?? ""),
+      country: String(r.country ?? r.pais ?? ""),
+      city: String(r.city ?? r.ciudad ?? ""),
+      tags: Array.isArray(r.tags) ? r.tags.join(",") : String(r.tags ?? ""),
+      keywords: Array.isArray(r.keywords)
+        ? r.keywords.join(",")
+        : String(r.keywords ?? ""),
+      profile_image: String(r.profile_image ?? r.imagen ?? ""),
+      is_adult: String(r.is_adult ?? r.adulto ?? "0"),
+    }));
+  }
+
   function applyJson() {
     if (!jsonValidation.ok) {
       toast.error("El JSON no es válido. Corrige los errores primero.");
@@ -372,26 +395,84 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     }
     try {
       const parsed = JSON.parse(jsonText.trim()) as any[];
-      const cleaned: RawRow[] = parsed.map((r) => ({
-        group_name: String(r.group_name ?? r.groupName ?? r.name ?? ""),
-        join_link: String(r.join_link ?? r.joinLink ?? r.link ?? r.url ?? ""),
-        description: String(r.description ?? r.descripcion ?? ""),
-        category: String(r.category ?? r.categoria ?? ""),
-        country: String(r.country ?? r.pais ?? ""),
-        city: String(r.city ?? r.ciudad ?? ""),
-        tags: Array.isArray(r.tags) ? r.tags.join(",") : String(r.tags ?? ""),
-        keywords: Array.isArray(r.keywords)
-          ? r.keywords.join(",")
-          : String(r.keywords ?? ""),
-        profile_image: String(r.profile_image ?? r.imagen ?? ""),
-        is_adult: String(r.is_adult ?? r.adulto ?? "0"),
-      }));
+      const cleaned = cleanJsonRows(parsed);
       setRows(cleaned);
       setResult(null);
       toast.success(`${cleaned.length} grupos cargados desde JSON.`);
     } catch (e: any) {
       toast.error("Error al leer el JSON: " + (e?.message || ""));
     }
+  }
+
+  // --- JSON file upload (drag & drop + file picker) ---
+
+  function handleJsonFile(file: File) {
+    const isJson =
+      file.name.toLowerCase().endsWith(".json") ||
+      file.type === "application/json";
+    if (!isJson) {
+      toast.error("El archivo debe ser un JSON (.json).");
+      return;
+    }
+    if (file.size > 5_000_000) {
+      toast.error("El archivo es demasiado grande (máx 5MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        const parsed = JSON.parse(text);
+        // Accept a plain array [...] or a wrapper like { "groups": [...] }.
+        const arr = Array.isArray(parsed)
+          ? parsed
+          : (Object.values(parsed).find((v) => Array.isArray(v)) as
+              | any[]
+              | undefined);
+        if (!arr) {
+          toast.error(
+            'El JSON debe ser un array de grupos o un objeto con un array dentro (p. ej. { "groups": [...] }).'
+          );
+          return;
+        }
+        if (arr.length === 0) {
+          toast.error("El archivo no contiene grupos.");
+          return;
+        }
+        setJsonText(JSON.stringify(arr, null, 2));
+        setJsonFileName(file.name);
+        setJsonFileMeta(
+          `${(file.size / 1024).toFixed(1)} KB · ${arr.length} ${
+            arr.length === 1 ? "grupo" : "grupos"
+          }`
+        );
+        // Smooth workflow: file loads straight into the validated rows table.
+        setRows(cleanJsonRows(arr));
+        setResult(null);
+        toast.success(
+          `${arr.length} grupos cargados desde "${file.name}" — revisa la tabla e importa.`
+        );
+      } catch (e: any) {
+        toast.error("No se pudo leer el JSON: " + (e?.message || ""));
+        setJsonFileName("");
+        setJsonFileMeta("");
+      }
+    };
+    reader.onerror = () => toast.error("Error leyendo el archivo.");
+    reader.readAsText(file);
+  }
+
+  function onJsonFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleJsonFile(file);
+    e.target.value = "";
+  }
+
+  function onJsonDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setJsonDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleJsonFile(file);
   }
 
   function addBlankRow() {
@@ -501,6 +582,8 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
   function resetAll() {
     setRows([]);
     setCsvFileName("");
+    setJsonFileName("");
+    setJsonFileMeta("");
     setResult(null);
   }
 
@@ -525,8 +608,8 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
             <span>Subir CSV</span>
           </TabsTrigger>
           <TabsTrigger value="json">
-            <FileText className="h-4 w-4" />
-            <span>Constructor JSON</span>
+            <FileJson className="h-4 w-4" />
+            <span>Subir JSON</span>
           </TabsTrigger>
         </TabsList>
 
@@ -635,16 +718,77 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4 text-emerald-600" />
-                Constructor JSON
+                <FileJson className="h-4 w-4 text-emerald-600" />
+                Subir archivo JSON
               </CardTitle>
               <CardDescription>
-                Pega o edita un array JSON de grupos. Cada objeto puede tener:
-                group_name, join_link, description, category, country, city,
-                tags, keywords, profile_image, is_adult.
+                Arrastra un archivo <code>.json</code> o haz clic para
+                seleccionarlo — se carga, valida y aplica automáticamente.
+                También puedes pegar o editar el JSON abajo. Cada objeto puede
+                tener: group_name, join_link, description, category, country,
+                city, tags, keywords, profile_image, is_adult.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => jsonFileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    jsonFileInputRef.current?.click();
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setJsonDragOver(true);
+                }}
+                onDragLeave={() => setJsonDragOver(false)}
+                onDrop={onJsonDrop}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
+                  jsonDragOver
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
+                    : "border-muted-foreground/30 hover:border-emerald-400/60 hover:bg-muted/40"
+                }`}
+              >
+                <FileJson className="h-7 w-7 text-muted-foreground" />
+                <p className="mt-2 text-sm font-medium">
+                  Haz clic o arrastra tu archivo JSON aquí
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Formato: <code>.json</code> — array de grupos o {"{ "}
+<code>"groups": [...]</code>{" }"} · máx 5MB · se aplica automáticamente
+                </p>
+                <input
+                  ref={jsonFileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={onJsonFileInputChange}
+                  className="hidden"
+                />
+              </div>
+              {jsonFileName && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium">{jsonFileName}</span>
+                  <Badge variant="outline">{jsonFileMeta}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setJsonFileName("");
+                      setJsonFileMeta("");
+                      setRows([]);
+                      setResult(null);
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Quitar archivo</span>
+                  </Button>
+                </div>
+              )}
               <div className="relative">
                 <Textarea
                   value={jsonText}
