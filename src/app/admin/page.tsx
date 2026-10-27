@@ -81,6 +81,12 @@ const QUICK_ACTIONS = [
     icon: UploadCloud,
   },
   {
+    href: "/admin/cola",
+    title: "Cola de publicación",
+    desc: "Programa, publica o elimina grupos en espera por lotes.",
+    icon: Timer,
+  },
+  {
     href: "/admin/checker-enlaces",
     title: "Comprobador de enlaces",
     desc: "Verifica en masa qué invitaciones siguen activas.",

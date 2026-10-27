@@ -246,8 +246,10 @@ export function normalizeRow(raw: RawGroupRow): NormalizedGroup {
     throw new Error("Falta la descripción (description).");
   if (description.length < 20)
     throw new Error("La descripción debe tener al menos 20 caracteres.");
-  if (description.length > 2000)
-    throw new Error("La descripción no puede exceder 2000 caracteres.");
+  if (description.length > 8000)
+    throw new Error(
+      "La descripción no puede exceder 8000 caracteres (≈1000 palabras)."
+    );
 
   const categoryName = String(raw.category || "").trim();
   if (!categoryName) throw new Error("Falta la categoría (category).");

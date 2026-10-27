@@ -263,3 +263,119 @@ export function adminListsSearchParams(
   if (pageSize !== 25) sp.set("pageSize", String(pageSize));
   return sp;
 }
+
+// ---------------------------------------------------------------------------
+// Queue / pending management (Task 30-b — /admin/cola)
+// ---------------------------------------------------------------------------
+
+/** Which table the listing reads: groups_queue (drip-feed) or groups (pending). */
+export type AdminQueueSource = "queue" | "pending";
+
+/**
+ * Queue sort — FIFO is the default ("addedAsc"): the drip-feed cron publishes
+ * oldest-first, so the page shows "next in line" at the top by default.
+ */
+export type AdminQueueSort = "added" | "addedAsc" | "name";
+
+export interface AdminQueueFilters {
+  q: string;
+  /** Category NAME or "all" (groups_queue stores names, not ids). */
+  category: string;
+  /** Country NAME or "all". */
+  country: string;
+  adult: AdminAdultFilter;
+  sort: AdminQueueSort;
+  page: number; // 1-based
+  pageSize: number; // 25 | 50 | 100
+}
+
+/** Row of the groups_queue table (drip-feed schedule). */
+export interface AdminQueueRow {
+  id: number;
+  groupName: string;
+  joinLink: string;
+  description: string;
+  category: string;
+  country: string;
+  city: string | null;
+  profileImage: string | null;
+  isAdult: boolean;
+  language: string;
+  /** Stored JSON strings (same format bulk-import writes). */
+  tags: string;
+  keywords: string;
+  addedAt: string; // ISO
+}
+
+/** Row of the groups table filtered to status='pending'. */
+export interface AdminPendingRow {
+  id: string;
+  groupName: string;
+  slug: string;
+  joinLink: string;
+  category: string;
+  country: string;
+  city: string | null;
+  profileImage: string | null;
+  isAdult: boolean;
+  createdAt: string; // ISO
+}
+
+/** One page of queue/pending rows (union rows — discriminate by `source`). */
+export interface AdminQueuePage {
+  rows: (AdminQueueRow | AdminPendingRow)[];
+  /** Rows matching the current filters. */
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/** Global queue/pending counters + per-category breakdown (schedule stats). */
+export interface AdminQueueStats {
+  queueTotal: number;
+  pendingTotal: number;
+  queueAdult: number;
+  pendingAdult: number;
+  queueOldest: string | null; // ISO
+  queueNewest: string | null; // ISO
+  /** Union of categories present in queue/pending, queue count desc. */
+  categories: { name: string; queue: number; pending: number }[];
+}
+
+export const QUEUE_PAGE_SIZES = [25, 50, 100] as const;
+
+const QUEUE_SORTS: readonly string[] = ["added", "addedAsc", "name"];
+
+export function parseAdminQueueFilters(
+  get: (key: string) => string | null | undefined
+): AdminQueueFilters {
+  const rawAdult = String(get("adult") ?? "all");
+  const rawSort = String(get("sort") ?? "addedAsc");
+  return {
+    q: String(get("q") ?? "").trim().slice(0, 120),
+    category: String(get("category") ?? "all").slice(0, 255),
+    country: String(get("country") ?? "all").slice(0, 255),
+    adult: (ADULT_MODES.includes(rawAdult) ? rawAdult : "all") as AdminAdultFilter,
+    sort: (QUEUE_SORTS.includes(rawSort) ? rawSort : "addedAsc") as AdminQueueSort,
+    page: clampPageValue(Number(get("page") ?? 1), 1),
+    pageSize: clampPageSize(Number(get("pageSize") ?? 25)),
+  };
+}
+
+/** URL query for a filter state (shareable URLs; defaults omitted). */
+export function adminQueueSearchParams(
+  f: AdminQueueFilters,
+  source: AdminQueueSource
+): URLSearchParams {
+  const sp = new URLSearchParams();
+  sp.set("source", source);
+  if (f.q) sp.set("q", f.q);
+  if (f.category !== "all") sp.set("category", f.category);
+  if (f.country !== "all") sp.set("country", f.country);
+  if (f.adult !== "all") sp.set("adult", f.adult);
+  if (f.sort !== "addedAsc") sp.set("sort", f.sort);
+  if (f.page > 1) sp.set("page", String(f.page));
+  if (f.pageSize !== 25) sp.set("pageSize", String(f.pageSize));
+  return sp;
+}

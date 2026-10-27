@@ -199,14 +199,14 @@ export function BulkVisualEditor({ categories, countries, tagSuggestions, rows, 
                     </div>
 
                     <div className="mt-3 space-y-1.5">
-                      <Label htmlFor={`ve-desc-${i}`}>Descripción * (mín. 20 caracteres)</Label>
+                      <Label htmlFor={`ve-desc-${i}`}>Descripción * (mín. 20, máx. 8000 caracteres ≈ 1000 palabras)</Label>
                       <Textarea
                         id={`ve-desc-${i}`}
                         rows={2}
                         value={row.description ?? ""}
                         onChange={(e) => updateRow(i, { description: e.target.value })}
                         placeholder="De qué trata el grupo, quién debería unirse…"
-                        maxLength={1200}
+                        maxLength={8000}
                       />
                     </div>
 

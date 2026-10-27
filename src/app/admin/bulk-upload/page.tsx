@@ -6,7 +6,8 @@ import { checkAdmin } from "@/lib/admin-guard";
 import { query, queryOne, type Row } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, UploadCloud, ListChecks, ShieldCheck } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, UploadCloud, ListChecks, ShieldCheck, ChevronDown } from "lucide-react";
 import { BulkUploadForm } from "@/components/admin/bulk-upload-form";
 
 export const dynamic = "force-dynamic";
@@ -133,8 +134,10 @@ export default async function AdminBulkUploadPage() {
                   </span>{" "}
                   cada fila debe tener un enlace válido de WhatsApp
                   (<code>chat.whatsapp.com/...</code>), una categoría y país que
-                  existan en los bancos, y una descripción de al menos 20
-                  caracteres. Los enlaces duplicados se omiten automáticamente.
+                  existan en los bancos, y una descripción de entre 20 y 8000
+                  caracteres. Si faltan categorías o países, podrás rellenarlos
+                  en bloque antes de importar. Los enlaces duplicados se
+                  omiten automáticamente.
                 </p>
               </div>
             </CardContent>
@@ -150,38 +153,51 @@ export default async function AdminBulkUploadPage() {
             />
           </div>
 
-          {/* Workflow hint */}
+          {/* Workflow hint (collapsed by default — reference content) */}
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-base">¿Cómo funciona?</CardTitle>
-              <CardDescription>
-                Pasos del flujo de importación masiva.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ol className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <Step
-                  n={1}
-                  title="Descarga la plantilla"
-                  desc="CSV con encabezados y 2 filas de ejemplo para guiarte."
-                />
-                <Step
-                  n={2}
-                  title="Rellena tus grupos"
-                  desc="Una fila por grupo. Respeta los campos obligatorios."
-                />
-                <Step
-                  n={3}
-                  title="Sube o pega el JSON"
-                  desc="Verás una vista previa con validación por fila."
-                />
-                <Step
-                  n={4}
-                  title="Importa"
-                  desc="Elige destino: cola drip-feed o groups con status=pending."
-                />
-              </ol>
-            </CardContent>
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="group w-full text-left">
+                <CardHeader>
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-base">¿Cómo funciona?</CardTitle>
+                      <CardDescription>
+                        Pasos del flujo de importación masiva — ábrelo solo si lo necesitas.
+                      </CardDescription>
+                    </div>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border bg-muted/50">
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    </span>
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  <ol className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <Step
+                      n={1}
+                      title="Descarga la plantilla"
+                      desc="CSV con encabezados y 2 filas de ejemplo para guiarte."
+                    />
+                    <Step
+                      n={2}
+                      title="Rellena tus grupos"
+                      desc="Una fila por grupo. Respeta los campos obligatorios."
+                    />
+                    <Step
+                      n={3}
+                      title="Sube o pega el JSON"
+                      desc="Verás una vista previa con validación por fila."
+                    />
+                    <Step
+                      n={4}
+                      title="Importa"
+                      desc="Elige destino: cola drip-feed o groups con status=pending."
+                    />
+                  </ol>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         </div>
       </main>

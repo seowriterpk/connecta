@@ -212,9 +212,11 @@ export function AdminGroupEditForm({ group, categories, countries, tagSuggestion
           rows={4}
           value={form.description}
           onChange={(e) => update("description", e.target.value)}
-          maxLength={1200}
+          maxLength={8000}
         />
-        <p className="text-xs text-muted-foreground">{form.description.length}/1200 caracteres.</p>
+        <p className="text-xs text-muted-foreground">
+          {form.description.length}/8000 caracteres (máx ≈ 1000 palabras).
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

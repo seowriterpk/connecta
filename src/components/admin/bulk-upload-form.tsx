@@ -16,6 +16,18 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -38,6 +50,8 @@ import {
   Database,
   Clock,
   Sparkles,
+  ChevronDown,
+  Braces,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateSlugClient } from "@/lib/slug-client";
@@ -107,6 +121,11 @@ function clientValidate(row: RawRow): { ok: boolean; error?: string } {
   const desc = String(row.description || "").trim();
   if (!desc) return { ok: false, error: "Falta description." };
   if (desc.length < 20) return { ok: false, error: "Descripción < 20 chars." };
+  if (desc.length > 8000)
+    return {
+      ok: false,
+      error: "Descripción > 8000 caracteres (≈1000 palabras).",
+    };
 
   if (!String(row.category || "").trim())
     return { ok: false, error: "Falta category." };
@@ -242,6 +261,9 @@ function csvTemplateString(): string {
 // Component
 // ---------------------------------------------------------------------------
 
+/** Rows rendered in the preview table before "show all" (DOM/perf cap). */
+const PREVIEW_ROW_CAP = 100;
+
 export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestions }: Props) {
   const router = useRouter();
   const [tab, setTab] = React.useState<"csv" | "json" | "visual" | "update">("visual");
@@ -275,6 +297,14 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
   const [jsonFileName, setJsonFileName] = React.useState<string>("");
   const [jsonFileMeta, setJsonFileMeta] = React.useState<string>("");
   const [jsonDragOver, setJsonDragOver] = React.useState(false);
+  // Manual paste/edit JSON editor — collapsed by default; its textarea is
+  // populated lazily from the current rows only when the user opens it.
+  const [jsonEditorOpen, setJsonEditorOpen] = React.useState(false);
+  // Bulk auto-fill of missing category/country (root fix for "Importar 0").
+  const [autoFillCategory, setAutoFillCategory] = React.useState("");
+  const [autoFillCountry, setAutoFillCountry] = React.useState("");
+  // Preview table: render only the first rows until the user expands.
+  const [showAllRows, setShowAllRows] = React.useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const jsonFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -289,6 +319,39 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
 
   const validCount = validations.filter((v) => v.ok).length;
   const invalidCount = validations.length - validCount;
+
+  // Rows with empty category/country — the #1 cause of "Importar 0 de N".
+  const missingCategoryCount = React.useMemo(
+    () => rows.filter((r) => !String(r.category || "").trim()).length,
+    [rows]
+  );
+  const missingCountryCount = React.useMemo(
+    () => rows.filter((r) => !String(r.country || "").trim()).length,
+    [rows]
+  );
+
+  // Preview slice — cap DOM size until the admin asks for everything.
+  const visibleValidations = showAllRows
+    ? validations
+    : validations.slice(0, PREVIEW_ROW_CAP);
+
+  // Smart import button label (accurate counts instead of a confusing "0").
+  let importButtonLabel = "Importar grupos";
+  if (rows.length > 0) {
+    if (validCount > 0 && validCount === rows.length)
+      importButtonLabel = `Importar ${rows.length} ${
+        rows.length === 1 ? "grupo" : "grupos"
+      }`;
+    else if (validCount > 0)
+      importButtonLabel = `Importar ${validCount} de ${rows.length}`;
+    else
+      importButtonLabel = "Ninguna fila lista — completa los campos faltantes";
+  }
+
+  // Auto-fill panel: enabled when at least one visible select has a value.
+  const autoFillReady =
+    (missingCategoryCount > 0 && !!autoFillCategory) ||
+    (missingCountryCount > 0 && !!autoFillCountry);
 
   // -------------------------------------------------------------------------
   // CSV file handling
@@ -329,6 +392,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
         setRows(cleaned);
         setCsvFileName(file.name);
         setResult(null);
+        setShowAllRows(false);
         toast.success(`${cleaned.length} filas parseadas.`);
       } catch (e: any) {
         toast.error("No se pudo parsear el CSV: " + (e?.message || ""));
@@ -356,8 +420,19 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
   // JSON handling
   // -------------------------------------------------------------------------
 
+  // Debounced copy of jsonText — validation parses at most ~4×/second instead
+  // of on every keystroke (the manual editor can hold megabytes of JSON).
+  const [jsonValidationText, setJsonValidationText] =
+    React.useState(jsonText);
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setJsonValidationText(jsonText), 250);
+    return () => window.clearTimeout(t);
+  }, [jsonText]);
+
+  // Validity badge — only meaningful (and only rendered) while the manual
+  // editor collapsible is open, so we skip parsing entirely when closed.
   const jsonValidation = React.useMemo<{ ok: boolean; error?: string }>(() => {
-    const trimmed = jsonText.trim();
+    const trimmed = jsonEditorOpen ? jsonValidationText.trim() : "";
     if (!trimmed) return { ok: false, error: "JSON vacío." };
     try {
       const parsed = JSON.parse(trimmed);
@@ -368,7 +443,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     } catch (e: any) {
       return { ok: false, error: e?.message || "JSON inválido." };
     }
-  }, [jsonText]);
+  }, [jsonValidationText, jsonEditorOpen]);
 
   /** Map parsed JSON objects (snake_case or camelCase keys) to RawRow. */
   function cleanJsonRows(parsed: any[]): RawRow[] {
@@ -398,6 +473,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
       const cleaned = cleanJsonRows(parsed);
       setRows(cleaned);
       setResult(null);
+      setShowAllRows(false);
       toast.success(`${cleaned.length} grupos cargados desde JSON.`);
     } catch (e: any) {
       toast.error("Error al leer el JSON: " + (e?.message || ""));
@@ -439,16 +515,15 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
           toast.error("El archivo no contiene grupos.");
           return;
         }
-        setJsonText(JSON.stringify(arr, null, 2));
+        // NOTE: the file contents are NOT dumped into a textarea — that made
+        // the page crawl with 1000+ group files. Only the parsed rows + a
+        // compact summary are kept in state; the raw JSON editor stays lazy.
         setJsonFileName(file.name);
-        setJsonFileMeta(
-          `${(file.size / 1024).toFixed(1)} KB · ${arr.length} ${
-            arr.length === 1 ? "grupo" : "grupos"
-          }`
-        );
+        setJsonFileMeta(`${(file.size / 1024).toFixed(1)} KB`);
         // Smooth workflow: file loads straight into the validated rows table.
         setRows(cleanJsonRows(arr));
         setResult(null);
+        setShowAllRows(false);
         toast.success(
           `${arr.length} grupos cargados desde "${file.name}" — revisa la tabla e importa.`
         );
@@ -473,6 +548,57 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     setJsonDragOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleJsonFile(file);
+  }
+
+  /** Open/close the manual JSON editor. On open, lazily materialize the
+   * current rows into the textarea (cheap once, and only when asked for). */
+  function onJsonEditorOpenChange(open: boolean) {
+    setJsonEditorOpen(open);
+    if (open && rows.length > 0) {
+      setJsonText(JSON.stringify(rows, null, 2));
+    }
+  }
+
+  /** Fill ONLY the rows whose category/country is empty. */
+  function applyAutoFill() {
+    const cat = autoFillCategory;
+    const ctry = autoFillCountry;
+    if (!cat && !ctry) return;
+    let catsApplied = 0;
+    let countriesApplied = 0;
+    const next = rows.map((r) => {
+      const row = { ...r };
+      if (cat && !String(row.category || "").trim()) {
+        row.category = cat;
+        catsApplied++;
+      }
+      if (ctry && !String(row.country || "").trim()) {
+        row.country = ctry;
+        countriesApplied++;
+      }
+      return row;
+    });
+    setRows(next);
+    setResult(null);
+    setAutoFillCategory("");
+    setAutoFillCountry("");
+    if (catsApplied > 0)
+      toast.success(`Categoría aplicada a ${catsApplied} filas.`);
+    if (countriesApplied > 0)
+      toast.success(`País aplicado a ${countriesApplied} filas.`);
+    if (catsApplied === 0 && countriesApplied === 0)
+      toast.info("No quedaban filas con esos campos vacíos.");
+  }
+
+  /** Remove the loaded JSON file/data (dropped file or pasted JSON). */
+  function clearJsonData() {
+    setJsonFileName("");
+    setJsonFileMeta("");
+    setRows([]);
+    setResult(null);
+    setShowAllRows(false);
+    setAutoFillCategory("");
+    setAutoFillCountry("");
   }
 
   function addBlankRow() {
@@ -585,6 +711,9 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
     setJsonFileName("");
     setJsonFileMeta("");
     setResult(null);
+    setShowAllRows(false);
+    setAutoFillCategory("");
+    setAutoFillCountry("");
   }
 
   // -------------------------------------------------------------------------
@@ -688,19 +817,27 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                 />
               </div>
               {csvFileName && (
-                <div className="flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4 text-emerald-600" />
-                  <span className="font-medium">{csvFileName}</span>
-                  <Badge variant="outline">{rows.length} filas</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetAll}
-                    className="text-muted-foreground"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Limpiar</span>
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-emerald-600" />
+                    <span className="font-medium">{csvFileName}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetAll}
+                      className="text-muted-foreground"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Limpiar</span>
+                    </Button>
+                  </div>
+                  <CountChips
+                    detected={rows.length}
+                    valid={validCount}
+                    invalid={invalidCount}
+                    missingCategory={missingCategoryCount}
+                    missingCountry={missingCountryCount}
+                  />
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
@@ -723,10 +860,11 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
               </CardTitle>
               <CardDescription>
                 Arrastra un archivo <code>.json</code> o haz clic para
-                seleccionarlo — se carga, valida y aplica automáticamente.
-                También puedes pegar o editar el JSON abajo. Cada objeto puede
-                tener: group_name, join_link, description, category, country,
-                city, tags, keywords, profile_image, is_adult.
+                seleccionarlo — se parsea y valida al instante, sin volcar su
+                contenido en pantalla. También puedes pegar o editar JSON
+                manualmente abajo. Cada objeto puede tener: group_name,
+                join_link, description, category, country, city, tags,
+                keywords, profile_image, is_adult.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -768,84 +906,148 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                   className="hidden"
                 />
               </div>
-              {jsonFileName && (
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span className="font-medium">{jsonFileName}</span>
-                  <Badge variant="outline">{jsonFileMeta}</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setJsonFileName("");
-                      setJsonFileMeta("");
-                      setRows([]);
-                      setResult(null);
-                    }}
-                    className="text-muted-foreground"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Quitar archivo</span>
-                  </Button>
+
+              {/* ---- Archivo cargado: resumen compacto (nunca el JSON crudo) ---- */}
+              {rows.length > 0 && (
+                <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      {jsonFileName ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          <span className="font-semibold">Archivo cargado:</span>
+                          <span className="font-medium">{jsonFileName}</span>
+                          <Badge variant="outline">{jsonFileMeta}</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Braces className="h-4 w-4 text-emerald-600" />
+                          <span className="font-semibold">
+                            Datos cargados (editor manual u otra pestaña)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearJsonData}
+                      className="text-muted-foreground"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>{jsonFileName ? "Quitar archivo" : "Quitar datos"}</span>
+                    </Button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="gap-1">
+                      <ListChecks className="h-3 w-3 text-muted-foreground" />
+                      {rows.length}{" "}
+                      {rows.length === 1 ? "grupo detectado" : "grupos detectados"}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {validCount}{" "}
+                      {validCount === 1
+                        ? "lista para importar"
+                        : "listas para importar"}
+                    </Badge>
+                    {invalidCount > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {invalidCount} con campos faltantes
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               )}
-              <div className="relative">
-                <Textarea
-                  value={jsonText}
-                  onChange={(e) => setJsonText(e.target.value)}
-                  rows={14}
-                  spellCheck={false}
-                  className="font-mono text-xs leading-relaxed"
-                  placeholder="[{&quot;group_name&quot;: &quot;...&quot;, &quot;join_link&quot;: &quot;https://chat.whatsapp.com/...&quot;, ...}]"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
-                    jsonValidation.ok
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
-                      : "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300"
-                  }`}
-                >
-                  {jsonValidation.ok ? (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      JSON válido
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3.5 w-3.5" />
-                      {jsonValidation.error || "JSON inválido"}
-                    </>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addBlankRow}
-                  disabled={!jsonValidation.ok && jsonText.trim() !== "[]"}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Añadir fila</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={removeLastRow}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Quitar última</span>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={applyJson}
-                  disabled={!jsonValidation.ok}
-                >
-                  <ListChecks className="h-3.5 w-3.5" />
-                  <span>Aplicar y validar</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={downloadTemplate}>
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Plantilla CSV</span>
-                </Button>
-              </div>
+
+              {/* ---- Editor manual de JSON: colapsado por defecto ---- */}
+              <Collapsible open={jsonEditorOpen} onOpenChange={onJsonEditorOpenChange}>
+                <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:bg-muted/40">
+                  <div className="flex items-center gap-2">
+                    <Braces className="h-4 w-4 shrink-0 text-emerald-600" />
+                    <div>
+                      <div className="text-sm font-semibold">
+                        Pegar o editar JSON manualmente
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Ábrelo solo para pegar JSON desde el portapapeles o
+                        retocar las filas cargadas.
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  <div className="relative">
+                    <Textarea
+                      value={jsonText}
+                      onChange={(e) => setJsonText(e.target.value)}
+                      rows={12}
+                      spellCheck={false}
+                      className="font-mono text-xs leading-relaxed"
+                      placeholder="[{&quot;group_name&quot;: &quot;...&quot;, &quot;join_link&quot;: &quot;https://chat.whatsapp.com/...&quot;, ...}]"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div
+                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
+                        jsonValidation.ok
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          : "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300"
+                      }`}
+                    >
+                      {jsonValidation.ok ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          JSON válido
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-3.5 w-3.5" />
+                          {jsonValidation.error || "JSON inválido"}
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addBlankRow}
+                      disabled={!jsonValidation.ok && jsonText.trim() !== "[]"}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Añadir fila</span>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={removeLastRow}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Quitar última</span>
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={applyJson}
+                      disabled={!jsonValidation.ok}
+                    >
+                      <ListChecks className="h-3.5 w-3.5" />
+                      <span>Aplicar y validar</span>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={downloadTemplate}>
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Plantilla CSV</span>
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    «Aplicar y validar» reemplaza la tabla actual con el JSON del
+                    editor y actualiza el resumen de arriba.
+                  </p>
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
         </TabsContent>
@@ -854,17 +1056,29 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
       {/* Insert-only sections — hidden while the bulk-update tab is active */}
       {tab !== "update" && (
         <>
-      {/* ============= Column mapping guide ============= */}
+      {/* ============= Column mapping guide (collapsed by default) ============= */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Guía de columnas esperadas
-          </CardTitle>
-          <CardDescription>
-            Encabezados del CSV (en inglés o español — se aceptan ambos).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <Collapsible defaultOpen={false}>
+          <CollapsibleTrigger className="group w-full text-left">
+            <CardHeader>
+              <div className="flex w-full items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">
+                    Guía de columnas y bancos disponibles
+                  </CardTitle>
+                  <CardDescription>
+                    Formatos aceptados, alias, categorías y países del sistema.
+                    Ábrela solo cuando la necesites.
+                  </CardDescription>
+                </div>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border bg-muted/50">
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </span>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <ColumnGuide
               name="group_name"
@@ -882,7 +1096,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
               name="description"
               alt="descripcion, desc"
               required
-              desc="Descripción (mínimo 20 caracteres)."
+              desc="Descripción (mín 20, máx 8000 caracteres ≈ 1000 palabras)."
             />
             <ColumnGuide
               name="category"
@@ -963,8 +1177,95 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
               </div>
             </div>
           </div>
-        </CardContent>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
+
+      {/* ============= Auto-fill: campos faltantes ============= */}
+      {rows.length > 0 &&
+        (missingCategoryCount > 0 || missingCountryCount > 0) && (
+          <Card className="border-amber-300/70 bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-950/20">
+            <CardContent className="space-y-3 py-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div>
+                  <div className="text-sm font-semibold">
+                    Completa los campos faltantes para poder importar
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {[
+                      missingCategoryCount > 0
+                        ? `${missingCategoryCount} filas sin categoría`
+                        : "",
+                      missingCountryCount > 0
+                        ? `${missingCountryCount} filas sin país`
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                {missingCategoryCount > 0 && (
+                  <div className="w-full space-y-1.5 sm:w-60">
+                    <Label htmlFor="autofill-category">
+                      Categoría para {missingCategoryCount} filas vacías
+                    </Label>
+                    <Select
+                      value={autoFillCategory}
+                      onValueChange={setAutoFillCategory}
+                    >
+                      <SelectTrigger id="autofill-category" className="w-full">
+                        <SelectValue placeholder="— elegir —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                            {c.isAdult ? " 🔞" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {missingCountryCount > 0 && (
+                  <div className="w-full space-y-1.5 sm:w-60">
+                    <Label htmlFor="autofill-country">
+                      País para {missingCountryCount} filas vacías
+                    </Label>
+                    <Select
+                      value={autoFillCountry}
+                      onValueChange={setAutoFillCountry}
+                    >
+                      <SelectTrigger id="autofill-country" className="w-full">
+                        <SelectValue placeholder="— elegir —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.flag} {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <Button onClick={applyAutoFill} disabled={!autoFillReady}>
+                  <ListChecks className="h-4 w-4" />
+                  <span>Aplicar a las filas faltantes</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Solo se rellenan las filas cuyo campo esté vacío — el resto
+                queda intacto. La validación y los conteos se recalculan al
+                instante.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
       {/* ============= Preview table ============= */}
       {rows.length > 0 && (
@@ -981,22 +1282,13 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                   al importar.
                 </CardDescription>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
-                >
-                  <CheckCircle2 className="h-3 w-3" />
-                  {validCount} válidas
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
-                >
-                  <XCircle className="h-3 w-3" />
-                  {invalidCount} con errores
-                </Badge>
-              </div>
+              <CountChips
+                detected={rows.length}
+                valid={validCount}
+                invalid={invalidCount}
+                missingCategory={missingCategoryCount}
+                missingCountry={missingCountryCount}
+              />
             </div>
           </CardHeader>
           <CardContent className="px-0">
@@ -1015,7 +1307,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {validations.map((v) => (
+                  {visibleValidations.map((v) => (
                     <TableRow key={v.rowIndex} className="text-xs">
                       <TableCell className="font-mono text-muted-foreground">
                         {v.rowIndex}
@@ -1065,6 +1357,26 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
                 </TableBody>
               </Table>
             </div>
+            {rows.length > PREVIEW_ROW_CAP && (
+              <div className="flex justify-center border-t bg-muted/40 px-4 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllRows(!showAllRows)}
+                >
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform ${
+                      showAllRows ? "rotate-180" : ""
+                    }`}
+                  />
+                  <span>
+                    {showAllRows
+                      ? `Mostrar solo las primeras ${PREVIEW_ROW_CAP}`
+                      : `Mostrar todas las filas (${rows.length})`}
+                  </span>
+                </Button>
+              </div>
+            )}
             {invalidCount > 0 && (
               <div className="border-t bg-rose-50/50 px-4 py-2 dark:bg-rose-950/20">
                 <div className="flex items-start gap-2 text-xs text-rose-700 dark:text-rose-300">
@@ -1111,6 +1423,15 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {rows.length > 0 && (
+            <CountChips
+              detected={rows.length}
+              valid={validCount}
+              invalid={invalidCount}
+              missingCategory={missingCategoryCount}
+              missingCountry={missingCountryCount}
+            />
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <TargetOption
               selected={target === "pending"}
@@ -1143,7 +1464,7 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
               {importing ? (
                 <span>Importando…</span>
               ) : (
-                <span>Importar {validCount} de {rows.length} grupo(s)</span>
+                <span>{importButtonLabel}</span>
               )}
             </Button>
             {rows.length > 0 && (
@@ -1239,6 +1560,64 @@ export function BulkUploadForm({ csrfToken, categories, countries, tagSuggestion
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+/** Summary chips: detected rows · valid · invalid · missing category/country. */
+function CountChips({
+  detected,
+  valid,
+  invalid,
+  missingCategory = 0,
+  missingCountry = 0,
+}: {
+  detected: number;
+  valid: number;
+  invalid: number;
+  missingCategory?: number;
+  missingCountry?: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Badge variant="outline" className="gap-1">
+        <ListChecks className="h-3 w-3 text-muted-foreground" />
+        {detected} filas detectadas
+      </Badge>
+      <Badge
+        variant="outline"
+        className="gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+      >
+        <CheckCircle2 className="h-3 w-3" />
+        {valid} listas
+      </Badge>
+      {invalid > 0 && (
+        <Badge
+          variant="outline"
+          className="gap-1 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
+        >
+          <XCircle className="h-3 w-3" />
+          {invalid} con errores
+        </Badge>
+      )}
+      {missingCategory > 0 && (
+        <Badge
+          variant="outline"
+          className="gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          {missingCategory} sin categoría
+        </Badge>
+      )}
+      {missingCountry > 0 && (
+        <Badge
+          variant="outline"
+          className="gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          {missingCountry} sin país
+        </Badge>
+      )}
+    </div>
+  );
+}
 
 function ColumnGuide({
   name,

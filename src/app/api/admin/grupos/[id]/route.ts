@@ -140,7 +140,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       groupName,
       slug,
       joinLink,
-      String(body.description || "").slice(0, 1200),
+      String(body.description || "").slice(0, 8000),
       categoryId,
       category.name,
       countryId,
