@@ -39,6 +39,39 @@ export function FavoriteToggleAction({ id }: { id: string }) {
 }
 
 /**
+ * FavoriteIconButton — compact circular heart toggle for image-top listing
+ * cards (2026 card redesign). Mirrors CompareIconButton's geometry so the two
+ * sit side by side in the card action row. Renders the OFF state on first
+ * paint (hydration-safe) — the favorites store syncs after mount.
+ */
+export function FavoriteIconButton({ id, className = "" }: { id: string; className?: string }) {
+  const toggle = useFavorites((s) => s.toggle);
+  const has = useFavorites((s) => s.ids.includes(id));
+
+  return (
+    <motion.button
+      type="button"
+      aria-pressed={has}
+      aria-label={has ? "Quitar de favoritos" : "Añadir a favoritos"}
+      title={has ? "Quitar de favoritos" : "Añadir a favoritos"}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggle(id);
+      }}
+      whileTap={{ scale: 0.8 }}
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition duration-200 ${
+        has
+          ? "bg-rose-500/15 text-rose-600 ring-1 ring-rose-500/40 dark:text-rose-300"
+          : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300"
+      } ${className}`}
+    >
+      <Heart className={`h-4 w-4 ${has ? "fill-current" : ""}`} aria-hidden />
+    </motion.button>
+  );
+}
+
+/**
  * FavoritePillButton — heart toggle for the group detail sticky bar.
  *
  * - Mirrors ComparePillButton's pill design (rose accent = favorites system).
