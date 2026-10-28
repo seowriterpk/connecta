@@ -141,9 +141,20 @@ const OUTCOME_TOAST: Record<
 > = {
   localized: { message: "Imagen descargada y guardada en tu servidor.", kind: "success" },
   "already-local": { message: "El grupo ya tiene una imagen local.", kind: "info" },
-  "revoked-link": { message: "El enlace sigue revocado: no hay imagen nueva.", kind: "warning" },
-  "no-image": { message: "El grupo sigue sin imagen publicada.", kind: "warning" },
-  failed: { message: "El reintento falló. Revisa el proxy y vuelve a intentarlo.", kind: "error" },
+  "revoked-link": {
+    message:
+      "Enlace confirmado revocado (verificado con 3 IPs distintos del proxy): no hay imagen nueva.",
+    kind: "warning",
+  },
+  "no-image": {
+    message:
+      "Sin imagen tras 3 intentos con IPs distintas. Suele ser temporal — reintenta más tarde.",
+    kind: "warning",
+  },
+  failed: {
+    message: "El reintento falló. Revisa el proxy y vuelve a intentarlo.",
+    kind: "error",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -441,6 +452,7 @@ export function ImageUpdaterTool({
   const counters = React.useMemo(() => {
     let localized = 0;
     let failed = 0;
+    let alreadyLocal = 0;
     let skipped = 0;
     let bytes = 0;
     for (const r of rows) {
@@ -448,9 +460,10 @@ export function ImageUpdaterTool({
         localized++;
         bytes += r.bytes;
       } else if (r.outcome === "failed") failed++;
-      else skipped++;
+      else if (r.outcome === "already-local") alreadyLocal++;
+      else skipped++; // revoked-link + no-image (sin imagen nueva)
     }
-    return { localized, failed, skipped, bytes };
+    return { localized, failed, alreadyLocal, skipped, bytes };
   }, [rows]);
 
   /** Rows the current scope would process (chips + queue summary). */
@@ -1045,10 +1058,16 @@ export function ImageUpdaterTool({
                   label="Descargados"
                 />
                 <CounterPill
+                  icon={CheckCircle2}
+                  tone="emerald"
+                  value={counters.alreadyLocal}
+                  label="Ya locales"
+                />
+                <CounterPill
                   icon={MinusCircle}
                   tone="amber"
                   value={counters.skipped}
-                  label="Omitidos"
+                  label="Revocados/Sin imagen"
                 />
                 <CounterPill
                   icon={XCircle}

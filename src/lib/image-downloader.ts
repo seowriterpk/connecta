@@ -101,7 +101,9 @@ export async function downloadGroupImage(
     }
 
     // Download through the residential proxy (WhatsApp CDN blocks datacenter
-    // IPs the same way chat.whatsapp.com does).
+    // IPs the same way chat.whatsapp.com does). freshConnection → a NEW
+    // rotating-gateway exit IP per image (Task 33: shared keep-alive tunnels
+    // concentrated many downloads on one IP → rate-limit cascade).
     const res = await proxiedFetch(imageUrl, {
       headers: {
         Referer: "https://chat.whatsapp.com/",
@@ -110,6 +112,7 @@ export async function downloadGroupImage(
         Accept: "image/avif,image/webp,image/jpeg,image/png,*/*",
       },
       timeoutMs: DOWNLOAD_TIMEOUT_MS,
+      freshConnection: true,
     });
 
     if (!res.ok) {

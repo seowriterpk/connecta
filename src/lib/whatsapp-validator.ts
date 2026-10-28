@@ -3,13 +3,22 @@
  * Based on Groupizo VIP Logic SYSTEM 1.
  *
  * - Fake being a mobile phone (iPhone User-Agent)
- * - Route through the residential proxy FIRST (WhatsApp blocks datacenter IPs);
- *   direct fetch as fallback; never mark revoked on network error (fail-safe)
+ * - Route through the residential proxy with IP ROTATION: up to 3 attempts,
+ *   each on a FRESH proxy connection (new exit IP), retrying on 403/429
+ *   (WhatsApp rate-limit) and network errors with backoff + jitter
+ * - CLASSIFICATION RULE (Task 33 — false-revoke incident, owner 2026-10-29):
+ *     · "revoked" may ONLY be concluded from HTML fetched through the proxy
+ *       (residential IPs get the real invite page).
+ *     · A direct datacenter fetch can only CONFIRM "active" — when WhatsApp
+ *       blocks the datacenter IP it serves a 200 block/captcha page with NO
+ *       og:title, which is byte-identical to a revoked page. The old code
+ *       classified those as "revoked" → ~80% of groups falsely marked
+ *       revoked/omitted during proxy overload.
  * - Only download first 64KB (keeps every og: meta tag intact)
  * - 3-state result: active | revoked | unknown
  */
 
-import { proxiedFetch } from "@/lib/proxy-fetch";
+import { proxiedFetch, isRateLimitedStatus } from "@/lib/proxy-fetch";
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) " +
@@ -22,6 +31,9 @@ export interface WhatsAppMeta {
   imageUrl: string;
   inviteCode: string;
   description: string;
+  /** Where the classified HTML came from: proxy (trustworthy) or direct (can
+   *  only prove active). "none" → network failed everywhere → unknown. */
+  source?: "proxy" | "direct" | "none";
 }
 
 export function extractInviteCode(url: string): string | null {
@@ -33,12 +45,21 @@ export function isValidWhatsAppInvite(url: string): boolean {
   return /^https?:\/\/(chat\.whatsapp\.com|wa\.me)\/[A-Za-z0-9_-]+/i.test(url.trim());
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const jitter = (ms: number) => ms + Math.floor(Math.random() * Math.round(ms * 0.5));
+
 /**
  * Fetches WhatsApp invite meta.
- * Attempt 1: through the residential proxy (PROXY_URL in .env.local) — WhatsApp
- *            blocks datacenter IPs, so the proxy is the reliable path.
- * Attempt 2: direct fetch (resilience if the proxy hiccups but the network allows).
- * Any fetch body → parse og: tags. No body at all → "unknown" (fail-safe).
+ *
+ * Attempts 1-3: through the residential proxy (PROXY_URL), EVERY attempt on a
+ *              fresh connection = a NEW exit IP from the rotating gateway.
+ *              On 403/429 (rate-limited IP) → rotate fast and retry;
+ *              on timeouts/network errors → backoff + jitter and retry.
+ * Last resort: ONE direct fetch — can only confirm "active" (og:title
+ *              present). A direct page WITHOUT og:title is classified
+ *              "unknown", NEVER "revoked" (datacenter block pages look
+ *              exactly like revoked pages).
+ * Any fetch body → parse og: tags. No trustworthy body → "unknown" (fail-safe).
  */
 export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta> {
   const code = extractInviteCode(inviteUrl);
@@ -49,6 +70,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       imageUrl: "",
       inviteCode: "",
       description: "",
+      source: "none",
     };
   }
 
@@ -66,37 +88,63 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
   // ("&#x1d431;" → "&#x1"), producing broken group names like
   // "&#x1d431; &#x30fb; &#x1d400;… &#x1". 64KB keeps every meta tag intact.
   const HTML_PREVIEW_BYTES = 65536;
+  const PROXY_ATTEMPTS = 3;
+  const PROXY_TIMEOUT_MS = 7000;
 
-  // Attempt 1: through the residential proxy (PROXY_URL env var). WhatsApp
-  // blocks datacenter IPs — the proxy is the primary, reliable route. 6s budget.
+  // --- Attempts through the residential proxy, rotating the exit IP ---------
   let html = "";
+  let source: WhatsAppMeta["source"] = "none";
   if (process.env.PROXY_URL) {
-    try {
-      const res = await proxiedFetch(url, {
-        headers,
-        redirect: "follow",
-        timeoutMs: 6000,
-      });
-      if (res.ok) {
-        const text = await res.text();
-        html = text.slice(0, HTML_PREVIEW_BYTES);
+    for (let attempt = 1; attempt <= PROXY_ATTEMPTS; attempt++) {
+      try {
+        const res = await proxiedFetch(url, {
+          headers,
+          redirect: "follow",
+          timeoutMs: PROXY_TIMEOUT_MS,
+          // Fresh CONNECT tunnel → new rotating-gateway exit IP per attempt.
+          freshConnection: true,
+        });
+        if (res.ok) {
+          const text = await res.text();
+          html = text.slice(0, HTML_PREVIEW_BYTES);
+          source = "proxy";
+          break;
+        }
+        // 403/429/5xx = the exit IP is rate-limited/burned — rotate fast.
+        // Any other status also rotates, with a longer backoff.
+        const wait = isRateLimitedStatus(res.status) ? jitter(400) : jitter(900 * attempt);
+        // Drain the failed response body so the one-shot agent can close.
+        try {
+          await res.arrayBuffer();
+        } catch {
+          /* ignore */
+        }
+        await sleep(wait);
+      } catch {
+        // Network/timeout error — different IP next attempt, backoff first.
+        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(900 * attempt));
       }
-    } catch {
-      // proxy failed — fall through to direct attempt
     }
   }
 
-  // Attempt 2: direct fetch (resilience when the proxy hiccups).
+  // --- Last resort: direct fetch (resilience / no-proxy environments) -------
   if (!html) {
     try {
       const res = await fetch(url, {
         headers,
         redirect: "follow",
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
         const text = await res.text();
         html = text.slice(0, HTML_PREVIEW_BYTES);
+        source = "direct";
+      } else {
+        try {
+          await res.arrayBuffer();
+        } catch {
+          /* ignore */
+        }
       }
     } catch {
       // direct failed too — html stays empty → "unknown" (fail-safe)
@@ -112,6 +160,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       imageUrl: "",
       inviteCode: code,
       description: "",
+      source: "none",
     };
   }
 
@@ -136,7 +185,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       .replace(/&amp;/gi, "&")
       .replace(/&lt;/gi, "<")
       .replace(/&gt;/gi, ">")
-      .replace(/&quot;/gi, '"')
+      .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&apos;/gi, "'")
       // Strip zero-width / directional characters WhatsApp mixes in, plus any
@@ -167,16 +216,31 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       imageUrl: ogImage ? decodeEntities(ogImage) : "",
       inviteCode: code,
       description: ogDesc ? decodeEntities(ogDesc) : "",
+      source,
     };
   }
 
-  // og:title is missing or generic → revoked
+  // og:title is missing or generic. From the PROXY (a real residential view
+  // of the page) this genuinely means revoked. From a DIRECT datacenter fetch
+  // it more likely means WhatsApp served a block/captcha page → unknown.
+  if (source === "direct") {
+    return {
+      status: "unknown",
+      groupName: "",
+      imageUrl: "",
+      inviteCode: code,
+      description: "",
+      source,
+    };
+  }
+
   return {
     status: "revoked",
     groupName: "",
     imageUrl: "",
     inviteCode: code,
     description: "",
+    source,
   };
 }
 

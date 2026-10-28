@@ -24,6 +24,8 @@ import {
   x,
   fetchWhatsAppMeta,
   downloadGroupImageFile,
+  sleep,
+  jitter,
   makeLogger,
   makeLock,
   ROOT,
@@ -84,6 +86,11 @@ async function main() {
       } catch {
         failed++;
       }
+
+      // Task 33 pacing: even sequential requests shouldn't hit WhatsApp in a
+      // machine-gun rhythm — a short human-ish gap between groups (each on
+      // its own fresh proxy connection / exit IP) keeps the CDN calm.
+      await sleep(jitter(350));
     }
 
     log(`Image refresh done. Refreshed: ${refreshed} | Failed: ${failed}`);

@@ -48,21 +48,36 @@ export function loadEnvFile() {
 //          Node's built-in global fetch is an internal undici that rejects
 //          dispatchers from the npm package)
 // No PROXY_URL → direct fetch.
+//
+// IP ROTATION (Task 33 — false-revoke incident, owner 2026-10-29): the
+// cached ProxyAgent keep-alives its CONNECT tunnels, so bursts of requests
+// exit through the SAME residential IP until WhatsApp rate-limits it and
+// everything sharing that IP fails together (the 80% false-"revoked" wave).
+// proxiedFetchFresh() builds a ONE-SHOT agent per request (connections:1,
+// keep-alive off) and closes it right after — with a rotating gateway
+// (gw.dataimpulse.com) every request gets its OWN exit IP.
 let _undiciPair;
+let _undiciModPromise;
+async function getUndiciMod() {
+  if (!_undiciModPromise) {
+    _undiciModPromise = import("undici").catch(() => null);
+  }
+  return _undiciModPromise;
+}
 async function getUndiciPair() {
   if (!process.env.PROXY_URL) return null;
   if (typeof globalThis.Bun !== "undefined") return null; // bun path handled natively
   if (_undiciPair !== undefined) return _undiciPair;
   try {
-    const mod = await import("undici");
-    _undiciPair = { fetch: mod.fetch, agent: new mod.ProxyAgent(process.env.PROXY_URL) };
+    const mod = await getUndiciMod();
+    _undiciPair = mod ? { fetch: mod.fetch, agent: new mod.ProxyAgent(process.env.PROXY_URL) } : null;
   } catch {
     _undiciPair = null;
   }
   return _undiciPair;
 }
 
-export async function proxiedFetch(url, init = {}) {
+async function proxiedFetch(url, init = {}) {
   const { timeoutMs = 8000, ...fetchInit } = init;
   const signal = fetchInit.signal ?? AbortSignal.timeout(timeoutMs);
 
@@ -74,6 +89,66 @@ export async function proxiedFetch(url, init = {}) {
     return pair.fetch(url, { ...fetchInit, signal, dispatcher: pair.agent });
   }
   return fetch(url, { ...fetchInit, signal });
+}
+
+/** True for WhatsApp rate-limit / block statuses → rotate IP + retry. */
+export function isRateLimitedStatus(status) {
+  return status === 403 || status === 429 || (status >= 500 && status < 600);
+}
+
+/** One-shot proxied fetch: fresh ProxyAgent = NEW exit IP per call, closed right after. */
+export async function proxiedFetchFresh(url, init = {}) {
+  const { timeoutMs = 8000, ...fetchInit } = init;
+  const signal = fetchInit.signal ?? AbortSignal.timeout(timeoutMs);
+
+  if (typeof globalThis.Bun !== "undefined" && process.env.PROXY_URL) {
+    // Bun dials per-request (no shared proxy pool) — new IP anyway.
+    return fetch(url, { ...fetchInit, signal, proxy: process.env.PROXY_URL });
+  }
+  const mod = process.env.PROXY_URL ? await getUndiciMod() : null;
+  if (!mod) return fetch(url, { ...fetchInit, signal });
+  const agent = new mod.ProxyAgent({
+    uri: process.env.PROXY_URL,
+    connections: 1,
+    pipelining: 1,
+    keepAliveTimeout: 1,
+    keepAliveMaxTimeout: 1,
+  });
+  try {
+    return await mod.fetch(url, { ...fetchInit, signal, dispatcher: agent });
+  } finally {
+    // Graceful close: lets the in-flight body finish, then reaps the tunnel.
+    Promise.resolve(agent.close()).catch(() => {});
+  }
+}
+
+export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const jitter = (ms) => ms + Math.floor(Math.random() * Math.round(ms * 0.5));
+
+/**
+ * Bounded-concurrency worker pool (Task 33): runs `worker(item)` over `items`
+ * with at most `limit` in flight and a small stagger between launches so
+ * the target never sees a simultaneous burst. Preserves input order in the
+ * output array. Never throws — worker errors land as null entries.
+ */
+export async function mapLimit(items, limit, worker, staggerMs = 0) {
+  const results = new Array(items.length).fill(null);
+  let next = 0;
+  const runners = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async (_, runnerIdx) => {
+    // Stagger the START of each worker so the first wave isn't simultaneous.
+    if (staggerMs > 0 && runnerIdx > 0) await sleep(jitter(staggerMs) * runnerIdx);
+    while (true) {
+      const i = next++;
+      if (i >= items.length) return;
+      try {
+        results[i] = await worker(items[i], i);
+      } catch {
+        results[i] = null;
+      }
+    }
+  });
+  await Promise.all(runners);
+  return results;
 }
 
 // --- group image downloader (aligned with src/lib/image-downloader.ts) --------
@@ -116,7 +191,7 @@ export async function downloadGroupImageFile(imageUrl, groupName, { compress = t
   try {
     if (!isWhatsappCdnUrl(imageUrl)) return null;
 
-    const res = await proxiedFetch(imageUrl, {
+    const res = await proxiedFetchFresh(imageUrl, {
       headers: {
         Referer: "https://chat.whatsapp.com/",
         "User-Agent": IPHONE_UA,
@@ -265,7 +340,7 @@ function extractMetaTag(html, property) {
 export async function fetchWhatsAppMeta(inviteUrl) {
   const code = extractInviteCode(inviteUrl);
   if (!code) {
-    return { status: "revoked", groupName: "", imageUrl: "", inviteCode: "", description: "" };
+    return { status: "revoked", groupName: "", imageUrl: "", inviteCode: "", description: "", source: "none" };
   }
   const url = inviteUrl.startsWith("http") ? inviteUrl : `https://chat.whatsapp.com/${code}`;
   const headers = {
@@ -277,18 +352,34 @@ export async function fetchWhatsAppMeta(inviteUrl) {
   // sit deep after big inline scripts; 8KB sometimes cut a numeric entity in
   // half ("&#x1d431;" → "&#x1"), producing broken group names.
   const HTML_PREVIEW_BYTES = 65536;
+  const PROXY_ATTEMPTS = 3;
+
+  // --- Attempts through the residential proxy, rotating the exit IP ---------
+  // (Task 33 — false-revoke incident, owner 2026-10-29): EVERY attempt uses a
+  // FRESH connection = a NEW exit IP from the rotating gateway. On 403/429
+  // (rate-limited IP) rotate fast; on timeouts rotate with backoff.
   let html = "";
-  // Attempt 1: residential proxy (WhatsApp blocks datacenter IPs — this is
-  // the reliable path on Hostinger cron boxes).
+  let source = "none";
   if (process.env.PROXY_URL) {
-    try {
-      const res = await proxiedFetch(url, { headers, redirect: "follow", timeoutMs: 6000 });
-      if (res.ok) html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
-    } catch {
-      /* proxy failed → direct attempt */
+    for (let attempt = 1; attempt <= PROXY_ATTEMPTS; attempt++) {
+      try {
+        const res = await proxiedFetchFresh(url, { headers, redirect: "follow", timeoutMs: 6000 });
+        if (res.ok) {
+          html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
+          source = "proxy";
+          break;
+        }
+        const wait = isRateLimitedStatus(res.status) ? jitter(400) : jitter(900 * attempt);
+        try { await res.arrayBuffer(); } catch { /* drain failed body */ }
+        await sleep(wait);
+      } catch {
+        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(900 * attempt));
+      }
     }
   }
-  // Attempt 2: direct (resilience when the proxy hiccups).
+  // --- Last resort: direct fetch. Can only CONFIRM active — a direct
+  // datacenter page without og:title is a WhatsApp block page, NOT a revoked
+  // link (they look identical). Classify those as "unknown", never revoked.
   if (!html) {
     try {
       const res = await fetch(url, {
@@ -296,13 +387,16 @@ export async function fetchWhatsAppMeta(inviteUrl) {
         signal: AbortSignal.timeout(4000),
         redirect: "follow",
       });
-      if (res.ok) html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
+      if (res.ok) {
+        html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
+        source = "direct";
+      }
     } catch {
       /* network fail → unknown, never revoked */
     }
   }
   if (!html) {
-    return { status: "unknown", groupName: "", imageUrl: "", inviteCode: code, description: "" };
+    return { status: "unknown", groupName: "", imageUrl: "", inviteCode: code, description: "", source: "none" };
   }
   const ogTitle = extractMetaTag(html, "og:title");
   const ogImage = extractMetaTag(html, "og:image");
@@ -316,9 +410,14 @@ export async function fetchWhatsAppMeta(inviteUrl) {
       imageUrl: ogImage ? decode(ogImage) : "",
       inviteCode: code,
       description: ogDesc ? decode(ogDesc) : "",
+      source,
     };
   }
-  return { status: "revoked", groupName: "", imageUrl: "", inviteCode: code, description: "" };
+  // No/generic og:title: only trustworthy when fetched through the proxy.
+  if (source === "direct") {
+    return { status: "unknown", groupName: "", imageUrl: "", inviteCode: code, description: "", source };
+  }
+  return { status: "revoked", groupName: "", imageUrl: "", inviteCode: code, description: "", source };
 }
 
 // --- standalone-aware public file writer -------------------------------------
