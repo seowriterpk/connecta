@@ -321,6 +321,48 @@ export async function fetchWhatsAppMeta(inviteUrl) {
   return { status: "revoked", groupName: "", imageUrl: "", inviteCode: code, description: "" };
 }
 
+// --- standalone-aware public file writer -------------------------------------
+// In production (Hostinger), the app runs `.next/standalone/server.js`, which
+// serves public/ from `.next/standalone/public/` — NOT from the repo-root
+// public/ (that copy only gets picked up by the NEXT build). A cron writing
+// sitemaps only to <root>/public/ would be invisible to the running server
+// until the next redeploy. Writing to BOTH keeps the live server and the next
+// build in sync. In dev only the root public/ exists, so nothing changes.
+export function publicDirs() {
+  const dirs = [path.join(ROOT, "public")];
+  const standalone = path.join(ROOT, ".next", "standalone", "public");
+  try {
+    if (fs.statSync(standalone).isDirectory()) dirs.push(standalone);
+  } catch {
+    /* no standalone build — dev mode */
+  }
+  return dirs;
+}
+
+/**
+ * Writes a file into every public/ copy (root + standalone when present).
+ * `relPath` is relative to public/, e.g. "sitemaps/grupos-1.xml".
+ * Returns the list of absolute paths actually written.
+ */
+export function writePublicFile(relPath, content) {
+  const written = [];
+  for (const dir of publicDirs()) {
+    const target = path.join(dir, relPath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+    written.push(target);
+  }
+  return written;
+}
+
+/** True if a file exists in the SERVED public dir (standalone wins in prod). */
+export function publicFileExists(relPath) {
+  for (const dir of publicDirs()) {
+    if (fs.existsSync(path.join(dir, relPath))) return true;
+  }
+  return false;
+}
+
 // --- lock + log helpers -----------------------------------------------------
 export function makeLogger(name) {
   const logsDir = path.join(ROOT, "logs");

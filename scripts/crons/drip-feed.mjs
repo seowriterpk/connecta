@@ -7,6 +7,9 @@
  * - Inserts into groups table with status="live"
  * - Deletes from queue
  * - Duplicate defense: checks join_link before inserting
+ * - After publishing >0 groups: spawns sitemap-generator.mjs so new URLs
+ *   enter the sitemap INSTANTLY (Task 31 follow-up — the sitemap must never
+ *   lag behind the drip publisher by hours)
  */
 
 import {
@@ -20,12 +23,44 @@ import {
   makeUniqueSlug,
   makeLogger,
   makeLock,
+  ROOT,
 } from "./_lib.mjs";
+import { spawn } from "child_process";
+import path from "path";
 
 loadEnvFile();
 const pool = createPool();
 const log = makeLogger("drip-feed");
 const lock = makeLock("drip-feed", 10);
+
+/**
+ * Spawns the sitemap generator as a child process (same script the nightly
+ * 2am hPanel cron runs). Never throws — a sitemap hiccup must not fail the
+ * publish run. Shares this process's env (DB_* / BASE_URL from .env or the
+ * inline cron command), logs go to logs/sitemap-gen.log.
+ */
+function refreshSitemap() {
+  return new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [path.join(ROOT, "scripts", "crons", "sitemap-generator.mjs")],
+      { cwd: ROOT, stdio: "ignore" }
+    );
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+    }, 120_000); // hard cap: never wedge the drip run
+    child.on("error", (e) => {
+      clearTimeout(timer);
+      log(`Sitemap refresh spawn failed: ${e.message}`);
+      resolve(false);
+    });
+    child.on("exit", (code) => {
+      clearTimeout(timer);
+      log(code === 0 ? "Sitemap refresh done (instant, post-drip)." : `Sitemap refresh exited with code ${code}.`);
+      resolve(code === 0);
+    });
+  });
+}
 
 async function main() {
   log("Starting drip feed cron (mysql2 pool)...");
@@ -77,6 +112,10 @@ async function main() {
 
     log(`Selected ${selected.length} groups for publishing (diverse).`);
 
+    let published = 0;
+    let duplicates = 0;
+    let errors = 0;
+
     for (const item of selected) {
       try {
         // Duplicate defense (by invite code fragment)
@@ -87,6 +126,7 @@ async function main() {
 
         if (existing) {
           await x(pool, "DELETE FROM `groups_queue` WHERE `id` = ?", [item.id]);
+          duplicates += 1;
           log(`Duplicate killed: ${item.groupName}`);
           continue;
         }
@@ -136,13 +176,22 @@ async function main() {
         );
 
         await x(pool, "DELETE FROM `groups_queue` WHERE `id` = ?", [item.id]);
+        published += 1;
         log(`Published: '${item.groupName}' [slug: ${slug}]`);
       } catch (e) {
+        errors += 1;
         log(`Error publishing '${item.groupName}': ${e.message}`);
       }
     }
 
-    log("Drip feed complete.");
+    log(`Drip feed complete. Published ${published}, duplicates killed ${duplicates}, errors ${errors}.`);
+
+    // Instant sitemap refresh — only when something actually went live.
+    // (Empty queue or all-duplicates runs skip it; sitemap-gen has its own
+    // lock so a collision with the nightly cron just exits cleanly.)
+    if (published > 0) {
+      await refreshSitemap();
+    }
   } finally {
     lock.release();
     await pool.end();

@@ -18,6 +18,7 @@ import {
   makeLogger,
   makeLock,
   ROOT,
+  writePublicFile,
 } from "./_lib.mjs";
 import fs from "fs";
 import path from "path";
@@ -25,7 +26,6 @@ import path from "path";
 loadEnvFile();
 const pool = createPool();
 const BASE_URL = process.env.BASE_URL || "https://gruposhoy.com";
-const SITEMAPS_DIR = path.join(ROOT, "public", "sitemaps");
 const log = makeLogger("sitemap-gen");
 const lock = makeLock("sitemap-gen", 30);
 
@@ -35,7 +35,9 @@ function urlEntry(loc, lastmod, changefreq = "weekly", priority = "0.7") {
 
 function writeSitemap(filename, urls) {
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
-  fs.writeFileSync(path.join(SITEMAPS_DIR, filename), content);
+  // writePublicFile targets <root>/public/ AND .next/standalone/public/
+  // (the dir the production server actually serves from).
+  writePublicFile(path.join("sitemaps", filename), content);
   log(`Wrote ${filename} (${urls.length} URLs)`);
 }
 
@@ -45,10 +47,6 @@ async function main() {
   if (!(await lock.acquire())) {
     log("Another instance is running. Exiting.");
     process.exit(0);
-  }
-
-  if (!fs.existsSync(SITEMAPS_DIR)) {
-    fs.mkdirSync(SITEMAPS_DIR, { recursive: true });
   }
 
   try {
@@ -178,7 +176,7 @@ async function main() {
       .map((f) => `  <sitemap>\n    <loc>${BASE_URL}/sitemaps/${f.filename}</loc>\n    <lastmod>${f.lastmod}</lastmod>\n  </sitemap>`)
       .join("\n")}\n</sitemapindex>`;
 
-    fs.writeFileSync(path.join(SITEMAPS_DIR, "..", "sitemap.xml"), indexContent);
+    writePublicFile("sitemap.xml", indexContent);
     log(`Wrote sitemap.xml index (${allFiles.length} sub-sitemaps)`);
 
     log(`Sitemap generation complete. Total groups: ${groups.length}`);

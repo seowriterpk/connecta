@@ -141,7 +141,9 @@ If `db.ok` is `false`, the env vars in §2 are wrong (host/user/password/name).
 ## 5. Cron jobs (hPanel → Advanced → Cron Jobs)
 
 The cron scripts are plain `.mjs` (Node runs them directly, no build step).
-Set the DB env vars inline in the command:
+hPanel crons do **not** inherit the Node.js app's env vars, so either pass the
+DB vars inline (below) or rely on the `.env` file at the app root (the scripts
+read it themselves — see §2).
 
 | Schedule | Command |
 |---|---|
@@ -153,6 +155,71 @@ Set the DB env vars inline in the command:
 (Replace `uXXXX` / domain with your real path — it's shown in hPanel's
 Node.js app details. Each script writes logs to `logs/*.log` and uses a lock
 file so runs never overlap.)
+
+### 5.1 Drip publisher — step-by-step setup
+
+The drip publisher (`drip-feed.mjs`) moves queued groups live gradually:
+every run publishes up to `dripFeedPerRun` groups (default 5, editable in
+Admin → UGC Policy panel; range 1–100), picked round-robin so consecutive
+runs are diverse by category+country. Duplicate invite links are auto-killed.
+
+**Setup in hPanel:**
+
+1. Find your app path: **hPanel → Websites → your site → Dashboard →
+   Node.js** — the "Application root" is shown there, e.g.
+   `/home/u1234567/domains/gruposhoy.com/nodejs`.
+2. Go to **Advanced → Cron Jobs → Add new cron job** (or edit the existing one).
+3. **Schedule:** select *Common options → Every 15 minutes*
+   (equivalent to `*/15 * * * *`).
+4. **Command** (single line — replace path + DB password with yours):
+
+   ```bash
+   cd /home/u1234567/domains/gruposhoy.com/nodejs && DB_HOST=localhost DB_USER=u824913874_spanish DB_PASSWORD=YOUR_MYSQL_PASS DB_NAME=u824913874_spanishs BASE_URL=https://gruposhoy.com node scripts/crons/drip-feed.mjs
+   ```
+
+   If a `.env` with the DB creds already sits in the app root (recommended,
+   §2), the short form works too:
+
+   ```bash
+   cd /home/u1234567/domains/gruposhoy.com/nodejs && node scripts/crons/drip-feed.mjs
+   ```
+
+5. Save. Done — no build, no restart needed.
+
+**What happens on each run:**
+
+- Publishes up to `dripFeedPerRun` queued groups → `status='live'`, unique SEO
+  slug, `NOW()` timestamps.
+- **Instant sitemap refresh:** when ≥1 group goes live, the drip publisher
+  automatically spawns `sitemap-generator.mjs`, so new `/grupo/<slug>` URLs
+  enter `sitemap.xml` within seconds — never wait for the nightly 2 AM cron.
+  Sitemap files are written to BOTH `public/` and `.next/standalone/public/`
+  (the dir the running production server actually serves from).
+- Queue empty → logs "Queue empty. Nothing to publish." and exits (cheap).
+
+**Verify it works:**
+
+1. Wait for one scheduled run (or temporarily set the schedule to
+   *Every minute* to test, then set it back to 15).
+2. Check `logs/drip-feed.log` in the app root — you should see
+   `Published: '<name>' [slug: …]` lines followed by
+   `Sitemap refresh done (instant, post-drip).`
+3. Open `https://yourdomain.com/sitemap.xml` — `lastmod` should be today.
+4. Admin dashboard → Sitemap card should show **"Al día"** (fresh).
+
+**Tuning the drip rate:** the 15-min schedule × `dripFeedPerRun` = hourly
+throughput. Defaults: 5 × 4 = 20 groups/hour = 480/day. Raise
+`dripFeedPerRun` in the admin panel for faster drains of big bulk uploads
+(e.g. 25 × 4 = 100/hour).
+
+**Troubleshooting:**
+
+| Symptom | Fix |
+|---|---|
+| Cron mail says `node: command not found` | Use the full node path in the command (find it in hPanel Node.js details or `which node` via SSH), e.g. `/opt/alt/nodejs22/bin/node scripts/crons/drip-feed.mjs` |
+| `ER_ACCESS_DENIED_ERROR` in `logs/drip-feed.log` | Wrong `DB_USER`/`DB_PASSWORD` in the cron command (or `.env` missing) — must match phpMyAdmin creds |
+| Nothing publishes, queue full | Check `logs/drip-feed.log` for "Another instance is running" (stale lock — clears after 10 min) or FATAL lines |
+| Groups live but sitemap old | Check `logs/sitemap-gen.log`; confirm `BASE_URL` is set so URLs use the domain, not the fallback |
 
 ---
 
