@@ -1,9 +1,19 @@
 #!/bin/bash
 # Restore MariaDB runtime after sandbox re-provision.
-# - Extracts the tarball to /home/z/my-project/mysql-runtime
+# - Extracts the tarball (/tmp/mariadb.tar.gz, any 11.x version) to
+#   /home/z/my-project/mysql-runtime
 # - Initializes a fresh datadir
 # - Starts mariadbd on 127.0.0.1:3306 (socket + TCP)
 # - Creates db `gruposwhatsapp` + user `grupos` (matching src/lib/db.ts defaults)
+#
+# FAST TARBALL DOWNLOAD (mirror.netcologne.de + 8 parallel range chunks,
+# ~7 MB/s vs ~70 KB/s single-stream — see worklog.md for the full runbook):
+#   URL="https://mirror.netcologne.de/mariadb/mariadb-11.4.13/bintar-linux-systemd-x86_64/mariadb-11.4.13-linux-systemd-x86_64.tar.gz"
+#   SIZE=$(curl -sI "$URL" | grep -i content-length | tr -d '\r' | awk '{print $2}')
+#   CHUNK=$((SIZE/8)); for i in 0 1 2 3 4 5 6 7; do
+#     s=$((i*CHUNK)); e=$(((i+1)*CHUNK-1)); [ $i -eq 7 ] && e=$((SIZE-1))
+#     curl -s --retry 5 --retry-all-errors -r ${s}-${e} -o part_$i.bin "$URL" &
+#   done; wait; cat part_*.bin > /tmp/mariadb.tar.gz && rm -f part_*.bin
 exec 2>&1
 set -e
 
@@ -14,13 +24,17 @@ SOCKET=$MR/tmp/mysql.sock
 
 mkdir -p "$MR/tmp" "$MR/data"
 
-if [ ! -d "$MR/mariadb-11.8.6-linux-systemd-x86_64" ]; then
+# Auto-detect the extracted version dir (tarball version may change)
+DIST=$(ls -d "$MR"/mariadb-*-linux-* 2>/dev/null | head -1)
+
+if [ -z "$DIST" ]; then
   echo "Extracting tarball..."
   tar -xzf "$TARBALL" -C "$MR"
+  DIST=$(ls -d "$MR"/mariadb-*-linux-* 2>/dev/null | head -1)
 fi
 
-BIN=$MR/mariadb-11.8.6-linux-systemd-x86_64/bin
-SCRIPTS=$MR/mariadb-11.8.6-linux-systemd-x86_64/scripts
+BIN=$DIST/bin
+SCRIPTS=$DIST/scripts
 
 # Fresh datadir (idempotent: only init when empty)
 if [ ! -d "$MR/data/mysql" ]; then

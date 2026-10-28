@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Sitemap,
+  Network,
   RefreshCw,
   ExternalLink,
   CheckCircle2,
@@ -165,7 +165,7 @@ export function AdminSitemapCard({ csrfToken }: Props) {
                 : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
             }`}
           >
-            <Sitemap className="h-4 w-4" />
+            <Network className="h-4 w-4" />
           </span>
           Sitemap XML
         </CardTitle>

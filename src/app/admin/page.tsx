@@ -55,7 +55,7 @@ import {
   CheckCircle2,
   History,
   MessagesSquare,
-  Sitemap,
+  Network,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -991,7 +991,7 @@ export default async function AdminDashboardPage() {
           {/* Sitemap status + instant regeneration */}
           <section aria-label="Sitemap XML" className="mt-6">
             <div className="mb-3 flex items-center gap-2">
-              <Sitemap className="h-4 w-4 text-emerald-600" />
+              <Network className="h-4 w-4 text-emerald-600" />
               <h2 className="text-base font-semibold tracking-tight">SEO · Sitemap</h2>
               <p className="hidden text-xs text-muted-foreground sm:block">
                 — descubre grupos nuevos al instante, sin esperar al cron nocturno
