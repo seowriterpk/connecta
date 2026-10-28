@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Rocket, TrendingUp, TrendingDown, ArrowRight, Activity } from "lucide-react";
 import type { TrendingMover } from "@/lib/data";
 import { GroupImage } from "@/components/site/group-image";
-import { CompareIconButton } from "@/components/site/compare-button";
 import { Sparkline } from "@/components/site/sparkline";
 import { Reveal } from "@/components/site/reveal";
 import { CountryFlag } from "@/components/site/country-flag";
@@ -110,9 +109,10 @@ export function MoversSection({ movers }: { movers: TrendingMover[] }) {
                     <DeltaBadge delta={m.delta} deltaPct={m.deltaPct} />
                   </div>
 
-                  {/* Compare shortcut + CTA */}
+                  {/* CTA arrow (compare icon removed from listing rows —
+                      owner directive 2026-11-05: compare lives on the group
+                      detail page and /favoritos only). */}
                   <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-                    <CompareIconButton slug={m.group.slug} title={m.group.title} />
                     <span
                       className="hidden h-8 w-8 shrink-0 place-items-center rounded-full border text-muted-foreground transition-colors group-hover:border-emerald-500/40 group-hover:text-emerald-600 md:grid dark:group-hover:text-emerald-300"
                       aria-hidden

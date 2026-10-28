@@ -321,7 +321,7 @@ export async function getSitemapStatus(): Promise<SitemapStatus> {
     );
     liveGroupsInDb = Number(row?.c ?? 0);
   } catch (err) {
-    console.error("[sitemap] status query failed:", err?.message || err);
+    console.error("[sitemap] status query failed:", err instanceof Error ? err.message : err);
   }
 
   return {

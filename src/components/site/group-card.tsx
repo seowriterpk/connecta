@@ -29,6 +29,7 @@ export function GroupCard({
   group,
   imageAlt = true,
   expiredHint = false,
+  showCompare = false,
 }: {
   group: GroupCardDTO;
   /**
@@ -48,6 +49,14 @@ export function GroupCard({
    * cards; the group detail + verify pages still tell the user honestly.
    */
   expiredHint?: boolean;
+  /**
+   * Compare visibility (owner, 2026-11-05): the compare icon is REMOVED from
+   * the big listing surfaces (home, category, country, city, search, tag,
+   * author, popular…). It stays only where comparing is a natural action:
+   * the group detail page (related grid) and /favoritos. Defaults to false —
+   * new surfaces must opt in deliberately.
+   */
+  showCompare?: boolean;
 }) {
   const searchQuery = useGroupsFilter((s) => s.search);
   // Adult directive: blank image title/alt on adult groups (SEO safety);
@@ -172,7 +181,7 @@ export function GroupCard({
         <div className="relative z-[2] mt-auto flex items-center justify-between gap-1.5 pt-1">
           <div className="flex items-center gap-0.5">
             <FavoriteIconButton id={group.id} />
-            <CompareIconButton slug={group.slug} title={group.title} />
+            {showCompare && <CompareIconButton slug={group.slug} title={group.title} />}
           </div>
           {/* Join directive (owner, 2026-11-04): the Unirme pill was oversized,
               especially in the 2-col mobile grid — now compact on mobile AND

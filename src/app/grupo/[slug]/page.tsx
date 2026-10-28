@@ -336,7 +336,10 @@ export default async function GroupPage({ params }: PageProps) {
                     </Link>
                   </div>
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
-                    {related.map((r) => (<GroupCard key={r.id} group={toGroupCardDTO(r)} />))}
+                    {/* showCompare: the group detail page keeps the compare
+                        affordance (owner directive — compare lives here, not
+                        on the big listing surfaces). */}
+                    {related.map((r) => (<GroupCard key={r.id} group={toGroupCardDTO(r)} showCompare />))}
                   </div>
                 </section>
               )}

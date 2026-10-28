@@ -20,6 +20,7 @@ function Command({
   return (
     <CommandPrimitive
       data-slot="command"
+      filter={accentInsensitiveFilter}
       className={cn(
         "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md",
         className
@@ -27,6 +28,29 @@ function Command({
       {...props}
     />
   )
+}
+
+/**
+ * Accent-insensitive fuzzy-substring filter (Spanish UX): users type
+ * "futbol", "espana", "mexico" without accents, but titles carry "Fútbol",
+ * "España", "México". cmdk's default substring match is accent-sensitive,
+ * so those queries returned "No encontramos resultados". Normalizing both
+ * sides with NFD + diacritic stripping matches the accent-insensitive
+ * behavior of the server-side search (utf8mb4_unicode_ci).
+ */
+export function accentInsensitiveFilter(
+  value: string,
+  search: string
+): number {
+  const normalize = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+  const v = normalize(value)
+  const q = normalize(search)
+  if (!q) return 1
+  return v.includes(q) ? 1 : 0
 }
 
 function CommandDialog({

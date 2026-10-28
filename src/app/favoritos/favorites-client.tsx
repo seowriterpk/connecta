@@ -512,7 +512,9 @@ export function FavoritesClient() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
             >
-              <GroupCard group={g} />
+              {/* showCompare: favorites are the natural compare shortlist —
+                  the icon stays here per owner directive. */}
+              <GroupCard group={g} showCompare />
             </motion.div>
           ))}
         </div>

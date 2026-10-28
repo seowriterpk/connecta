@@ -53,9 +53,12 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
   const [groups, setGroups] = React.useState<GroupCardDTO[]>(initialGroups);
   const [loading, setLoading] = React.useState(false);
   const [localSearch, setLocalSearch] = React.useState(search);
-  const [limit, setLimit] = React.useState(PAGE_SIZE);
   const [totalCount, setTotalCount] = React.useState<number | null>(null);
   const [loadingMore, setLoadingMore] = React.useState(false);
+  // True while the last fetched page was a full PAGE_SIZE batch — the
+  // hasMore fallback when the count API fails (prevents an endless "load
+  // more" that appends nothing).
+  const [lastPageFull, setLastPageFull] = React.useState(true);
   // Skip the redundant initial groups re-fetch when SSR already provided the
   // exact default view (see the fetch effect below).
   const skipInitialRef = React.useRef(true);
@@ -146,7 +149,7 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
         if (cancelled) return;
         if (json.ok && Array.isArray(json.data)) {
           setGroups(json.data);
-          setLimit(PAGE_SIZE);
+          setLastPageFull(json.data.length >= PAGE_SIZE);
           if (countJson?.ok && typeof countJson.data === "number") {
             setTotalCount(countJson.data);
           }
@@ -158,14 +161,11 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
       cancelled = true;
       ctl.abort();
     };
-    return () => { cancelled = true; };
   }, [search, categoryId, countryId, tag, sort, adultMode]);
 
   function loadMore() {
     if (loadingMore) return;
     setLoadingMore(true);
-    const nextLimit = limit + PAGE_SIZE;
-    setLimit(nextLimit);
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (categoryId) params.set("cat", categoryId);
@@ -173,19 +173,29 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
     if (tag) params.set("tag", tag);
     if (sort) params.set("orden", sort);
     if (adultMode) params.set("adult", "only");
-    params.set("limite", String(nextLimit));
+    // Offset pagination (2026-11-05): fetch ONLY the next PAGE_SIZE rows and
+    // append. The old approach re-downloaded the whole list on every click
+    // (limite 30→60→90…, O(n²) traffic once the live site carries 3000 groups).
+    // The SMART_RANK ladder has a stable id tiebreak, so offset pages never
+    // repeat rows; the id-dedupe below is just a safety net.
+    params.set("desde", String(groups.length));
+    params.set("limite", String(PAGE_SIZE));
     fetch(`/api/groups?${params.toString()}&XTransformPort=3000`)
       .then((r) => r.json())
       .then((json) => {
         if (json.ok && Array.isArray(json.data)) {
-          setGroups(json.data);
+          setLastPageFull(json.data.length >= PAGE_SIZE);
+          setGroups((prev) => {
+            const seen = new Set(prev.map((g) => g.id));
+            return [...prev, ...json.data.filter((g: GroupCardDTO) => !seen.has(g.id))];
+          });
         }
       })
       .catch(() => {})
       .finally(() => setLoadingMore(false));
   }
 
-  const hasMore = totalCount !== null ? groups.length < totalCount : groups.length >= PAGE_SIZE;
+  const hasMore = totalCount !== null ? groups.length < totalCount : lastPageFull;
 
   // Client-side favorites filter (localStorage ids).
   const displayedGroups = favoritesOnly
@@ -228,8 +238,11 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
           </p>
         </div>
 
-        {/* Search + filters bar */}
-        <div className="sticky top-16 z-30 -mx-4 border-y bg-background/95 px-4 py-3 backdrop-blur">
+        {/* Search + selects bar — NOT sticky (owner, 2026-11-05): the old
+            fully-sticky bar (search + selects + chips ≈ half the mobile
+            screen) made scrolling hell on phones. It scrolls away
+            naturally; ONLY the compact quick-chips bar below sticks. */}
+        <div className="-mx-4 border-y bg-background px-4 py-3">
           <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
             <div className="flex-1">
               <SearchPredictive
@@ -307,56 +320,64 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
                   <X className="h-4 w-4" /> Limpiar
                 </Button>
               )}
-              {favoriteIds.length > 0 && (
-                <button
-                  onClick={() => setFavoritesOnly(!favoritesOnly)}
-                  aria-pressed={favoritesOnly}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    favoritesOnly
-                      ? "border-rose-400/60 bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                      : "bg-background text-muted-foreground hover:bg-accent hover:text-rose-500"
-                  )}
-                >
-                  <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
-                  Solo favoritos
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    favoritesOnly ? "bg-rose-500/20" : "bg-muted"
-                  }`}>
-                    {favoriteIds.length}
-                  </span>
-                </button>
-              )}
-              {/* 18+ mode toggle — controls whether adult rows are fetched */}
-              <div className="flex h-11 items-center">
-                <AdultModeToggle variant="compact" />
-              </div>
             </div>
           </div>
+        </div>
 
-          {/* Popular tags quick chips (clean tags, or adult tags in 18+ mode) */}
-          {activeTags.length > 0 && (
-            <div className="cg-scroll mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1">
-              <span className="shrink-0 text-xs text-muted-foreground">Etiquetas:</span>
-              {activeTags.map((t) => (
-                <button
-                  key={t.tag}
-                  onClick={() => setTag(tag === t.tag ? null : t.tag)}
-                  aria-pressed={tag === t.tag}
-                  className={cn(
-                    "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-                    tag === t.tag
-                      ? adultMode
-                        ? "border-rose-400 bg-rose-500 text-white shadow-sm"
-                        : "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "bg-background hover:bg-accent"
-                  )}
-                >
-                  #{t.tag}
-                </button>
-              ))}
+        {/* Sticky quick-chips bar — ONLY «Solo favoritos», «Grupos 18+» and
+            the etiquetas chips stay pinned (owner, 2026-11-05). One compact
+            horizontal-scroll row (~60px) instead of the old ~300px block. */}
+        <div className="sticky top-16 z-30 -mx-4 border-b bg-background/95 px-4 py-2 backdrop-blur">
+          <div className="cg-scroll flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {favoriteIds.length > 0 && (
+              <button
+                onClick={() => setFavoritesOnly(!favoritesOnly)}
+                aria-pressed={favoritesOnly}
+                className={cn(
+                  "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  favoritesOnly
+                    ? "border-rose-400/60 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    : "bg-background text-muted-foreground hover:bg-accent hover:text-rose-500"
+                )}
+              >
+                <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
+                Solo favoritos
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  favoritesOnly ? "bg-rose-500/20" : "bg-muted"
+                }`}>
+                  {favoriteIds.length}
+                </span>
+              </button>
+            )}
+            {/* 18+ mode toggle — controls whether adult rows are fetched */}
+            <div className="flex shrink-0 items-center">
+              <AdultModeToggle variant="compact" />
             </div>
-          )}
+            {/* Popular tags quick chips (clean tags, or adult tags in 18+ mode) */}
+            {activeTags.length > 0 && (
+              <>
+                <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+                <span className="shrink-0 text-xs text-muted-foreground">Etiquetas:</span>
+                {activeTags.map((t) => (
+                  <button
+                    key={t.tag}
+                    onClick={() => setTag(tag === t.tag ? null : t.tag)}
+                    aria-pressed={tag === t.tag}
+                    className={cn(
+                      "shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                      tag === t.tag
+                        ? adultMode
+                          ? "border-rose-400 bg-rose-500 text-white shadow-sm"
+                          : "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "bg-background hover:bg-accent"
+                    )}
+                  >
+                    #{t.tag}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Groups grid — image-top cards (2026 redesign) */}

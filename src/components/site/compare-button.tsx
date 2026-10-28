@@ -76,38 +76,6 @@ export function CompareIconButton({ slug, title, className = "" }: { slug: strin
   );
 }
 
-/** Labeled pill toggle for listing-card dropdowns (moved off the card
- *  surface — the old CTA-row icon squeezed group titles on small screens). */
-export function CompareToggleAction({ slug, title }: { slug: string; title: string }) {
-  const { active, full, toggle } = useCompareToggle(slug, title);
-
-  return (
-    <motion.button
-      type="button"
-      aria-pressed={active}
-      aria-disabled={full}
-      aria-label={active ? `Quitar ${title} de la comparación` : `Añadir ${title} a la comparación`}
-      title={full ? `Comparación llena (máx. ${MAX_COMPARE})` : active ? "Quitar de la comparación" : "Añadir a la comparación"}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!full) toggle();
-      }}
-      whileTap={full ? undefined : { scale: 0.96 }}
-      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "border-teal-500/50 bg-teal-500/10 text-teal-700 dark:text-teal-300"
-          : full
-          ? "cursor-not-allowed border-border bg-muted/50 text-muted-foreground/50"
-          : "border-border bg-background text-muted-foreground hover:border-teal-500/40 hover:bg-teal-500/5 hover:text-teal-700 dark:hover:text-teal-300"
-      }`}
-    >
-      {active ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Scale className="h-3.5 w-3.5" aria-hidden />}
-      {active ? "En comparación" : "Comparar"}
-    </motion.button>
-  );
-}
-
 /** Labeled pill button for the group detail sticky bar. */
 export function ComparePillButton({ slug, title }: { slug: string; title: string }) {
   const { active, full, toggle } = useCompareToggle(slug, title);
