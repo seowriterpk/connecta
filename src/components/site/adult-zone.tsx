@@ -145,7 +145,7 @@ export function AdultCountryZone({ countryId, countryName }: { countryId: string
             </span>
           </motion.button>
         ) : loading || groups === null ? (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-56 animate-pulse rounded-2xl border bg-muted/30" />
             ))}
@@ -155,7 +155,7 @@ export function AdultCountryZone({ countryId, countryName }: { countryId: string
             No hay grupos 18+ en {countryName} por ahora.
           </motion.p>
         ) : (
-          <motion.div key="grid" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <motion.div key="grid" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
             {groups.map((g) => (
               <GroupCard key={g.id} group={g} />
             ))}

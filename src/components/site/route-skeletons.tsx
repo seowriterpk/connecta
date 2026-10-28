@@ -81,48 +81,27 @@ function BadgeHero({ className }: { className?: string }) {
   return <S className={cn("h-7 rounded-full", className)} />;
 }
 
-/** Mimics one collapsed GroupRow (measured ~104px desktop / 96px mobile)
- *  from the directory table. */
-function GroupRowSkeleton() {
-  return (
-    <div
-      aria-hidden
-      className="relative flex h-[96px] items-center gap-2.5 overflow-hidden rounded-2xl border bg-card p-3 pr-3 shadow-sm sm:h-[104px] sm:gap-4 sm:p-4"
-    >
-      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-teal-600 opacity-50" />
-      <S className="h-12 w-12 shrink-0 rounded-xl sm:h-16 sm:w-16" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <S className="h-4 w-2/3 rounded-full" />
-        <S className="h-3 w-1/3 rounded-full" />
-        <S className="h-5 w-40 rounded-full" />
-      </div>
-      <div className="flex shrink-0 items-center">
-        <S className="h-8 w-[86px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40" />
-      </div>
-    </div>
-  );
-}
-
-/** Mimics one GroupCard (grid pages: categoria/pais/ciudad/buscar/populares). */
+/** Mimics one GroupCard (grid pages: categoria/pais/ciudad/buscar/populares,
+ *  homepage directory, related-groups sections).
+ * 2026 image-top card design: 4:3 cover block + title + meta pills + action
+ * row — mirrors GroupCard/SkeletonCard geometry exactly. */
 function GroupCardSkeleton() {
   return (
-    <div
-      aria-hidden
-      className="relative flex h-[190px] flex-col rounded-2xl border bg-card p-3 pt-4 shadow-sm sm:h-[205px] sm:p-4 sm:pt-5"
-    >
-      <div className="absolute inset-x-4 top-0 h-1 rounded-full bg-gradient-to-r from-emerald-500/50 to-teal-500/50" />
-      <div className="flex items-start gap-2.5 sm:gap-3">
-        <S className="h-11 w-11 shrink-0 rounded-xl sm:h-12 sm:w-12" />
-        <div className="flex-1 space-y-2 pt-0.5">
-          <S className="h-4 w-11/12 rounded-full" />
-          <S className="h-3 w-2/3 rounded-full" />
+    <div aria-hidden className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="aspect-[4/3] w-full shrink-0 bg-muted" />
+      <div className="flex flex-1 flex-col gap-2.5 p-2.5 sm:p-3">
+        <S className="h-4 w-3/4 rounded-full" />
+        <div className="flex items-center gap-1">
+          <S className="h-5 w-[68px] rounded-full" />
+          <S className="h-5 w-14 rounded-full" />
         </div>
-      </div>
-      <S className="mt-2.5 h-3 w-1/2 rounded-full" />
-      <S className="mt-auto h-5 w-44 rounded-full" />
-      <div className="mt-2 flex items-center justify-between border-t pt-3">
-        <S className="h-5 w-14 rounded-full" />
-        <S className="h-7 w-[76px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-8" />
+        <div className="mt-auto flex items-center justify-between pt-1">
+          <div className="flex items-center gap-0.5">
+            <S className="h-7 w-7 rounded-full sm:h-8 sm:w-8" />
+            <S className="h-7 w-7 rounded-full sm:h-8 sm:w-8" />
+          </div>
+          <S className="h-7 w-[74px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-8" />
+        </div>
       </div>
     </div>
   );
@@ -178,7 +157,7 @@ function FadeCap() {
  * ------------------------------------------------------------------------- */
 
 /** `/` — Hero (badge, title, search, 4 stat cards) + directory (filter bar,
- *  6 group rows) + categories grid preview. */
+ *  8 group cards) + categories grid preview. */
 export function HomeRouteSkeleton() {
   return (
     <div className="flex min-h-screen flex-col">
@@ -223,9 +202,9 @@ export function HomeRouteSkeleton() {
           <div className="container mx-auto px-4 py-12 sm:py-16">
             <SectionHeadingGhost title="w-72" sub="w-4/5 sm:w-96" />
             <DirectoryFilterGhost />
-            <div className="mt-6 space-y-2.5">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <GroupRowSkeleton key={i} />
+            <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <GroupCardSkeleton key={i} />
               ))}
             </div>
           </div>
@@ -413,7 +392,7 @@ export function GuiaArticleSkeleton() {
           <div className="mx-auto max-w-3xl">
             <aside className="mt-4 rounded-3xl border bg-muted/20 p-5 sm:p-6">
               <S className="h-5 w-52 rounded-full" />
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
@@ -510,7 +489,7 @@ export function GrupoRouteSkeleton() {
               <section className="rounded-3xl border bg-gradient-to-b from-muted/40 to-transparent p-4 sm:p-6">
                 <S className="h-6 w-48 rounded-lg" />
                 <S className="mt-1.5 h-3.5 w-64 rounded-full" />
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
@@ -633,7 +612,7 @@ export function TaxonomyRouteSkeleton({
               </div>
               <S className="h-10 w-36 rounded-xl bg-primary/20" />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <GroupCardSkeleton key={i} />
               ))}
@@ -710,7 +689,7 @@ export function PopularesRouteSkeleton() {
               </div>
             </div>
             {/* Ranked grid */}
-            <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="relative">
                   <S
@@ -762,7 +741,7 @@ export function SearchRouteSkeleton() {
         </header>
         <section className="py-10 sm:py-12">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <GroupCardSkeleton key={i} />
               ))}
@@ -844,7 +823,7 @@ export function ContentGridRouteSkeleton() {
         <section className="py-10 sm:py-12">
           <div className="container mx-auto px-4">
             <SectionHeadingGhost title="w-64" sub="w-80" />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <GroupCardSkeleton key={i} />
               ))}

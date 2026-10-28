@@ -48,7 +48,7 @@ function useCompareToggle(slug: string, title: string) {
 }
 
 /** Compact circular icon button for cards and directory rows. */
-export function CompareIconButton({ slug, title }: { slug: string; title: string }) {
+export function CompareIconButton({ slug, title, className = "" }: { slug: string; title: string; className?: string }) {
   const { active, full, toggle } = useCompareToggle(slug, title);
 
   return (
@@ -69,7 +69,7 @@ export function CompareIconButton({ slug, title }: { slug: string; title: string
           : full
           ? "cursor-not-allowed text-muted-foreground/40"
           : "text-muted-foreground hover:bg-teal-500/10 hover:text-teal-600 dark:hover:text-teal-300"
-      }`}
+      } ${className}`}
     >
       {active ? <Check className="h-4 w-4" /> : <Scale className="h-4 w-4" />}
     </motion.button>

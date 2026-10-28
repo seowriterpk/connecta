@@ -92,7 +92,7 @@ export default async function VerifyPage({ params }: PageProps) {
           {related.length > 0 && (
             <section className="mx-auto mt-12 max-w-5xl">
               <h2 className="mb-4 text-lg font-bold">Grupos nuevos de la misma categoría</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
                 {related.map((r) => (
                   <GroupCard key={r.id} group={toGroupCardDTO(r)} />
                 ))}

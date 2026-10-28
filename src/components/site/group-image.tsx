@@ -13,6 +13,15 @@ interface GroupImageProps {
   size?: number;
   className?: string;
   fallbackEmoji?: string;
+  /**
+   * Cover mode (2026 card redesign): renders a full-bleed cover image that
+   * FILLS the parent container (the caller controls the aspect ratio, e.g.
+   * an `aspect-[4/3]` wrapper). The fixed square `size` geometry is ignored;
+   * the fallback emoji/initials tiles scale up to cover proportions instead.
+   * All three render paths share the same full-bleed wrapper so the card grid
+   * keeps a crisp, uniform image block with zero layout shift.
+   */
+  cover?: boolean;
 }
 
 /**
@@ -79,6 +88,7 @@ export function GroupImage({
   size = 48,
   className = "",
   fallbackEmoji,
+  cover = false,
 }: GroupImageProps) {
   const [errored, setErrored] = React.useState(false);
 
@@ -92,20 +102,26 @@ export function GroupImage({
   }, [src, errored]);
 
   const wrapperStyle = React.useMemo<React.CSSProperties>(
-    () => ({ width: size, height: size }),
-    [size]
+    () => (cover ? {} : { width: size, height: size }),
+    [cover, size]
   );
+  // In cover mode the wrapper stretches to the parent (h-full w-full below);
+  // fixed square geometry only applies to the classic avatar mode.
+  const coverFill = cover ? "h-full w-full" : "";
 
   if (!imgSrc) {
     if (fallbackEmoji) {
-      // Emoji tile — same square geometry as the image path. Fully
-      // decorative (no role/aria-label) when no alt label was provided.
+      // Emoji tile — same geometry as the image path (cover: full bleed).
+      // Fully decorative (no role/aria-label) when no alt label was provided.
       return (
         <span
           role={alt ? "img" : undefined}
           aria-label={alt}
-          className={`grid select-none place-items-center overflow-hidden bg-primary/10 ${className}`}
-          style={{ ...wrapperStyle, fontSize: Math.max(14, Math.round(size * 0.5)) }}
+          className={`grid select-none place-items-center overflow-hidden bg-primary/10 ${coverFill} ${className}`}
+          style={{
+            ...wrapperStyle,
+            fontSize: cover ? 44 : Math.max(14, Math.round(size * 0.5)),
+          }}
         >
           {fallbackEmoji}
         </span>
@@ -113,16 +129,16 @@ export function GroupImage({
     }
 
     // Deterministic gradient + initials — replaces default-group.svg so every
-    // avatar keeps a crisp 1:1 ratio with zero asset dependencies.
+    // tile keeps a crisp geometry with zero asset dependencies.
     const [from, to] = pickGradient(alt ?? "");
     return (
       <span
         role={alt ? "img" : undefined}
         aria-label={alt}
-        className={`grid select-none place-items-center overflow-hidden font-bold text-white ${className}`}
+        className={`grid select-none place-items-center overflow-hidden font-bold text-white ${coverFill} ${className}`}
         style={{
           ...wrapperStyle,
-          fontSize: Math.max(11, Math.round(size * 0.34)),
+          fontSize: cover ? 36 : Math.max(11, Math.round(size * 0.34)),
           background: `linear-gradient(135deg, ${from}, ${to})`,
           letterSpacing: "0.02em",
           textShadow: "0 1px 2px rgba(0,0,0,0.18)",
@@ -135,15 +151,15 @@ export function GroupImage({
 
   return (
     <span
-      className={`relative block shrink-0 overflow-hidden ${className}`}
+      className={`relative block overflow-hidden ${cover ? "h-full w-full" : "shrink-0"} ${className}`}
       style={wrapperStyle}
     >
       <img
         src={imgSrc}
         alt={alt}
         title={title ?? alt}
-        width={size * 2}
-        height={size * 2}
+        width={cover ? 800 : size * 2}
+        height={cover ? 600 : size * 2}
         loading="lazy"
         className="h-full w-full object-cover"
         onError={() => setErrored(true)}

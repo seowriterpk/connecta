@@ -334,7 +334,7 @@ export default async function GroupPage({ params }: PageProps) {
                       <Scale className="h-3.5 w-3.5" aria-hidden /> Comparar grupos
                     </Link>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5">
                     {related.map((r) => (<GroupCard key={r.id} group={toGroupCardDTO(r)} />))}
                   </div>
                 </section>

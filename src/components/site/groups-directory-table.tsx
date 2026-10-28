@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Eye, BadgeCheck, MapPin, ArrowRight, Filter, X, Loader2, Heart, Star, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { Filter, X, Loader2, Heart } from "lucide-react";
 import { useGroupsFilter } from "@/lib/store";
 import { useAdultModeHydrated } from "@/lib/adult-store";
 import type {
@@ -11,15 +10,12 @@ import type {
   CountryLiteDTO,
   GroupCardDTO,
 } from "@/lib/lite-dto";
-import { GroupImage } from "@/components/site/group-image";
+import { GroupCard, SkeletonCard } from "@/components/site/group-card";
 import { SearchPredictive } from "@/components/site/search-predictive";
 import { useFavorites } from "@/lib/favorites";
-import { CompareToggleAction } from "@/components/site/compare-button";
-import { FavoriteToggleAction } from "@/components/site/favorite-pill-button";
 import { AdultModeToggle } from "@/components/site/adult-toggle";
 import { CountryFlag } from "@/components/site/country-flag";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -38,10 +34,10 @@ interface Props {
 
 const PAGE_SIZE = 30;
 
-function fmt(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
-  return `${n}`;
-}
+// 2026 card redesign (owner): the homepage directory renders the same
+// image-top cards as every other listing surface — 2 columns on mobile so
+// users scan more groups per scroll, 3–4 columns on larger screens.
+const CARD_GRID = "grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:gap-3.5";
 
 export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanCategories, countries, popularTags: cleanTags }: Props) {
   const {
@@ -363,12 +359,12 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
           )}
         </div>
 
-        {/* Groups rows */}
+        {/* Groups grid — image-top cards (2026 redesign) */}
         <div className="mt-6">
           {loading && groups.length === 0 ? (
-            <div className="space-y-2.5">
+            <div className={CARD_GRID}>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-[104px] animate-pulse rounded-2xl border bg-muted/30" />
+                <SkeletonCard key={i} />
               ))}
             </div>
           ) : displayedGroups.length === 0 ? (
@@ -385,9 +381,9 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
               </p>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className={CARD_GRID}>
               {displayedGroups.map((g) => (
-                <GroupRow key={g.id} group={g} searchQuery={search} />
+                <GroupCard key={g.id} group={g} />
               ))}
             </div>
           )}
@@ -422,175 +418,5 @@ export function GroupsDirectoryTable({ groups: initialGroups, categories: cleanC
         </div>
       </div>
     </section>
-  );
-}
-
-// Category color gradients (same palette as GroupCard).
-const ROW_GRADIENTS: Record<string, string> = {
-  emerald: "from-emerald-500 to-teal-600",
-  rose: "from-rose-500 to-pink-600",
-  fuchsia: "from-fuchsia-500 to-purple-600",
-  sky: "from-sky-500 to-blue-600",
-  slate: "from-slate-500 to-gray-700",
-  teal: "from-teal-500 to-cyan-600",
-  lime: "from-lime-500 to-green-600",
-  violet: "from-violet-500 to-purple-600",
-  amber: "from-amber-500 to-orange-600",
-  yellow: "from-yellow-400 to-amber-500",
-  stone: "from-stone-500 to-zinc-700",
-  orange: "from-orange-500 to-red-600",
-  red: "from-red-500 to-rose-700",
-  cyan: "from-cyan-500 to-sky-600",
-  indigo: "from-indigo-500 to-blue-600",
-  blue: "from-blue-500 to-indigo-600",
-  pink: "from-pink-500 to-rose-600",
-  green: "from-green-500 to-emerald-600",
-  purple: "from-purple-500 to-violet-600",
-};
-
-function GroupRow({ group, searchQuery }: { group: GroupCardDTO; searchQuery: string }) {
-  const gradient = ROW_GRADIENTS[group.category?.color ?? "emerald"] ?? ROW_GRADIENTS.emerald;
-  // Link-checker verdict (premium-vibe directive): the homepage directory
-  // stays CLEAN — no red "Expirado" chip, icon or dot on rows. The category
-  // page card keeps the one icon. Honesty directive (owner, 2026-10-21):
-  // no fabricated engagement signals on rows either (member counts, Hot/
-  // Tendencia badges, pulsing "active" dot) — seeded demo data made them
-  // read as fake claims.
-  // Adult directive: blank image title/alt on adult groups (SEO safety).
-  const imgAlt = group.isAdult ? "" : group.title;
-  const imgTitle = group.isAdult ? undefined : group.title;
-
-  return (
-    <motion.article
-      whileHover={{ y: -2 }}
-      transition={{ type: "spring", stiffness: 320, damping: 24 }}
-      className="group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border bg-card p-3 pr-3 shadow-sm transition-[box-shadow,border-color] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:gap-4 sm:p-4"
-    >
-      {/* Category color left accent */}
-      <span
-        className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${gradient} opacity-60 transition-opacity group-hover:opacity-100`}
-        aria-hidden
-      />
-      {/* Decorative corner wash */}
-      <span
-        className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-[0.07] blur-2xl transition group-hover:opacity-20`}
-        aria-hidden
-      />
-
-      {/* Stretched link: whole row stays clickable; sits ABOVE static content
-          (z-[1]) but BELOW interactive controls (details summary, actions). */}
-      <Link
-        href={`/grupo/${group.slug}`}
-        title={imgTitle}
-        aria-label={group.isAdult ? "Ver grupo 18+" : `Ver grupo ${group.title}`}
-        className="absolute inset-0 z-[1] rounded-2xl"
-      />
-
-      {/* Image / icon */}
-      <div className="relative shrink-0 pl-1">
-        <GroupImage
-          src={group.imageUrl}
-          alt={imgAlt}
-          title={imgTitle}
-          size={56}
-          className="rounded-xl transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 max-sm:h-12! max-sm:w-12!"
-          fallbackEmoji={group.category?.icon}
-        />
-      </div>
-
-      {/* Content: name + compact stats always visible; país/ciudad/categoría
-          collapsed behind a native <details> dropdown. SEO directive
-          (owner): the group description lives ONLY on /grupo/[slug] — this
-          table must never duplicate it. */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
-          <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
-            <Highlight text={group.title} query={searchQuery} />
-          </h3>
-          {group.isAdult && (
-            <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400" title="Contenido para adultos">
-              18+
-            </span>
-          )}
-          {group.isVerified && (
-            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-label="Verificado" />
-          )}
-          {group.isFeatured && (
-            <Star className="mt-0.5 hidden h-4 w-4 shrink-0 fill-amber-500 text-amber-500 sm:inline-block" aria-label="Destacado" />
-          )}
-        </div>
-
-        <details className="group/details relative z-[2]">
-          <summary
-            className="-ml-1 flex min-h-8 cursor-pointer select-none list-none items-center gap-1 rounded-md px-1 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
-            aria-label={`Mostrar país, ciudad, categoría y acciones de ${group.isAdult ? "este grupo 18+" : group.title}`}
-          >
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border bg-background/70 transition-colors group-hover/details:border-primary/40 group-hover/details:text-primary">
-              <ChevronDown className="h-3.5 w-3.5 transition-transform duration-300 group-open/details:rotate-180" />
-            </span>
-            <span className="truncate">País, ciudad y categoría</span>
-          </summary>
-          <div className="space-y-1.5 px-1 pb-1 pt-1.5 text-xs">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-              {group.country && (
-                <span className="inline-flex items-center gap-1">
-                  <CountryFlag code={group.country.code} name={group.country.name} /> {group.country.name}
-                </span>
-              )}
-              {group.city && (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {group.city}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1">
-                <Eye className="h-3 w-3" /> {fmt(group.views)}
-              </span>
-              {group.category && (
-                <Badge variant="outline" className="gap-1 font-normal">
-                  {group.category.icon} {group.category.name}
-                </Badge>
-              )}
-            </div>
-            {/* Quick actions: me gusta + comparar (owner directive: these live
-                INSIDE the dropdown so the title keeps the full row width on
-                small screens). No description here — SEO directive above. */}
-            <div className="flex items-center gap-2 pt-1">
-              <FavoriteToggleAction id={group.id} />
-              <CompareToggleAction slug={group.slug} title={group.title} />
-            </div>
-          </div>
-        </details>
-      </div>
-
-      {/* Actions: join CTA (me gusta / comparar live in the dropdown now —
-          frees the whole right side for the title on small screens). */}
-      <div className="relative z-[2] flex shrink-0 items-center pl-1 sm:pl-2">
-        <span
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-emerald-500/25 transition-all duration-300 group-hover:shadow-md group-hover:shadow-emerald-500/40 group-hover:brightness-110 sm:gap-1.5 sm:px-4 sm:py-2 sm:text-xs"
-          aria-hidden
-        >
-          Unirme
-          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </span>
-      </div>
-    </motion.article>
-  );
-}
-
-function Highlight({ text, query }: { text: string; query: string }) {
-  if (!query || query.trim().length === 0) return <>{text}</>;
-  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.trim().toLowerCase() ? (
-          <mark key={i} className="rounded bg-primary/20 px-0.5 text-primary">{part}</mark>
-        ) : (
-          <React.Fragment key={i}>{part}</React.Fragment>
-        )
-      )}
-    </>
   );
 }
