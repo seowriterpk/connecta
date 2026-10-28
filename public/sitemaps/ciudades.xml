@@ -16,32 +16,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://gruposhoy.com/ciudad/cordoba</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/ciudad/guadalajara</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/ciudad/lima</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://gruposhoy.com/ciudad/madrid</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/ciudad/medellin</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gruposhoy.com/ciudad/santiago</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
