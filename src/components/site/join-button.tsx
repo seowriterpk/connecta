@@ -7,17 +7,20 @@ import type { GroupDTO } from "@/lib/types";
 
 /**
  * JoinButton — links to /verificar/:slug (never direct WhatsApp).
- * Compact on mobile, full on desktop.
+ * Compact on mobile AND desktop (owner directive, 2026-11-04): it used to be a
+ * 44px pill on mobile / ~50px on desktop inside the sticky bar, dwarfing the
+ * 36px side pills. Now a uniform min-h-9 so the whole sticky action row is slim;
+ * the stretched flex-1 width keeps it the dominant, easy-to-tap target.
  */
 export function JoinButton({ group, className }: { group: GroupDTO; className?: string }) {
   return (
     <Link
       href={`/verificar/${group.slug}`}
-      className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:px-5 sm:py-3.5 ${className ?? ""}`}
+      className={`flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98] sm:px-4 sm:text-sm ${className ?? ""}`}
     >
       <span className="sm:hidden">Unirse</span>
       <span className="hidden sm:inline">Unirme al grupo en WhatsApp</span>
-      <ExternalLink className="h-4 w-4" />
+      <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
     </Link>
   );
 }

@@ -100,7 +100,7 @@ function GroupCardSkeleton() {
             <S className="h-7 w-7 rounded-full sm:h-8 sm:w-8" />
             <S className="h-7 w-7 rounded-full sm:h-8 sm:w-8" />
           </div>
-          <S className="h-7 w-[74px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-8" />
+          <S className="h-6 w-[62px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-7 sm:w-[70px]" />
         </div>
       </div>
     </div>

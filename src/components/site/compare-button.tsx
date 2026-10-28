@@ -63,7 +63,7 @@ export function CompareIconButton({ slug, title, className = "" }: { slug: strin
         if (!full) toggle();
       }}
       whileTap={full ? undefined : { scale: 0.8 }}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition duration-200 ${
+      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition duration-200 sm:h-8 sm:w-8 ${
         active
           ? "bg-teal-500/15 text-teal-600 ring-1 ring-teal-500/40 dark:text-teal-300"
           : full
@@ -122,7 +122,7 @@ export function ComparePillButton({ slug, title }: { slug: string; title: string
         if (!full) toggle();
       }}
       whileTap={full ? undefined : { scale: 0.96 }}
-      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:min-h-9 sm:px-3.5 ${
+      className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-3.5 ${
         active
           ? "border-teal-500/40 bg-teal-500/10 text-teal-700 ring-1 ring-teal-500/30 hover:bg-teal-500/15 dark:text-teal-300"
           : full

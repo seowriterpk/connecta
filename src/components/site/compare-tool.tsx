@@ -468,7 +468,7 @@ export function CompareTool({ suggestions }: { suggestions: GroupCardDTO[] }) {
               <div key={g.id} className="flex items-center justify-center border-l p-3">
                 <Link
                   href={`/verificar/${g.slug}`}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition hover:brightness-110"
+                  className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:brightness-110 active:scale-95 active:brightness-95"
                 >
                   Unirme
                 </Link>

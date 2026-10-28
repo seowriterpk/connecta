@@ -237,10 +237,14 @@
     }
   }
   
-  /* Better tap targets on mobile */
-  @media (max-width: 640px) {
-    button, a { min-height: 36px; }
-  }
+  /* Tap-target sizing (owner directive, 2026-11-04): the old blanket
+     `button, a { min-height: 36px }` on mobile inflated EVERY control —
+     card "Unirme" pills, heart/scale icon toggles, meta pills, nav and
+     footer links — making the mobile UI chunky and slow to scan (owner:
+     "the join button everywhere on mobile looks so much bigger"). Removed:
+     each component now owns its tap geometry (CTAs keep explicit min-h-9,
+     listing-card pills stay compact because the whole card is clickable via
+     the stretched link). Global press feedback lives below (a:active scale). */
 }
 
 /* ---------------------------------------------------------------------------

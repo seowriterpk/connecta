@@ -60,7 +60,7 @@ export function FavoriteIconButton({ id, className = "" }: { id: string; classNa
         toggle(id);
       }}
       whileTap={{ scale: 0.8 }}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition duration-200 ${
+      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition duration-200 sm:h-8 sm:w-8 ${
         has
           ? "bg-rose-500/15 text-rose-600 ring-1 ring-rose-500/40 dark:text-rose-300"
           : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300"
@@ -96,7 +96,7 @@ export function FavoritePillButton({ id }: { id: string }) {
         if (!full) toggle(id);
       }}
       whileTap={full ? undefined : { scale: 0.96 }}
-      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:min-h-9 sm:px-3.5 ${
+      className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-3.5 ${
         has
           ? "border-rose-500/40 bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/30 hover:bg-rose-500/15 dark:text-rose-300"
           : full

@@ -199,7 +199,7 @@ export function VerifyClient({ group }: { group: GroupDTO }) {
       <button
         onClick={handleJoin}
         disabled={!ready}
-        className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold shadow-sm transition active:scale-[0.98] ${
+        className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold shadow-sm transition active:scale-[0.98] ${
           ready
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "cursor-not-allowed bg-muted text-muted-foreground"

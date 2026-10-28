@@ -171,17 +171,22 @@ export function GroupCard({
             z-[2] keeps the controls above the stretched link. */}
         <div className="relative z-[2] mt-auto flex items-center justify-between gap-1.5 pt-1">
           <div className="flex items-center gap-0.5">
-            <FavoriteIconButton id={group.id} className="h-7 w-7 sm:h-8 sm:w-8" />
-            <CompareIconButton slug={group.slug} title={group.title} className="h-7 w-7 sm:h-8 sm:w-8" />
+            <FavoriteIconButton id={group.id} />
+            <CompareIconButton slug={group.slug} title={group.title} />
           </div>
+          {/* Join directive (owner, 2026-11-04): the Unirme pill was oversized,
+              especially in the 2-col mobile grid — now compact on mobile AND
+              desktop (the whole cover+title area is clickable via the stretched
+              link, so the pill can be small without hurting usability).
+              active:scale-95 gives instant one-tap feedback on touch. */}
           <Link
             href={`/grupo/${group.slug}`}
             aria-hidden
             tabIndex={-1}
-            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md shadow-emerald-500/25 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/40 hover:brightness-110 sm:px-3.5 sm:text-xs"
+            className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm shadow-emerald-500/20 transition-all duration-200 hover:shadow-md hover:shadow-emerald-500/30 hover:brightness-110 active:scale-95 active:brightness-95 sm:gap-1 sm:px-3 sm:py-1.5 sm:text-[11px]"
           >
             Unirme
-            <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-3 sm:w-3" aria-hidden />
           </Link>
         </div>
       </div>
@@ -204,7 +209,7 @@ export function SkeletonCard() {
             <div className="h-7 w-7 rounded-full bg-muted sm:h-8 sm:w-8" />
             <div className="h-7 w-7 rounded-full bg-muted sm:h-8 sm:w-8" />
           </div>
-          <div className="h-7 w-[74px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-8" />
+          <div className="h-6 w-[62px] rounded-full bg-gradient-to-r from-emerald-500/40 to-teal-600/40 sm:h-7 sm:w-[70px]" />
         </div>
       </div>
       <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/5 to-transparent [animation:cg-shimmer_1.6s_infinite]" />

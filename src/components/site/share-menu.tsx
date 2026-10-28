@@ -244,7 +244,8 @@ export function ShareMenu({
   }
 
   // Icon-only compact trigger (barra sticky de la ficha): botón redondo de
-  // 44px en móvil, píldora etiquetada en ≥sm. El dropdown abre con la hoja
+  // 36px en móvil (uniforme con Unirse/Comparar/Favorito, owner directive
+  // 2026-11-04), píldora etiquetada en ≥sm. El dropdown abre con la hoja
   // nativa del sistema como primera opción cuando el dispositivo la tiene.
   if (iconOnly) {
     return (
@@ -254,7 +255,7 @@ export function ShareMenu({
             type="button"
             aria-label="Compartir este grupo"
             title="Compartir este grupo"
-            className="inline-flex min-h-11 w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground active:scale-[0.96] sm:w-auto sm:px-3.5 sm:text-xs sm:font-semibold sm:text-foreground"
+            className="inline-flex min-h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground active:scale-[0.96] sm:w-auto sm:px-3.5 sm:text-xs sm:font-semibold sm:text-foreground"
           >
             <Share2 className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">Compartir</span>

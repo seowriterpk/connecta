@@ -264,9 +264,10 @@ export default async function GroupPage({ params }: PageProps) {
         </section>
 
         {/* === JOIN SECTION (sticky, compact) — Join leads the row,
-            side actions are 44px icon pills, share opens a dropdown === */}
+            side actions are 36px icon pills (owner directive 2026-11-04:
+            slimmer uniform bar on mobile AND desktop), share opens a dropdown === */}
         <section className="sticky top-16 z-30 border-b bg-background/95 backdrop-blur">
-          <div className="container mx-auto px-4 py-2">
+          <div className="container mx-auto px-4 py-1.5">
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1"><JoinButton group={group} /></div>
               <FavoritePillButton id={group.id} />
