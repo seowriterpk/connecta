@@ -151,10 +151,19 @@ read it themselves — see §2).
 | Every 6 hours | `... node scripts/crons/link-checker.mjs` |
 | Every 10 min | `... node scripts/crons/image-refresh.mjs` |
 | Daily 2:00 AM | `... BASE_URL=https://yourdomain.com node scripts/crons/sitemap-generator.mjs` |
+| **Once after Task 33 deploy** | `... node scripts/crons/revoked-recheck.mjs` (see §5.2) |
 
 (Replace `uXXXX` / domain with your real path — it's shown in hPanel's
 Node.js app details. Each script writes logs to `logs/*.log` and uses a lock
 file so runs never overlap.)
+
+**WhatsApp-traffic safety (Task 33):** every invite/meta/image request now
+exits through its OWN rotating-gateway IP (fresh proxy connection per
+request, 3 retries with backoff on 403/429/timeouts) and no fetch is ever
+fired in an unbounded burst (link-checker: 6 workers + stagger; image tools:
+3 workers; refresh cron: sequential + jitter). A "revoked" classification
+can ONLY come from HTML fetched through the proxy — a direct datacenter
+block page (200, no og:title) classifies "unknown", never "revoked".
 
 ### 5.1 Drip publisher — step-by-step setup
 
@@ -211,6 +220,31 @@ runs are diverse by category+country. Duplicate invite links are auto-killed.
 throughput. Defaults: 5 × 4 = 20 groups/hour = 480/day. Raise
 `dripFeedPerRun` in the admin panel for faster drains of big bulk uploads
 (e.g. 25 × 4 = 100/hour).
+
+### 5.2 One-time: heal the false-revoke wave (run AFTER the Task 33 deploy)
+
+During proxy overload the old link checker marked ~80% of groups
+`linkStatus='revoked'` from WhatsApp block pages (they look identical to
+revoked pages: 200, no og:title). Those rows are invisible to the normal
+active-link batches. After pulling the Task 33 fixes, run the mass healer
+ONCE via hPanel cron (or SSH):
+
+```bash
+cd /home/u1234567/domains/gruposhoy.com/nodejs && node scripts/crons/revoked-recheck.mjs
+```
+
+- Re-verifies every live+revoked row with the hardened classifier
+  (3 rotating proxy IPs per link; direct pages can never classify revoked)
+- Flips false revokes back to `active` (local images were never destroyed —
+  download-once policy)
+- Progress logs every 50 rows in `logs/revoked-recheck.log`
+- Large DB? Cap it: `RECHECK_LIMIT=500 node scripts/crons/revoked-recheck.mjs`
+  and run repeatedly until "No revoked live rows to recheck."
+
+Recovered rows without a local image are picked up automatically by the
+image-refresh cron (every 10 min) and the dashboard bulk image tool.
+Going forward the link-checker's healing pass (50 rows/run) keeps false
+revokes self-correcting even without this script.
 
 **Troubleshooting:**
 
