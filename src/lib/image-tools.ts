@@ -17,7 +17,7 @@
  * single conditional-aggregation scan instead of four COUNT queries.
  */
 
-import { downloadGroupImage, isWhatsappCdnUrl } from "@/lib/image-downloader";
+import { downloadGroupImage, isWhatsappCdnUrl, deleteLocalImageByUrl } from "@/lib/image-downloader";
 import { fetchWhatsAppMeta } from "@/lib/whatsapp-validator";
 import { exec, query, type Row } from "@/lib/db";
 import type { ImageLocalizeFilter, ImageLocalizeRowResult } from "@/lib/admin-tools";
@@ -298,6 +298,10 @@ export async function runImageLocalizeSingle(
         "UPDATE `groups` SET `profileImage` = ?, `imageRefreshedAt` = NOW() WHERE `id` = ?",
         [localUrl, row.id]
       );
+      // Replace mode: remove the row's previous local file (now orphaned).
+      if (current && current.startsWith("/media/") && current !== localUrl) {
+        await deleteLocalImageByUrl(current);
+      }
     } else if (outcome !== "already-local") {
       await exec(
         "UPDATE `groups` SET `imageRefreshedAt` = NOW() WHERE `id` = ?",

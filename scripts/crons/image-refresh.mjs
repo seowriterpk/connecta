@@ -2,7 +2,7 @@
  * Image Refresh Cron — runs every 10 minutes (hPanel: node scripts/crons/image-refresh.mjs)
  * Based on Groupizo VIP Logic SYSTEM 3.
  *
- * - Picks 60 groups that still DON'T hold a local image (new rows, groups
+ * - Picks 100 groups that still DON'T hold a local image (new rows, groups
  *   whose image was nulled by the link-checker, imports from before the
  *   localization policy) where imageRefreshedAt < 2 hours ago (or NULL)
  * - Re-fetches og:image from WhatsApp invite URL (through the residential proxy)
@@ -52,7 +52,7 @@ async function main() {
   try {
     const groups = await q(
       pool,
-      "SELECT `id`, `groupName`, `joinLink`, `profileImage` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`profileImage` IS NULL OR `profileImage` NOT LIKE '/media/%') AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 60"
+      "SELECT `id`, `groupName`, `joinLink`, `profileImage` FROM `groups` WHERE `status` = 'live' AND `linkStatus` = 'active' AND (`profileImage` IS NULL OR `profileImage` NOT LIKE '/media/%') AND (`imageRefreshedAt` IS NULL OR `imageRefreshedAt` < (NOW() - INTERVAL 2 HOUR)) ORDER BY `imageRefreshedAt` ASC LIMIT 100"
     );
 
     log(`Processing ${groups.length} groups for image refresh...`);
@@ -87,10 +87,10 @@ async function main() {
         failed++;
       }
 
-      // Task 33 pacing: even sequential requests shouldn't hit WhatsApp in a
-      // machine-gun rhythm — a short human-ish gap between groups (each on
-      // its own fresh proxy connection / exit IP) keeps the CDN calm.
-      await sleep(jitter(350));
+      // Task 33/34 pacing: short human-ish gap between groups (each on its own
+      // fresh proxy connection / exit IP) keeps the CDN calm while still
+      // processing ~100 rows within the 10-min window.
+      await sleep(jitter(300));
     }
 
     log(`Image refresh done. Refreshed: ${refreshed} | Failed: ${failed}`);

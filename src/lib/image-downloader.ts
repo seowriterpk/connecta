@@ -17,7 +17,7 @@
  * index these WhatsApp-sourced images.
  */
 
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { mkdir, writeFile, access, unlink } from "node:fs/promises";
 import path from "node:path";
 import { generateSlug } from "@/lib/slug";
 import { proxiedFetch } from "@/lib/proxy-fetch";
@@ -28,7 +28,10 @@ export const MEDIA_DIR = path.join(process.cwd(), "media", "group_images");
 export const MEDIA_URL_PREFIX = "/media/group_images";
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB hard cap
-const DOWNLOAD_TIMEOUT_MS = 8000;
+// Task 34: 5s keeps a full 100-row batch (12 workers) snappy even when the
+// CDN is slow — the rotating gateway gives every download its own IP, so
+// timeouts just mean "retry this row", not "the pipe is dead".
+const DOWNLOAD_TIMEOUT_MS = 5000;
 
 /** Extension by content-type (whitelist — anything else is rejected). */
 const EXT_BY_TYPE: Record<string, string> = {
@@ -163,6 +166,24 @@ export async function downloadGroupImage(
 /** True when a stored profileImage URL points at our local media store. */
 export function isLocalMediaUrl(url: string | null | undefined): boolean {
   return Boolean(url && url.startsWith(MEDIA_URL_PREFIX));
+}
+
+/**
+ * Best-effort deletion of a group's PREVIOUS local image file (Task 34):
+ * when overwrite/replace saves a new file, the old one must not linger as an
+ * orphan — 8k redownload runs would otherwise double the media folder.
+ * Only ever touches files inside MEDIA_DIR. Never throws.
+ */
+export async function deleteLocalImageByUrl(profileImageUrl: string | null | undefined): Promise<void> {
+  try {
+    if (!profileImageUrl || !profileImageUrl.startsWith(MEDIA_URL_PREFIX)) return;
+    const fileName = path.basename(profileImageUrl);
+    // basename() already strips any ../ tricks; belt-and-suspenders check:
+    if (!fileName || fileName.includes("/") || fileName.includes("..")) return;
+    await unlink(path.join(MEDIA_DIR, fileName));
+  } catch {
+    /* file already gone / read-only fs — ignore */
+  }
 }
 
 /** True when a stored profileImage URL is a WhatsApp CDN URL. */

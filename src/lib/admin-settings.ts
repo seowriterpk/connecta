@@ -22,7 +22,8 @@ export interface AdminSettings {
   maxSubmissionsPerIpDay: number;
   /** Rows per batch in the manual bulk link checker (default 20). */
   linkCheckBatchSize: number;
-  /** Rows per batch in the manual bulk image updater (default 20). */
+  /** Rows per batch in the manual bulk image updater (default 50, max 200 —
+   *  Task 34: 8k-group redownloads need big, fast batches). */
   imageBatchSize: number;
   /** Link-checker cron: rows examined per 6h run (default 150). */
   linkCheckCronBatch: number;
@@ -37,7 +38,7 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   maxSubmissionsPerDeviceDay: 10,
   maxSubmissionsPerIpDay: 30,
   linkCheckBatchSize: 20,
-  imageBatchSize: 20,
+  imageBatchSize: 50,
   linkCheckCronBatch: 150,
   dripFeedPerRun: 5,
 };
@@ -62,7 +63,7 @@ export const SETTINGS_BOUNDS: Record<
   maxSubmissionsPerDeviceDay: { min: 1, max: 200 },
   maxSubmissionsPerIpDay: { min: 1, max: 1000 },
   linkCheckBatchSize: { min: 5, max: 100 },
-  imageBatchSize: { min: 5, max: 100 },
+  imageBatchSize: { min: 5, max: 200 },
   linkCheckCronBatch: { min: 20, max: 2000 },
   dripFeedPerRun: { min: 1, max: 100 },
 };

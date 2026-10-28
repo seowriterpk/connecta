@@ -92,7 +92,15 @@ interface ScopeCounts {
   total: number;
 }
 
-const BATCH_OPTIONS = ["10", "20", "30", "50"];
+const BATCH_OPTIONS = ["20", "50", "100", "200"];
+
+/** mm:ss for the live elapsed timer. */
+function formatElapsed(totalSec: number): string {
+  if (totalSec < 60) return `${totalSec}s`;
+  const m = Math.floor(totalSec / 60);
+  const s = (totalSec % 60).toString().padStart(2, "0");
+  return `${m}m ${s}s`;
+}
 
 /** KB / MB with Spanish-friendly formatting (no decimals under 1 MB). */
 function formatSize(bytes: number): string {
@@ -381,7 +389,7 @@ export function ImageUpdaterTool({
   const [overwrite, setOverwrite] = React.useState(false);
   const [categoryId, setCategoryId] = React.useState("all");
   const [countryId, setCountryId] = React.useState("all");
-  const initialBatch = String(Math.min(defaultBatch, 50));
+  const initialBatch = String(Math.min(defaultBatch, 200));
   const [batchSize, setBatchSize] = React.useState(
     BATCH_OPTIONS.includes(initialBatch) ? initialBatch : "20"
   );
@@ -399,6 +407,32 @@ export function ImageUpdaterTool({
   const [done, setDone] = React.useState(0);
   const [remaining, setRemaining] = React.useState<number | null>(null);
   const [finished, setFinished] = React.useState(false);
+
+  // --- Live run telemetry (Task 34: the run must FEEL alive) ---
+  const [batchIdx, setBatchIdx] = React.useState(0);
+  const [inFlight, setInFlight] = React.useState(false);
+  const [elapsedSec, setElapsedSec] = React.useState(0);
+  const startedAtRef = React.useRef(0);
+
+  // 1s tick while running — proves the process is alive even while a big
+  // batch POST is still streaming rows server-side.
+  React.useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => {
+      setElapsedSec(Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000)));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [running]);
+
+  const throughputPerMin = React.useMemo(() => {
+    if (elapsedSec < 5 || done === 0) return 0;
+    return Math.max(1, Math.round(done / (elapsedSec / 60)));
+  }, [done, elapsedSec]);
+
+  const etaMin =
+    throughputPerMin > 0 && remaining !== null && remaining > 0
+      ? Math.max(1, Math.ceil(remaining / throughputPerMin))
+      : null;
 
   // --- Results presentation ---
   const [view, setView] = React.useState<"grid" | "table">("grid");
@@ -536,6 +570,9 @@ export function ImageUpdaterTool({
     runningRef.current = true;
     setRunning(true);
     setFinished(false);
+    setBatchIdx(0);
+    setElapsedSec(0);
+    startedAtRef.current = Date.now();
 
     const filter = {
       scope,
@@ -553,16 +590,18 @@ export function ImageUpdaterTool({
       for (;;) {
         if (!runningRef.current) break;
 
+        setInFlight(true);
         const res = await fetch("/api/admin/tools/image-localize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ filter, limit: Number(batchSize), csrf: csrfToken }),
-        });
-        const data = (await res.json().catch(() => null)) as
+        }).catch(() => null);
+        setInFlight(false);
+        const data = (await res?.json().catch(() => null)) as
           | { ok: boolean; error?: string; rows?: ImageRowResult[]; scanned?: number; remaining?: number }
           | null;
 
-        if (!res.ok || !data?.ok) {
+        if (!res || !res.ok || !data?.ok) {
           toast.error(data?.error || "Error al procesar el lote.");
           break;
         }
@@ -580,6 +619,7 @@ export function ImageUpdaterTool({
         setRemaining(data.remaining ?? 0);
         setDone(processed);
         setRows((prev) => [...batch.slice().reverse(), ...prev]);
+        setBatchIdx((i) => i + 1);
 
         const scanned = data.scanned ?? batch.length;
         if (scanned === 0) break;
@@ -591,6 +631,7 @@ export function ImageUpdaterTool({
     } catch {
       toast.error("Error de red durante la descarga.");
     } finally {
+      setInFlight(false);
       runningRef.current = false;
       setRunning(false);
       router.refresh();
@@ -1022,7 +1063,7 @@ export function ImageUpdaterTool({
                     <Play className="h-4 w-4 text-muted-foreground" />
                   )}
                   {running
-                    ? "Descargando imágenes…"
+                    ? `Descargando imágenes · lote ${batchIdx + 1} · ${formatElapsed(elapsedSec)}`
                     : finished
                       ? "Ejecución completada"
                       : "Listo para iniciar"}
@@ -1032,13 +1073,19 @@ export function ImageUpdaterTool({
                   {remaining !== null && (
                     <> · quedan {remaining.toLocaleString("es-ES")}</>
                   )}
+                  {running && throughputPerMin > 0 && (
+                    <> · ~{throughputPerMin.toLocaleString("es-ES")}/min{etaMin ? ` · ~${etaMin} min restantes` : ""}</>
+                  )}
                 </span>
               </div>
               <Progress value={progressPct} className="h-2.5" />
-              {running && rows[0] ? (
+              {running ? (
                 <p className="truncate text-xs text-muted-foreground">
-                  Último procesado:{" "}
-                  <span className="font-medium text-foreground">{rows[0].name}</span>
+                  {inFlight
+                    ? `Procesando lote ${batchIdx + 1} (${batchSize} grupos, 12 en paralelo, 1 IP por petición)… los resultados aparecen al completarse el lote.`
+                    : rows[0]
+                      ? `Último procesado: ${rows[0].name}`
+                      : "Iniciando primer lote…"}
                 </p>
               ) : null}
             </div>

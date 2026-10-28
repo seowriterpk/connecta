@@ -353,6 +353,7 @@ export async function fetchWhatsAppMeta(inviteUrl) {
   // half ("&#x1d431;" → "&#x1"), producing broken group names.
   const HTML_PREVIEW_BYTES = 65536;
   const PROXY_ATTEMPTS = 3;
+  const PROXY_TIMEOUT_MS = 4500; // Task 34: snappier batches (was 6s)
 
   // --- Attempts through the residential proxy, rotating the exit IP ---------
   // (Task 33 — false-revoke incident, owner 2026-10-29): EVERY attempt uses a
@@ -363,17 +364,17 @@ export async function fetchWhatsAppMeta(inviteUrl) {
   if (process.env.PROXY_URL) {
     for (let attempt = 1; attempt <= PROXY_ATTEMPTS; attempt++) {
       try {
-        const res = await proxiedFetchFresh(url, { headers, redirect: "follow", timeoutMs: 6000 });
+        const res = await proxiedFetchFresh(url, { headers, redirect: "follow", timeoutMs: PROXY_TIMEOUT_MS });
         if (res.ok) {
           html = (await res.text()).slice(0, HTML_PREVIEW_BYTES);
           source = "proxy";
           break;
         }
-        const wait = isRateLimitedStatus(res.status) ? jitter(400) : jitter(900 * attempt);
+        const wait = isRateLimitedStatus(res.status) ? jitter(300) : jitter(400 * attempt);
         try { await res.arrayBuffer(); } catch { /* drain failed body */ }
         await sleep(wait);
       } catch {
-        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(900 * attempt));
+        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(400 * attempt));
       }
     }
   }
@@ -384,7 +385,7 @@ export async function fetchWhatsAppMeta(inviteUrl) {
     try {
       const res = await fetch(url, {
         headers,
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(3500),
         redirect: "follow",
       });
       if (res.ok) {

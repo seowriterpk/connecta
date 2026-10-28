@@ -89,7 +89,11 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
   // "&#x1d431; &#x30fb; &#x1d400;… &#x1". 64KB keeps every meta tag intact.
   const HTML_PREVIEW_BYTES = 65536;
   const PROXY_ATTEMPTS = 3;
-  const PROXY_TIMEOUT_MS = 7000;
+  // Task 34: 4.5s per attempt keeps whole batches snappy — worst case per
+  // row ≈ 4.5+0.6+4.5+0.8+4.5+3.5 ≈ 18s, healthy case ≈ 1.5s. The rotating
+  // gateway gives every attempt its own IP, so a timeout is just “this IP
+  // was slow — next one”, not “the pipe is dead”.
+  const PROXY_TIMEOUT_MS = 4500;
 
   // --- Attempts through the residential proxy, rotating the exit IP ---------
   let html = "";
@@ -112,7 +116,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
         }
         // 403/429/5xx = the exit IP is rate-limited/burned — rotate fast.
         // Any other status also rotates, with a longer backoff.
-        const wait = isRateLimitedStatus(res.status) ? jitter(400) : jitter(900 * attempt);
+        const wait = isRateLimitedStatus(res.status) ? jitter(300) : jitter(400 * attempt);
         // Drain the failed response body so the one-shot agent can close.
         try {
           await res.arrayBuffer();
@@ -122,7 +126,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
         await sleep(wait);
       } catch {
         // Network/timeout error — different IP next attempt, backoff first.
-        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(900 * attempt));
+        if (attempt < PROXY_ATTEMPTS) await sleep(jitter(400 * attempt));
       }
     }
   }
@@ -133,7 +137,7 @@ export async function fetchWhatsAppMeta(inviteUrl: string): Promise<WhatsAppMeta
       const res = await fetch(url, {
         headers,
         redirect: "follow",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(3500),
       });
       if (res.ok) {
         const text = await res.text();
