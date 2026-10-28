@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import { getPostById, updatePost, deletePost, togglePostStatus } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,8 @@ export async function PUT(
     const result = await togglePostStatus(id);
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
     await logAdminAction("blog.toggle", id, `${result.post!.status} · ${result.post!.title}`);
+    // blog.xml lists published posts — keep it in sync.
+    refreshSitemapsAfterPublish();
     return NextResponse.json({ ok: true, post: result.post });
   }
 
@@ -75,6 +78,8 @@ export async function PUT(
   }
 
   await logAdminAction("blog.update", id, result.post!.title);
+  // Status/slug/lastmod may have changed → keep blog.xml honest.
+  refreshSitemapsAfterPublish();
   return NextResponse.json({ ok: true, post: result.post });
 }
 
@@ -95,5 +100,7 @@ export async function DELETE(
   if (!ok) return NextResponse.json({ ok: false, error: "No encontrada." }, { status: 404 });
 
   await logAdminAction("blog.delete", id, post?.title ?? id);
+  // The URL leaves blog.xml → refresh.
+  refreshSitemapsAfterPublish();
   return NextResponse.json({ ok: true });
 }

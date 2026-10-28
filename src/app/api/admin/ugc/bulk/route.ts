@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import { applyUgcAction, type UgcAction } from "@/lib/ugc-admin";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,9 @@ export async function POST(req: NextRequest) {
     `${okCount}/${ids.length}`,
     results.find((r) => r.ok)?.name ?? undefined
   );
+
+  // Approvals publish live groups → refresh the sitemap (debounced).
+  if (action === "approve" && okCount > 0) refreshSitemapsAfterPublish();
 
   return NextResponse.json({
     ok: true,

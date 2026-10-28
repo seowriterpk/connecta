@@ -59,12 +59,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = `${group.title} — Grupo de WhatsApp | Grupos Hoy`;
   const description = group.description.slice(0, 160);
-  // ADULT INDEXABLE DIRECTIVE (owner, 2026-10-21): adult groups are indexed
-  // like any other (revoked links still drop to noindex for everyone) with
-  // NO adult self-labelling of any kind — no RTA/rating meta (we never want
-  // safesearch filters triggered by our own tags), no JSON-LD.
-  const robots =
-    group.linkStatus === "revoked" ? "noindex, follow" : "index, follow";
+  // NEVER-NOINDEX DIRECTIVE (owner, 2026-10-28): no group page is ever
+  // noindexed — not adult, not expired/revoked links. Every group URL stays
+  // in the index (index, follow); expired links only sink in ranking.
+  const robots = "index, follow";
 
   return {
     title: { absolute: title },

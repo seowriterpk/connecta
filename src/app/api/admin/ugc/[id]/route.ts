@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import { applyUgcAction, updateUgcSubmission, type UgcEditPatch } from "@/lib/ugc-admin";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
 
   await logAdminAction(`ugc.${body.action}`, id, res.name);
+
+  // Approve publishes a new live group → refresh the sitemap (debounced).
+  if (body.action === "approve") refreshSitemapsAfterPublish();
 
   return NextResponse.json({
     ok: true,

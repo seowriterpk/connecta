@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
 import { clearDataCache } from "@/lib/cache";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import {
   deletePendingGroups,
   deleteQueueItems,
@@ -130,6 +131,8 @@ export async function POST(req: NextRequest) {
         }
         const result = await publishQueueItems(ids);
         clearDataCache();
+        // New live groups → sitemap must pick them up (debounced, never blocks).
+        if (result.published > 0) refreshSitemapsAfterPublish();
         await logAdminAction(
           "queue.publish",
           undefined,

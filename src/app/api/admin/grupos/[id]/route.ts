@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
 import { clearDataCache } from "@/lib/cache";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import { queryOne, exec } from "@/lib/db";
 import { generateSlug, makeUniqueSlug } from "@/lib/slug";
 
@@ -159,6 +160,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
   // Group data changed — drop the public directory micro-cache.
   clearDataCache();
+  // Slug/status/linkStatus may have changed → keep the sitemap honest.
+  refreshSitemapsAfterPublish();
 
   await logAdminAction("grupos.update", id, groupName);
 
@@ -198,6 +201,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
   // Group data changed — drop the public directory micro-cache.
   clearDataCache();
+  // The group leaves the public catalog → drop it from the sitemap too.
+  refreshSitemapsAfterPublish();
 
   await logAdminAction("grupos.delete", id, existing.groupName);
 

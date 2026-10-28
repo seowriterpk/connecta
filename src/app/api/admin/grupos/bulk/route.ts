@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi, checkCsrfApi, logAdminAction } from "@/lib/admin-guard";
 import { clearDataCache } from "@/lib/cache";
+import { refreshSitemapsAfterPublish } from "@/lib/sitemap";
 import { exec } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
 
     // Status changes (publish/reject/delete) affect every public listing.
     clearDataCache();
+    // And the sitemap: publish adds URLs, reject/delete removes them.
+    refreshSitemapsAfterPublish();
 
     await logAdminAction(def.label, ids.join(","), `${result.affectedRows} grupos`);
 

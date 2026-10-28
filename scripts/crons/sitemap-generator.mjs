@@ -54,6 +54,9 @@ async function main() {
   try {
     // Groups — ALL live groups (adult included: adult pages are indexable
     // and the sitemap is their discovery path — clean pages don't link there).
+    // Revoked/expired links INCLUDED too (NEVER-NOINDEX DIRECTIVE, owner
+    // 2026-10-28): every live group URL stays indexable; expired only sinks
+    // in ranking. Kept in sync with src/lib/sitemap.ts.
     const groups = await q(
       pool,
       "SELECT `slug`, `updatedAt` FROM `groups` WHERE `status` = 'live' ORDER BY `updatedAt` DESC"
