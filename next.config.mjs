@@ -50,6 +50,30 @@ const nextConfig = {
       },
     ];
   },
+  // WWW → APEX 301 (GSC "Alternative page with proper canonical tag", 2026-10):
+  // canonical tags already consolidate www duplicates to the apex, but Google
+  // keeps RE-CRAWLING www URLs because they serve 200 — the Page-indexing
+  // report never drains (45 URLs stuck since Jul 2026). A 301 drains it and
+  // consolidates link equity + crawl budget on https://gruposhoy.com.
+  // Notes:
+  //   · `has.type:"host"` strips the port and lowercases before matching;
+  //     the value is an ANCHORED REGEX, hence the escaped dots.
+  //   · Next.js routing order: headers → redirects → middleware (proxy.ts) →
+  //     beforeFiles rewrites → filesystem. So this fires FIRST —
+  //     www.gruposhoy.com/sitemap.xml 301s to the apex too.
+  //   · Requires the reverse proxy (hPanel) to forward the original Host
+  //     header to the Node server (default behavior). If www URLs still
+  //     serve 200 after deploy, check the hPanel proxy config.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", key: "host", value: "www\\.gruposhoy\\.com" }],
+        destination: "https://gruposhoy.com/:path*",
+        statusCode: 301,
+      },
+    ];
+  },
   // SITEMAP INDEX (Task 35): /sitemap.xml is served by the internal API
   // route /api/sitemap-index, which reads the generated file from disk per
   // request. Why not the public/ folder: Next.js 16 scans public/ only ONCE

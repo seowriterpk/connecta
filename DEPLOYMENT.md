@@ -302,6 +302,40 @@ revokes self-correcting even without this script.
 
 ---
 
+### 5.5 WWW → apex 301 redirect (2026-10 — GSC canonical report)
+
+`next.config.mjs` → `redirects()`: every request whose **Host header** is
+`www.gruposhoy.com` gets a **301** to the same path on `https://gruposhoy.com`
+(query string preserved, port stripped, case-insensitive).
+
+Why: GSC's *Page indexing → "Alternative page with proper canonical tag"*
+report had ~45 www URLs stuck since Jul 2026 — canonicals correctly point
+www → apex, but the www host served 200, so Google kept re-crawling www URLs
+and the report never drained. The 301 consolidates everything on the apex.
+
+**Deploy verification (run after the next deploy):**
+
+```bash
+curl -sI https://www.gruposhoy.com/populares | head -2
+# MUST be: HTTP/2 301 + location: https://gruposhoy.com/populares
+curl -sI https://www.gruposhoy.com/grupo/gru-pito | head -2   # same: 301
+curl -sI https://gruposhoy.com/populares | head -2           # MUST stay 200
+```
+
+If www still serves 200 in production: the hPanel reverse proxy is NOT
+forwarding the original `Host` header to the Node app (the redirect matches
+on it). Fix at the proxy level or add an `.htaccess`/nginx rule that 301s
+www → apex before the request even reaches Node. Also confirm the `www`
+CNAME/A record points at the same server in hPanel DNS.
+
+Also note: `next.config.ts` was **deleted** (2026-10-29). Next.js loads
+`next.config.js` → `.mjs` → `.ts` in that order, so the `.mjs` always won
+and the `.ts` was a stale, silently-ignored duplicate — a foot-gun for
+future edits. Only `next.config.mjs` exists now; keep it plain ESM (the
+host's old glibc can't load the SWC-transpiled TS config).
+
+---
+
 ## 6. ZIP deployment checklist
 
 **Include:** `src/`, `public/`, `scripts/`, `package.json`, `package-lock.json`,
@@ -325,6 +359,7 @@ revokes self-correcting even without this script.
 | Slow pages | Remote DB or missing pool | Confirm `DB_HOST=localhost`. The pool (`connectionLimit: 10`) is in `src/lib/db.ts`. |
 | Empty homepage | DB connected but no live groups | Check `groups` table has `status='live'` rows (phpMyAdmin or admin panel). |
 | 403 after redeploy | `.htaccess` regeneration glitch | Redeploy again — hPanel regenerates it. |
+| www URLs serve 200 (not 301) | hPanel proxy not forwarding `Host` | See §5.5 — fix proxy `Host` header or add proxy-level www→apex 301 |
 
 **Fast debug loop:** hPanel Node logs → fix first error → redeploy →
 `curl https://yourdomain.com/api/health`.
