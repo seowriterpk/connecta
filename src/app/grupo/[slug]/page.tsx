@@ -55,6 +55,13 @@ interface UploaderRow {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const group = await getGroupBySlug(slug);
+  // Missing group: keep this honest "no encontrado" TITLE. notFound() is
+  // thrown in the page component below — but the route has a loading.tsx
+  // Suspense boundary, so the shell already flushed with 200 by then
+  // (streaming soft-404). Next auto-injects <meta robots noindex> on the
+  // not-found render, and the explicit title helps crawlers classify the
+  // page as soft-404 immediately. Calling notFound() here instead does NOT
+  // fix the status (tested Task 36) and only loses the clear title.
   if (!group) return { title: "Grupo no encontrado" };
 
   const title = `${group.title} — Grupo de WhatsApp | Grupos Hoy`;

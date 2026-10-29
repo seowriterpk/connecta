@@ -19,18 +19,16 @@
  * AUTO-HEAL: right after a fresh deploy (or a wiped public/) no sitemap.xml
  * exists yet — the nightly cron may be hours away. Instead of 404ing
  * Googlebot, the first request triggers a full regeneration (same code as
- * the admin button), then serves the fresh index. A 60s cooldown prevents
- * hammering the DB if generation itself fails (e.g. DB briefly down).
+ * the admin button), then serves the fresh index. The shared 60s cooldown
+ * (maybeHealSitemaps, also used by /sitemaps/*) prevents hammering the DB
+ * if generation itself fails (e.g. DB briefly down).
  */
 
 import { NextResponse } from "next/server";
 import { readSitemapIndex } from "@/lib/sitemap-files";
-import { generateSitemaps } from "@/lib/sitemap";
+import { maybeHealSitemaps } from "@/lib/sitemap";
 
 export const dynamic = "force-dynamic";
-
-let lastHealAttempt = 0;
-const HEAL_COOLDOWN_MS = 60_000;
 
 const XML_HEADERS: Record<string, string> = {
   "Content-Type": "application/xml; charset=utf-8",
@@ -41,17 +39,9 @@ const XML_HEADERS: Record<string, string> = {
 export async function GET(): Promise<NextResponse> {
   let xml = readSitemapIndex();
 
-  if (xml === null && Date.now() - lastHealAttempt > HEAL_COOLDOWN_MS) {
-    lastHealAttempt = Date.now();
-    try {
-      await generateSitemaps();
-      xml = readSitemapIndex();
-    } catch (err) {
-      console.error(
-        "[sitemap.xml] auto-heal regeneration failed:",
-        err instanceof Error ? err.message : err
-      );
-    }
+  if (xml === null) {
+    await maybeHealSitemaps();
+    xml = readSitemapIndex();
   }
 
   if (xml === null) {

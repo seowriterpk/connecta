@@ -21,6 +21,15 @@
  * src/app/sitemaps/[filename]), which read from disk per request:
  * Next.js 16 only scans public/ ONCE at boot, so files written at runtime
  * are invisible to the static router (that was the grupos-2.xml…404 bug).
+ *
+ * EMPTY SECTIONS (Task 36): a sub-sitemap with ZERO urls is NEVER written.
+ * An empty <urlset> violates the sitemap protocol and Search Console flags
+ * it as "Missing XML tag: url / parent: urlset" with 0 discovered pages —
+ * exactly the blog.xml GSC error from 28/10 (the file was generated at a
+ * time when blog_posts had no published rows yet). Empty sections are
+ * omitted from the index and their stale files are DELETED from disk, so
+ * the index never references a file that doesn't exist and no urlset is
+ * ever empty. Kept in sync with scripts/crons/sitemap-generator.mjs.
  */
 
 import fs from "fs";
@@ -81,8 +90,30 @@ export function refreshSitemapsAfterPublish(): void {
 // XML helpers
 // ---------------------------------------------------------------------------
 
+/** XML-escape a <loc> value. Slugs are URL-safe by construction, but this
+ *  is defense in depth: one stray `&` in an admin-entered slug would break
+ *  the whole file's XML and Search Console would refuse it. */
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/** YYYY-MM-DD from a DB date, or null when missing/invalid. A null
+ *  lastmod simply omits the tag (valid per protocol) instead of throwing
+ *  `new Date(undefined).toISOString()` → RangeError, which used to abort
+ *  the WHOLE regeneration over a single bad row. */
+function safeDate(v: Date | string | null | undefined): string | null {
+  if (v === null || v === undefined || v === "") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
 function urlEntry(loc: string, lastmod?: string | null, changefreq = "weekly", priority = "0.7"): string {
-  return `  <url>\n    <loc>${loc}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 
 /**
@@ -98,7 +129,22 @@ function writePublicFile(relPath: string, content: string): void {
   }
 }
 
-function writeSitemap(filename: string, urls: string[]): SitemapSubFile {
+/**
+ * Write a sub-sitemap. ZERO urls → the file is REMOVED from every public
+ * copy and null is returned (caller omits it from the sitemap index):
+ * an empty <urlset> is the "Missing XML tag: url" GSC error (Task 36).
+ */
+function writeSitemap(filename: string, urls: string[]): SitemapSubFile | null {
+  if (urls.length === 0) {
+    for (const dir of sitemapPublicDirs()) {
+      try {
+        fs.unlinkSync(path.join(dir, "sitemaps", filename));
+      } catch {
+        /* file not in this copy — fine */
+      }
+    }
+    return null;
+  }
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
   writePublicFile(path.join("sitemaps", filename), content);
   return { filename, urlCount: urls.length, bytes: Buffer.byteLength(content) };
@@ -158,26 +204,26 @@ async function run(): Promise<SitemapGenerationResult> {
   const groups = await query<{ slug: string; updatedAt: Date | string }>(
     "SELECT `slug`, `updatedAt` FROM `groups` WHERE `status` = 'live' ORDER BY `updatedAt` DESC"
   );
+  const liveGroups = groups.filter((g) => typeof g.slug === "string" && g.slug.length > 0);
 
   const batchSize = 200;
   const sitemapFiles: SitemapSubFile[] = [];
 
-  for (let i = 0; i < groups.length; i += batchSize) {
-    const batch = groups.slice(i, i + batchSize);
+  for (let i = 0; i < liveGroups.length; i += batchSize) {
+    const batch = liveGroups.slice(i, i + batchSize);
     const fileNum = Math.floor(i / batchSize) + 1;
-    sitemapFiles.push(
-      writeSitemap(
-        `grupos-${fileNum}.xml`,
-        batch.map((g) =>
-          urlEntry(
-            `${BASE_URL}/grupo/${g.slug}`,
-            new Date(g.updatedAt).toISOString().slice(0, 10),
-            "weekly",
-            "0.8"
-          )
+    const chunk = writeSitemap(
+      `grupos-${fileNum}.xml`,
+      batch.map((g) =>
+        urlEntry(
+          `${BASE_URL}/grupo/${g.slug}`,
+          safeDate(g.updatedAt),
+          "weekly",
+          "0.8"
         )
       )
     );
+    if (chunk) sitemapFiles.push(chunk);
   }
   cleanupStaleChunks(sitemapFiles.length);
 
@@ -188,7 +234,9 @@ async function run(): Promise<SitemapGenerationResult> {
   );
   const categoriasFile = writeSitemap(
     "categorias.xml",
-    categories.map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9"))
+    categories
+      .filter((c) => c.slug)
+      .map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9"))
   );
 
   // Countries — ONLY indexable ones. The pais pages apply the thin-content
@@ -203,7 +251,9 @@ async function run(): Promise<SitemapGenerationResult> {
   );
   const paisesFile = writeSitemap(
     "paises.xml",
-    countries.map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9"))
+    countries
+      .filter((c) => c.code)
+      .map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9"))
   );
 
   // Cities — ONLY indexable ones: clean live groups AND the same thin-page
@@ -217,7 +267,9 @@ async function run(): Promise<SitemapGenerationResult> {
   );
   const ciudadesFile = writeSitemap(
     "ciudades.xml",
-    cityGroups.map((c) => urlEntry(`${BASE_URL}/ciudad/${citySlug(c.city)}`, undefined, "weekly", "0.8"))
+    cityGroups
+      .filter((c) => c.city)
+      .map((c) => urlEntry(`${BASE_URL}/ciudad/${citySlug(c.city)}`, undefined, "weekly", "0.8"))
   );
 
   // Static pages
@@ -241,7 +293,9 @@ async function run(): Promise<SitemapGenerationResult> {
   const autores = await query<{ slug: string }>("SELECT `slug` FROM `uploaders`");
   const autoresFile = writeSitemap("autores.xml", [
     urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),
-    ...autores.map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")),
+    ...autores
+      .filter((a) => a.slug)
+      .map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")),
   ]);
 
   // Guías — all published posts. lastmod = updatedAt so edited posts re-enter
@@ -251,17 +305,22 @@ async function run(): Promise<SitemapGenerationResult> {
   );
   const blogFile = writeSitemap(
     "blog.xml",
-    posts.map((p) =>
-      urlEntry(
-        `${BASE_URL}/guias/${p.slug}`,
-        new Date(p.updatedAt).toISOString().slice(0, 10),
-        "monthly",
-        "0.7"
+    posts
+      .filter((p) => p.slug)
+      .map((p) =>
+        urlEntry(
+          `${BASE_URL}/guias/${p.slug}`,
+          safeDate(p.updatedAt),
+          "monthly",
+          "0.7"
+        )
       )
-    )
   );
 
-  // Sitemap index
+  // Sitemap index — only files that were actually written (empty sections
+  // return null and must never appear in the index: a sitemap URL listed in
+  // the index but missing on disk 404s, and an empty urlset file is the GSC
+  // "missing url tag" error. Both are avoided by construction now.)
   const allFiles = [
     ...sitemapFiles,
     categoriasFile,
@@ -270,7 +329,7 @@ async function run(): Promise<SitemapGenerationResult> {
     blogFile,
     autoresFile,
     estaticasFile,
-  ];
+  ].filter((f): f is SitemapSubFile => f !== null);
   const today = new Date().toISOString().slice(0, 10);
   const indexContent = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allFiles
     .map((f) => `  <sitemap>\n    <loc>${BASE_URL}/sitemaps/${f.filename}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`)
@@ -294,6 +353,33 @@ async function run(): Promise<SitemapGenerationResult> {
   };
   lastRun = result;
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-heal — shared by the /sitemap.xml and /sitemaps/* route handlers
+// ---------------------------------------------------------------------------
+
+let lastHealAttempt = 0;
+const HEAL_COOLDOWN_MS = 60_000;
+
+/**
+ * Regenerate sitemaps when a route handler finds its file missing (fresh
+ * deploy: public/ starts empty until the first request or the nightly
+ * cron). ONE shared cooldown across both handlers, so a Googlebot burst
+ * over /sitemap.xml + all chunks triggers at most one regeneration per
+ * minute. Never throws.
+ */
+export async function maybeHealSitemaps(): Promise<void> {
+  if (Date.now() - lastHealAttempt < HEAL_COOLDOWN_MS) return;
+  lastHealAttempt = Date.now();
+  try {
+    await generateSitemaps();
+  } catch (err) {
+    console.error(
+      "[sitemap] auto-heal regeneration failed:",
+      err instanceof Error ? err.message : err
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

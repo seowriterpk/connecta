@@ -8,6 +8,10 @@
  *   paises, ciudades (clean-only, matching the city pages), blog (published
  *   posts), estaticas
  * - sitemap.xml index pointing to all
+ * - EMPTY SECTIONS (Task 36): a sub-sitemap with zero URLs is never written
+ *   (an empty <urlset> is the Search Console "Missing XML tag: url" error —
+ *   the blog.xml GSC error from 28/10); its stale file is deleted and it's
+ *   omitted from the index. Kept in sync with src/lib/sitemap.ts.
  */
 
 import {
@@ -30,11 +34,42 @@ const BASE_URL = process.env.BASE_URL || "https://gruposhoy.com";
 const log = makeLogger("sitemap-gen");
 const lock = makeLock("sitemap-gen", 30);
 
-function urlEntry(loc, lastmod, changefreq = "weekly", priority = "0.7") {
-  return `  <url>\n    <loc>${loc}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+function escapeXml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
+/** YYYY-MM-DD or null when missing/invalid — a null lastmod omits the tag
+ *  instead of throwing RangeError and aborting the whole run. */
+function safeDate(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+function urlEntry(loc, lastmod, changefreq = "weekly", priority = "0.7") {
+  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+}
+
+/** Zero URLs → remove the stale file from every public copy and return
+ *  null (the caller omits it from the index). An empty <urlset> is the GSC
+ *  "Missing XML tag: url" error — Task 36. */
 function writeSitemap(filename, urls) {
+  if (urls.length === 0) {
+    for (const dir of publicDirs()) {
+      try {
+        fs.unlinkSync(path.join(dir, "sitemaps", filename));
+        log(`Removed empty-section sitemap ${filename}`);
+      } catch {
+        /* file not in this copy — fine */
+      }
+    }
+    return null;
+  }
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
   // writePublicFile targets <root>/public/ AND .next/standalone/public/
   // (both copies are read by the /sitemaps/* route handlers, which serve
@@ -42,6 +77,7 @@ function writeSitemap(filename, urls) {
   // serving can't be relied on for runtime-generated files).
   writePublicFile(path.join("sitemaps", filename), content);
   log(`Wrote ${filename} (${urls.length} URLs)`);
+  return { filename, urlCount: urls.length, bytes: Buffer.byteLength(content) };
 }
 
 /**
@@ -93,31 +129,36 @@ async function main() {
       pool,
       "SELECT `slug`, `updatedAt` FROM `groups` WHERE `status` = 'live' ORDER BY `updatedAt` DESC"
     );
+    const liveGroups = groups.filter((g) => typeof g.slug === "string" && g.slug.length > 0);
 
     const batchSize = 200;
     const sitemapFiles = [];
 
-    for (let i = 0; i < groups.length; i += batchSize) {
-      const batch = groups.slice(i, i + batchSize);
+    for (let i = 0; i < liveGroups.length; i += batchSize) {
+      const batch = liveGroups.slice(i, i + batchSize);
       const fileNum = Math.floor(i / batchSize) + 1;
-      const filename = `grupos-${fileNum}.xml`;
       const urls = batch.map((g) =>
         urlEntry(
           `${BASE_URL}/grupo/${g.slug}`,
-          new Date(g.updatedAt).toISOString().slice(0, 10),
+          safeDate(g.updatedAt),
           "weekly",
           "0.8"
         )
       );
-      writeSitemap(filename, urls);
-      sitemapFiles.push({ filename, lastmod: new Date().toISOString().slice(0, 10) });
+      const chunk = writeSitemap(`grupos-${fileNum}.xml`, urls);
+      if (chunk) sitemapFiles.push(chunk);
     }
     cleanupStaleChunks(sitemapFiles.length);
 
     // Categories — active ones, adult included (indexable since the
     // MIGRACIÓN ADULTO INDEXABLE; robots carries the RTA label on-page).
     const categories = await q(pool, "SELECT `slug` FROM `categories` WHERE `isActive` = 1");
-    writeSitemap("categorias.xml", categories.map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9")));
+    const categoriasFile = writeSitemap(
+      "categorias.xml",
+      categories
+        .filter((c) => c.slug)
+        .map((c) => urlEntry(`${BASE_URL}/categoria/${c.slug}`, undefined, "weekly", "0.9"))
+    );
 
     // Countries — ONLY indexable ones. The pais pages apply the thin-content
     // rule (clean live groupCount < 3 → noindex, follow); a sitemap must never
@@ -131,7 +172,12 @@ async function main() {
          AND (SELECT COUNT(*) FROM \`groups\` g
               WHERE g.\`countryId\` = co.\`id\` AND g.\`status\` = 'live' AND g.\`isAdult\` = 0) >= 3`
     );
-    writeSitemap("paises.xml", countries.map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9")));
+    const paisesFile = writeSitemap(
+      "paises.xml",
+      countries
+        .filter((c) => c.code)
+        .map((c) => urlEntry(`${BASE_URL}/pais/${c.code}`, undefined, "weekly", "0.9"))
+    );
 
     // Cities — ONLY indexable ones: clean live groups AND the same thin-page
     // threshold the city page uses (>= 3 clean groups → indexable; fewer →
@@ -144,10 +190,15 @@ async function main() {
        WHERE \`status\` = 'live' AND \`isAdult\` = 0 AND \`city\` IS NOT NULL AND \`city\` <> ''
        GROUP BY \`city\` HAVING COUNT(*) >= 3`
     );
-    writeSitemap("ciudades.xml", cityGroups.map((c) => urlEntry(`${BASE_URL}/ciudad/${citySlug(c.city)}`, undefined, "weekly", "0.8")));
+    const ciudadesFile = writeSitemap(
+      "ciudades.xml",
+      cityGroups
+        .filter((c) => c.city)
+        .map((c) => urlEntry(`${BASE_URL}/ciudad/${citySlug(c.city)}`, undefined, "weekly", "0.8"))
+    );
 
-    // Static pages
-    writeSitemap("estaticas.xml", [
+    // Static pages — never empty by construction
+    const estaticasFile = writeSitemap("estaticas.xml", [
       urlEntry(`${BASE_URL}/`, undefined, "daily", "1.0"),
       urlEntry(`${BASE_URL}/populares`, undefined, "daily", "0.9"),
       urlEntry(`${BASE_URL}/agregar-grupo`, undefined, "monthly", "0.6"),
@@ -170,51 +221,60 @@ async function main() {
       pool,
       "SELECT `slug` FROM `uploaders`"
     );
-    writeSitemap(
+    const autoresFile = writeSitemap(
       "autores.xml",
       [
         urlEntry(`${BASE_URL}/autores`, undefined, "weekly", "0.6"),
-        ...autores.map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")),
+        ...autores
+          .filter((a) => a.slug)
+          .map((a) => urlEntry(`${BASE_URL}/autor/${a.slug}`, undefined, "monthly", "0.5")),
       ]
     );
 
     // Guías — all published posts (Antonio C. editorial line). lastmod = updatedAt
     // so edited posts re-enter the crawl queue. (Blog + guías merged: /guias/{slug}.)
+    // Empty blog (no published posts) → blog.xml is removed and omitted from
+    // the index (an empty urlset is the GSC "missing url tag" error — Task 36).
     const posts = await q(
       pool,
       "SELECT `slug`, `updatedAt` FROM `blog_posts` WHERE `status` = 'published' ORDER BY `publishedAt` DESC"
     );
-    writeSitemap(
+    const blogFile = writeSitemap(
       "blog.xml",
-      posts.map((p) =>
-        urlEntry(
-          `${BASE_URL}/guias/${p.slug}`,
-          new Date(p.updatedAt).toISOString().slice(0, 10),
-          "monthly",
-          "0.7"
+      posts
+        .filter((p) => p.slug)
+        .map((p) =>
+          urlEntry(
+            `${BASE_URL}/guias/${p.slug}`,
+            safeDate(p.updatedAt),
+            "monthly",
+            "0.7"
+          )
         )
-      )
     );
 
-    // Sitemap index
+    // Sitemap index — ONLY files that were actually written (empty sections
+    // return null). The old code hardcoded all 6 fixed names, so a wiped or
+    // empty section still appeared in the index and 404'd (Task 36).
     const allFiles = [
       ...sitemapFiles,
-      { filename: "categorias.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "paises.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "ciudades.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "blog.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "autores.xml", lastmod: new Date().toISOString().slice(0, 10) },
-      { filename: "estaticas.xml", lastmod: new Date().toISOString().slice(0, 10) },
-    ];
+      categoriasFile,
+      paisesFile,
+      ciudadesFile,
+      blogFile,
+      autoresFile,
+      estaticasFile,
+    ].filter((f) => f !== null);
+    const today = new Date().toISOString().slice(0, 10);
 
     const indexContent = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allFiles
-      .map((f) => `  <sitemap>\n    <loc>${BASE_URL}/sitemaps/${f.filename}</loc>\n    <lastmod>${f.lastmod}</lastmod>\n  </sitemap>`)
+      .map((f) => `  <sitemap>\n    <loc>${BASE_URL}/sitemaps/${f.filename}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`)
       .join("\n")}\n</sitemapindex>`;
 
     writePublicFile("sitemap.xml", indexContent);
     log(`Wrote sitemap.xml index (${allFiles.length} sub-sitemaps)`);
 
-    log(`Sitemap generation complete. Total groups: ${groups.length}`);
+    log(`Sitemap generation complete. Total groups: ${liveGroups.length}`);
   } finally {
     lock.release();
     await pool.end();

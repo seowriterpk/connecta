@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminApi } from "@/lib/admin-guard";
 import { query, queryOne, type Row } from "@/lib/db";
+import { parseJsonArray } from "@/lib/parse-json";
 import { SITE } from "@/lib/constants";
 import * as fs from "fs";
 import * as path from "path";
@@ -87,8 +88,10 @@ export async function POST(req: NextRequest) {
       );
       const data = groups.map((g: any) => ({
         ...g,
-        tags: JSON.parse(g.tags || "[]"),
-        keywords: JSON.parse(g.keywords || "[]"),
+        // Safe parse — legacy rows hold a bare string instead of a JSON array
+        // ("memes"), which used to throw and abort the whole build (Task 36).
+        tags: parseJsonArray(g.tags),
+        keywords: parseJsonArray(g.keywords),
         createdAt: g.createdAt instanceof Date ? g.createdAt.toISOString() : String(g.createdAt),
         lastActiveAt: g.lastActiveAt instanceof Date ? g.lastActiveAt.toISOString() : null,
       }));
@@ -103,12 +106,9 @@ export async function POST(req: NextRequest) {
       );
       const tagCounts = new Map<string, number>();
       for (const g of groups) {
-        try {
-          const tags = JSON.parse(g.tags || "[]");
-          for (const t of tags) {
-            tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
-          }
-        } catch {}
+        for (const t of parseJsonArray(g.tags)) {
+          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+        }
       }
       const data = [...tagCounts.entries()]
         .map(([tag, count]) => ({ tag, count }))

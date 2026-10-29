@@ -26,6 +26,7 @@
 import { query, type Row } from "./db";
 import type { GroupDTO } from "./types";
 import { computeDisplayedMembers } from "./members";
+import { parseJsonArray } from "./parse-json";
 
 type GroupRow = Row & Record<string, any>;
 
@@ -43,8 +44,10 @@ function toDTO(g: GroupRow): GroupDTO {
     isFeatured: g.popularityBadge === "featured",
     isVerified: g.linkStatus === "active" && g.lastValidatedAt != null,
     status: g.status as any,
-    tags: JSON.parse(g.tags || "[]"),
-    keywords: JSON.parse(g.keywords || "[]"),
+    // Safe parse: legacy rows hold a bare string ("memes") instead of a JSON
+    // array — JSON.parse used to crash the whole group page on those rows.
+    tags: parseJsonArray(g.tags),
+    keywords: parseJsonArray(g.keywords),
     views: g.views ?? 0,
     shares: g.shares ?? 0,
     clicks: g.clicks ?? 0,

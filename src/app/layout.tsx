@@ -96,11 +96,14 @@ export const metadata: Metadata = {
     images: ["/og.svg"],
   },
   robots: {
-    index: true,
-    follow: true,
+    // NO explicit index/follow here (Task 36): they're the crawler DEFAULT,
+    // and a blanket "index, follow" meta CONFLICTED with the noindex Next
+    // auto-injects on not-found renders (streaming soft-404s) — duplicate
+    // robots metas with opposite directives. Google picks the most
+    // restrictive either way, but a single clean directive is unambiguous.
+    // Real pages stay indexable by default; only the googlebot extras are
+    // worth declaring explicitly.
     googleBot: {
-      index: true,
-      follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
       "max-video-preview": -1,
