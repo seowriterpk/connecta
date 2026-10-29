@@ -30,7 +30,19 @@ import path from "path";
 
 loadEnvFile();
 const pool = createPool();
-const BASE_URL = process.env.BASE_URL || "https://gruposhoy.com";
+// GLOBAL URL POLICY: apex only — https://gruposhoy.com, never www.
+// Mirrors canonicalBaseUrl() in src/lib/constants.ts (kept in sync):
+// even a wrongly-set BASE_URL ("https://www.gruposhoy.com") normalizes
+// to the clean apex origin so generated <loc> URLs can never drift.
+function canonicalBaseUrl(raw) {
+  if (!raw) return "https://gruposhoy.com";
+  let url = raw.trim();
+  url = url.replace(/^http:\/\//i, "https://");
+  url = url.replace(/^(https:\/\/)www\./i, "$1");
+  url = url.replace(/\/+$/, "");
+  return url || "https://gruposhoy.com";
+}
+const BASE_URL = canonicalBaseUrl(process.env.BASE_URL || "https://gruposhoy.com");
 const log = makeLogger("sitemap-gen");
 const lock = makeLock("sitemap-gen", 30);
 

@@ -14,6 +14,27 @@ export const SITE = {
 } as const;
 
 /**
+ * GLOBAL URL POLICY (owner, 2026-10): the site is https://gruposhoy.com —
+ * NON-WWW, HTTPS only. The www host 301s to the apex (next.config.mjs) and
+ * every generated URL (sitemaps, RSS, canonicals, JSON-LD) must be apex.
+ * This normalizer is the defense-in-depth layer: even if BASE_URL is
+ * accidentally set to "https://www.gruposhoy.com" (or http://, or with a
+ * trailing slash) in some environment, every URL built through it still
+ * comes out as the clean apex origin.
+ */
+export function canonicalBaseUrl(raw: string | undefined | null): string {
+  if (!raw) return SITE.url;
+  let url = raw.trim();
+  // Force HTTPS (the apex serves HSTS-grade URLs everywhere).
+  url = url.replace(/^http:\/\//i, "https://");
+  // Strip a leading www. host — apex is the canonical host, always.
+  url = url.replace(/^(https:\/\/)www\./i, "$1");
+  // No trailing slash — callers always append "/path".
+  url = url.replace(/\/+$/, "");
+  return url || SITE.url;
+}
+
+/**
  * Default OpenGraph/Twitter social card (1200×630). Every page that overrides
  * `openGraph` must include this — Next.js replaces the whole object (no
  * deep-merge with the root layout), otherwise social shares lose the image.

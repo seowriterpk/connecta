@@ -66,7 +66,10 @@ ADMIN_PASS=<your admin panel password>
 
 PROXY_URL=http://<dataimpulse-user>__cr.us:<dataimpulse-password>@gw.dataimpulse.com:823
 
-BASE_URL=https://yourdomain.com
+# GLOBAL URL POLICY: apex, NON-WWW, HTTPS — https://gruposhoy.com.
+# The www host 301s to the apex (next.config.mjs); generators also
+# auto-normalize a wrongly-set www/http BASE_URL (canonicalBaseUrl).
+BASE_URL=https://gruposhoy.com
 NODE_ENV=production
 ```
 
@@ -150,7 +153,7 @@ read it themselves — see §2).
 | Every 15 min | `cd /home/uXXXX/domains/yourdomain/nodejs && DB_HOST=localhost DB_USER=u824913874_spanish DB_PASSWORD=xxx DB_NAME=u824913874_spanishs node scripts/crons/drip-feed.mjs` |
 | Every 6 hours | `... node scripts/crons/link-checker.mjs` |
 | Every 10 min | `... node scripts/crons/image-refresh.mjs` |
-| Daily 2:00 AM | `... BASE_URL=https://yourdomain.com node scripts/crons/sitemap-generator.mjs` |
+| Daily 2:00 AM | `... BASE_URL=https://gruposhoy.com node scripts/crons/sitemap-generator.mjs` (apex, non-www) |
 | **Once after Task 33 deploy** | `... node scripts/crons/revoked-recheck.mjs` (see §5.2) |
 
 (Replace `uXXXX` / domain with your real path — it's shown in hPanel's
@@ -298,7 +301,7 @@ revokes self-correcting even without this script.
 | Cron mail says `node: command not found` | Use the full node path in the command (find it in hPanel Node.js details or `which node` via SSH), e.g. `/opt/alt/nodejs22/bin/node scripts/crons/drip-feed.mjs` |
 | `ER_ACCESS_DENIED_ERROR` in `logs/drip-feed.log` | Wrong `DB_USER`/`DB_PASSWORD` in the cron command (or `.env` missing) — must match phpMyAdmin creds |
 | Nothing publishes, queue full | Check `logs/drip-feed.log` for "Another instance is running" (stale lock — clears after 10 min) or FATAL lines |
-| Groups live but sitemap old | Check `logs/sitemap-gen.log`; confirm `BASE_URL` is set so URLs use the domain, not the fallback |
+| Groups live but sitemap old | Check `logs/sitemap-gen.log`; confirm `BASE_URL` is set (apex, **non-www** — a www/http value is auto-normalized by `canonicalBaseUrl`) so URLs use the domain, not the fallback |
 
 ---
 

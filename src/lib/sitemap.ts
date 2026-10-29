@@ -36,10 +36,10 @@ import fs from "fs";
 import path from "path";
 import { query, queryOne } from "@/lib/db";
 import { citySlug } from "@/lib/data";
-import { SITE } from "@/lib/constants";
+import { SITE, canonicalBaseUrl } from "@/lib/constants";
 import { sitemapPublicDirs } from "@/lib/sitemap-files";
 
-const BASE_URL = process.env.BASE_URL || SITE.url;
+const BASE_URL = canonicalBaseUrl(process.env.BASE_URL || SITE.url);
 const SITEMAPS_DIR = path.join(process.cwd(), "public", "sitemaps");
 
 export interface SitemapSubFile {
