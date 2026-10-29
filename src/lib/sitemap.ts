@@ -13,9 +13,14 @@
  *   public/sitemaps/autores.xml   estaticas.xml
  *   public/sitemap.xml            (index pointing at every sub-sitemap)
  *
- * Path strategy: process.cwd()/public — correct in dev (project root) AND in
- * production standalone mode (server runs from .next/standalone, whose
- * public/ copy is what Node actually serves).
+ * Path strategy (Task 35): files are written to EVERY public/ copy —
+ * <cwd>/public AND <cwd>/.next/standalone/public (when a standalone build
+ * exists) — mirroring scripts/crons writePublicFile(). They are SERVED by
+ * the App-Router route handlers (/sitemap.xml via a beforeFiles rewrite to
+ * src/app/api/sitemap-index, and /sitemaps/* via
+ * src/app/sitemaps/[filename]), which read from disk per request:
+ * Next.js 16 only scans public/ ONCE at boot, so files written at runtime
+ * are invisible to the static router (that was the grupos-2.xml…404 bug).
  */
 
 import fs from "fs";
@@ -23,6 +28,7 @@ import path from "path";
 import { query, queryOne } from "@/lib/db";
 import { citySlug } from "@/lib/data";
 import { SITE } from "@/lib/constants";
+import { sitemapPublicDirs } from "@/lib/sitemap-files";
 
 const BASE_URL = process.env.BASE_URL || SITE.url;
 const SITEMAPS_DIR = path.join(process.cwd(), "public", "sitemaps");
@@ -79,10 +85,53 @@ function urlEntry(loc: string, lastmod?: string | null, changefreq = "weekly", p
   return `  <url>\n    <loc>${loc}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 
+/**
+ * Write a file into every public/ copy (root + standalone build when
+ * present). `relPath` is relative to public/, e.g. "sitemaps/grupos-1.xml".
+ * Mirrors writePublicFile() in scripts/crons/_lib.mjs.
+ */
+function writePublicFile(relPath: string, content: string): void {
+  for (const dir of sitemapPublicDirs()) {
+    const target = path.join(dir, relPath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  }
+}
+
 function writeSitemap(filename: string, urls: string[]): SitemapSubFile {
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
-  fs.writeFileSync(path.join(SITEMAPS_DIR, filename), content);
+  writePublicFile(path.join("sitemaps", filename), content);
   return { filename, urlCount: urls.length, bytes: Buffer.byteLength(content) };
+}
+
+/**
+ * Remove grupos-N.xml chunks left over from a bigger DB (e.g. the site
+ * shrank from 9 chunks to 7 — the old grupos-8/9.xml would linger on disk,
+ * never referenced by the index but still counted by the status card and
+ * fetchable by crawlers that remember old URLs). Only the grupos-N pattern
+ * is ever touched, and only when the DB still has live groups.
+ */
+function cleanupStaleChunks(chunkCount: number): void {
+  if (chunkCount <= 0) return; // never wipe chunks on an empty/glitchy read
+  for (const dir of sitemapPublicDirs()) {
+    const sdir = path.join(dir, "sitemaps");
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(sdir);
+    } catch {
+      continue; // no sitemaps dir in this copy
+    }
+    for (const entry of entries) {
+      const m = /^grupos-(\d{1,4})\.xml$/.exec(entry);
+      if (m && Number(m[1]) > chunkCount) {
+        try {
+          fs.unlinkSync(path.join(sdir, entry));
+        } catch {
+          /* best effort */
+        }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +179,7 @@ async function run(): Promise<SitemapGenerationResult> {
       )
     );
   }
+  cleanupStaleChunks(sitemapFiles.length);
 
   // Categories — active ones, adult included (indexable; robots carries the
   // RTA label on-page).
@@ -225,7 +275,7 @@ async function run(): Promise<SitemapGenerationResult> {
   const indexContent = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allFiles
     .map((f) => `  <sitemap>\n    <loc>${BASE_URL}/sitemaps/${f.filename}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`)
     .join("\n")}\n</sitemapindex>`;
-  fs.writeFileSync(path.join(SITEMAPS_DIR, "..", "sitemap.xml"), indexContent);
+  writePublicFile("sitemap.xml", indexContent);
 
   const result: SitemapGenerationResult = {
     ok: true,

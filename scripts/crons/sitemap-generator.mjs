@@ -18,6 +18,7 @@ import {
   makeLogger,
   makeLock,
   ROOT,
+  publicDirs,
   writePublicFile,
 } from "./_lib.mjs";
 import fs from "fs";
@@ -36,9 +37,42 @@ function urlEntry(loc, lastmod, changefreq = "weekly", priority = "0.7") {
 function writeSitemap(filename, urls) {
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
   // writePublicFile targets <root>/public/ AND .next/standalone/public/
-  // (the dir the production server actually serves from).
+  // (both copies are read by the /sitemaps/* route handlers, which serve
+  // the XML — Next 16 never re-scans public/ after boot, so static
+  // serving can't be relied on for runtime-generated files).
   writePublicFile(path.join("sitemaps", filename), content);
   log(`Wrote ${filename} (${urls.length} URLs)`);
+}
+
+/**
+ * Remove grupos-N.xml chunks left over from a bigger DB (site shrank → old
+ * high-numbered chunks would linger on disk, counted by the admin status
+ * card and fetchable by crawlers that remember old URLs). Only the
+ * grupos-N pattern is touched, and only when there are still live groups.
+ * Kept in sync with src/lib/sitemap.ts.
+ */
+function cleanupStaleChunks(chunkCount) {
+  if (chunkCount <= 0) return; // never wipe chunks on an empty/glitchy read
+  for (const dir of publicDirs()) {
+    const sdir = path.join(dir, "sitemaps");
+    let entries;
+    try {
+      entries = fs.readdirSync(sdir);
+    } catch {
+      continue; // no sitemaps dir in this copy
+    }
+    for (const entry of entries) {
+      const m = /^grupos-(\d{1,4})\.xml$/.exec(entry);
+      if (m && Number(m[1]) > chunkCount) {
+        try {
+          fs.unlinkSync(path.join(sdir, entry));
+          log(`Removed stale chunk ${entry} (now ${chunkCount} chunks)`);
+        } catch {
+          /* best effort */
+        }
+      }
+    }
+  }
 }
 
 async function main() {
@@ -78,6 +112,7 @@ async function main() {
       writeSitemap(filename, urls);
       sitemapFiles.push({ filename, lastmod: new Date().toISOString().slice(0, 10) });
     }
+    cleanupStaleChunks(sitemapFiles.length);
 
     // Categories — active ones, adult included (indexable since the
     // MIGRACIÓN ADULTO INDEXABLE; robots carries the RTA label on-page).

@@ -203,7 +203,7 @@ runs are diverse by category+country. Duplicate invite links are auto-killed.
   automatically spawns `sitemap-generator.mjs`, so new `/grupo/<slug>` URLs
   enter `sitemap.xml` within seconds — never wait for the nightly 2 AM cron.
   Sitemap files are written to BOTH `public/` and `.next/standalone/public/`
-  (the dir the running production server actually serves from).
+  (both copies are read by the route handlers that serve them — see §5.3).
 - Queue empty → logs "Queue empty. Nothing to publish." and exits (cheap).
 
 **Verify it works:**
@@ -221,7 +221,52 @@ throughput. Defaults: 5 × 4 = 20 groups/hour = 480/day. Raise
 `dripFeedPerRun` in the admin panel for faster drains of big bulk uploads
 (e.g. 25 × 4 = 100/hour).
 
-### 5.2 One-time: heal the false-revoke wave (run AFTER the Task 33 deploy)
+### 5.3 Sitemap serving architecture (Task 35 — READ BEFORE TOUCHING SITEMAPS)
+
+**Symptom that led here:** `/sitemaps/grupos-2.xml` … `grupos-9.xml` returned
+404 on the live site even though the admin panel listed them as generated.
+
+**Root cause:** Next.js 16 scans `public/` exactly ONCE at server boot
+(`next/dist/server/lib/router-utils/filesystem.js` — the `publicFolderItems`
+set is filled only in the `!opts.dev` branch). Files written to public/ AFTER
+the server started — which is what every sitemap regeneration does — are
+invisible to the static router and 404 forever. Writing to
+`.next/standalone/public/` too (the old Task-33 fix) does NOT help: the
+boot-time set is the only thing the production router consults.
+
+**The fix (all verified end-to-end):**
+
+| URL | Served by | Reads |
+|---|---|---|
+| `/sitemap.xml` | `beforeFiles` rewrite → `src/app/api/sitemap-index/route.ts` | `public/sitemap.xml` from disk, per request |
+| `/sitemaps/grupos-N.xml` (+ categorias/paises/ciudades/blog/autores/estaticas) | `src/app/sitemaps/[filename]/route.ts` | `public/sitemaps/<file>` from disk, per request |
+
+- Route handlers read from disk on every request → freshly generated files
+  are live the second they are written. No restart, no redeploy.
+- `/api/sitemap-index` **auto-heals**: if the index is missing (e.g. right
+  after a deploy, before the first cron run), the first request triggers a
+  full regeneration (same code as the admin button), then serves it. A 60s
+  cooldown prevents DB hammering when generation itself fails.
+- The rewrite is `beforeFiles` so it runs BEFORE the public-folder check —
+  deterministic in dev and prod, and it avoids Next's dev-mode
+  "conflicting public file and page file" 500 that a literal
+  `app/sitemap.xml/route.ts` would hit whenever a generated
+  `public/sitemap.xml` exists on disk.
+- Sitemap files are **runtime artifacts**: they are NOT in git anymore
+  (`.gitignore`: `/public/sitemap.xml`, `/public/sitemaps/`). Never commit
+  them again — committed copies would go stale the moment a cron regenerates.
+- Generators write every file to ALL public copies (repo `public/` +
+  `.next/standalone/public/` when present) and delete stale `grupos-N.xml`
+  chunks beyond the current chunk count (site shrank → no orphan chunks).
+- Cache headers are set by the handlers (`public, max-age=60`) — Next's
+  static public serving would stamp `max-age=31536000, immutable`, which is
+  wrong for sitemaps.
+
+**Verify after deploy:** `curl -s https://gruposhoy.com/sitemap.xml | head`
+(should list every chunk) and `curl -s -o /dev/null -w '%{http_code}'
+https://gruposhoy.com/sitemaps/grupos-2.xml` → `200`.
+
+### 5.4 One-time: heal the false-revoke wave (run AFTER the Task 33 deploy)
 
 During proxy overload the old link checker marked ~80% of groups
 `linkStatus='revoked'` from WhatsApp block pages (they look identical to

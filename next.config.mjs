@@ -50,6 +50,22 @@ const nextConfig = {
       },
     ];
   },
+  // SITEMAP INDEX (Task 35): /sitemap.xml is served by the internal API
+  // route /api/sitemap-index, which reads the generated file from disk per
+  // request. Why not the public/ folder: Next.js 16 scans public/ only ONCE
+  // at boot, so runtime-regenerated files 404'd on the static path (the
+  // grupos-N.xml 404 bug). `beforeFiles` runs BEFORE the public-folder
+  // check, so this rewrite wins deterministically in dev AND prod — and it
+  // avoids Next's dev-mode "conflicting public file and page file" 500 that
+  // a literal app/sitemap.xml route would hit whenever a generated
+  // public/sitemap.xml exists on disk.
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: "/sitemap.xml", destination: "/api/sitemap-index" }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;

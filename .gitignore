@@ -66,6 +66,14 @@ logs/
 # Runtime-stored WhatsApp group images (regenerated per environment, robots-blocked)
 /media/
 
+# Sitemaps — RUNTIME-GENERATED artifacts (Task 35). Never commit them again:
+# Next.js 16 scans public/ only once at boot, so committed copies were served
+# stale-or-not-at-all; the /sitemap.xml + /sitemaps/* route handlers read the
+# generated files from disk per request. The first hit after a deploy
+# auto-regenerates, and the crons keep them fresh.
+/public/sitemap.xml
+/public/sitemaps/
+
 # --- Repo hygiene: sandbox/QA/agent artifacts are NEVER part of the app ---
 # Session logs, agent notes, QA screenshots, sandbox runtime scripts, legacy
 # local DBs and scratch uploads live on the dev machine only — the GitHub repo
